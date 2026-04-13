@@ -1232,15 +1232,17 @@
   }
 
   function selectRegion(cell) {
-    document.querySelectorAll('.region-cell').forEach(c => c.classList.remove('selected'));
-    cell.classList.add('selected');
-    document.getElementById('p2_region').value = cell.dataset.region;
+    cell.classList.toggle('selected');
+    const selected = [...document.querySelectorAll('.region-cell.selected')]
+      .map(c => c.dataset.region);
+    document.getElementById('p2_region').value = selected.join(',');
     autoSave();
   }
 
   function setRegionPicker(value) {
+    const values = (value || '').split(',').map(s => s.trim()).filter(Boolean);
     document.querySelectorAll('.region-cell').forEach(c =>
-      c.classList.toggle('selected', c.dataset.region === value)
+      c.classList.toggle('selected', values.includes(c.dataset.region))
     );
     document.getElementById('p2_region').value = value || '';
   }
