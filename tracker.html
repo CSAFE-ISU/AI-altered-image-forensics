@@ -582,6 +582,7 @@
   let currentType = null;
   let currentRating = null;
   let detectorCount = 0;
+  let copyPerformed = false;
 
   // ── Server I/O ────────────────────────────────────────────────────────────
 
@@ -807,6 +808,16 @@
 
     // Async: populate AI filename dropdown and restore saved selection
     await populateAiFilenameDropdown(getP2Model(), rec.ai_assigned_filename);
+
+    // Disable copy button if a renamed file is already recorded for this entry
+    const btn = document.getElementById('copy-rename-btn');
+    if (rec.altered_filename) {
+      copyPerformed = true;
+      btn.disabled = true;
+    } else {
+      copyPerformed = false;
+      btn.disabled = false;
+    }
   }
 
   // ── Input change handlers ─────────────────────────────────────────────────
@@ -1121,9 +1132,9 @@
       files.forEach(f => {
         const opt = document.createElement('option');
         opt.value = f; opt.textContent = f;
-        if (f === selectedVal) opt.selected = true;
         sel.appendChild(opt);
       });
+      if (selectedVal) sel.value = selectedVal;  // set after all options added to avoid triggering onchange
     } catch {
       sel.innerHTML = '<option value="">— could not load files —</option>';
     }
@@ -1183,6 +1194,8 @@
   }
 
   async function p2AiFilenameChanged() {
+    copyPerformed = false;
+    document.getElementById('copy-rename-btn').disabled = false;
     await updateComputedRename();
     await populateImageInfo();
   }
@@ -1203,11 +1216,15 @@
   }
 
   async function copyAndRenameImage() {
+    if (copyPerformed) {
+      showStatus('status-copy-rename', 'Already copied as ' + getVal('p2_altered_filename') + ' — select a new AI file to copy again', 'warning');
+      return;
+    }
     const inputImage = document.getElementById('p2_input_select').value;
     const aiFilename = getVal('p2_ai_filename');
     const model = getP2Model();
     if (!inputImage || !aiFilename || !model) {
-      showStatus('status-copy-rename', 'Select an input image, model, and enter the AI filename first', 'warning');
+      showStatus('status-copy-rename', 'Select an input image, model, and AI filename first', 'warning');
       return;
     }
 
@@ -1226,6 +1243,8 @@
         refreshP2Preview();
         clearCopyRenameStatus();
         showStatus('status-copy-rename', 'Copied \u2192 ' + data.filename, 'success');
+        copyPerformed = true;
+        document.getElementById('copy-rename-btn').disabled = true;
       } else {
         showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
       }
