@@ -157,6 +157,26 @@
   .img-preview { max-width: 100%; max-height: 260px; object-fit: contain; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); display: block; }
   .img-missing { font-size: 11px; color: var(--text-faint); font-style: italic; padding: 8px 0; }
 
+  .sidebar-actions {
+    padding: 0.75rem 1.25rem 0.6rem;
+    display: flex; flex-direction: column; gap: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-actions .new-record-btn { margin: 0; width: 100%; }
+
+  .study-node { margin-bottom: 1px; }
+  .study-header {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 1.25rem; cursor: pointer; user-select: none;
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    letter-spacing: 0.04em; color: var(--text);
+    transition: background 0.1s;
+  }
+  .study-header:hover { background: var(--surface2); }
+  .study-header.has-active { color: var(--accent); }
+  .study-toggle { font-size: 8px; color: var(--text-faint); width: 10px; flex-shrink: 0; }
+  .study-children .record-item { padding-left: 2.25rem; }
+
   aside::-webkit-scrollbar { width: 4px; }
   aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
@@ -174,24 +194,12 @@
 
 <div class="shell">
   <aside>
-    <div class="sidebar-group">
-      <div class="sidebar-group-label">Phase 0 — Originals</div>
-      <ul class="record-list" id="list-p0"></ul>
-      <div class="empty-state" id="empty-p0">No originals yet.</div>
+    <div class="sidebar-actions">
       <button class="new-record-btn" onclick="newRecord('p0')">+ New original</button>
-    </div>
-    <div class="sidebar-group">
-      <div class="sidebar-group-label">Phase 1 — Modifications</div>
-      <ul class="record-list" id="list-p1"></ul>
-      <div class="empty-state" id="empty-p1">No modifications yet.</div>
       <button class="new-record-btn" onclick="newRecord('p1')">+ New modification</button>
-    </div>
-    <div class="sidebar-group">
-      <div class="sidebar-group-label">Phase 2 — Alterations</div>
-      <ul class="record-list" id="list-p2"></ul>
-      <div class="empty-state" id="empty-p2">No alterations yet.</div>
       <button class="new-record-btn" onclick="newRecord('p2')">+ New alteration</button>
     </div>
+    <div id="study-tree"></div>
   </aside>
 
   <main>
@@ -583,6 +591,7 @@
   let currentRating = null;
   let detectorCount = 0;
   let copyPerformed = false;
+  let expandedStudies = new Set();
 
   // ── Server I/O ────────────────────────────────────────────────────────────
 
@@ -660,56 +669,119 @@
   // ── Sidebar ───────────────────────────────────────────────────────────────
 
   function renderSidebar() {
-    const byType = { p0: [], p1: [], p2: [] };
-    records.forEach(r => { if (byType[r.type]) byType[r.type].push(r); });
+    // Group records by study_id
+    const studyMap = {};
+    const unsorted = [];
+    records.forEach(r => {
+      const sid = r.study_id || '';
+      if (sid) {
+        if (!studyMap[sid]) studyMap[sid] = [];
+        studyMap[sid].push(r);
+      } else {
+        unsorted.push(r);
+      }
+    });
 
-    renderList('list-p0', 'empty-p0', byType.p0, r => ({
-      name: r.study_id || 'Untitled',
-      meta: r.original_filename ? r.original_filename.slice(0, 30) + (r.original_filename.length > 30 ? '…' : '') : '',
-      badge: 'original', badgeClass: 'badge-p0'
-    }));
-    renderList('list-p1', 'empty-p1', byType.p1, r => ({
-      name: r.mod_filename || 'Untitled',
-      meta: r.mod_type || '',
-      badge: r.study_id || '', badgeClass: 'badge-p1'
-    }));
-    renderList('list-p2', 'empty-p2', byType.p2, r => ({
-      name: r.altered_filename || 'Untitled',
-      meta: r.model || '',
-      badge: r.model || '',
-      badgeClass: (r.model||'').toLowerCase() === 'grok' ? 'badge-grok' : (r.model||'').toLowerCase() === 'gemini' ? 'badge-gemini' : r.model ? 'badge-other-model' : ''
-    }));
+    // Sort study IDs numerically (csafe-001, csafe-002, …)
+    const studyIds = Object.keys(studyMap).sort((a, b) => {
+      const n = s => parseInt(s.replace(/\D+/g, ''), 10) || 0;
+      return n(a) - n(b);
+    });
+
+    const tree = document.getElementById('study-tree');
+    tree.innerHTML = '';
+
+    studyIds.forEach(sid => {
+      tree.appendChild(buildStudyNode(sid, studyMap[sid]));
+    });
+
+    if (unsorted.length) {
+      const node = document.createElement('div');
+      node.className = 'study-node';
+      const hdr = document.createElement('div');
+      hdr.className = 'study-header';
+      hdr.innerHTML = '<span class="study-toggle"></span>Unsorted';
+      node.appendChild(hdr);
+      const children = document.createElement('div');
+      children.className = 'study-children';
+      unsorted.forEach(r => children.appendChild(buildRecordItem(r)));
+      node.appendChild(children);
+      tree.appendChild(node);
+    }
 
     document.getElementById('record-count').textContent =
       records.length ? records.length + ' record' + (records.length !== 1 ? 's' : '') : '';
   }
 
-  function renderList(listId, emptyId, items, getInfo) {
-    const list = document.getElementById(listId);
-    const empty = document.getElementById(emptyId);
-    list.innerHTML = '';
-    empty.style.display = items.length ? 'none' : 'block';
-    items.forEach(r => {
-      const info = getInfo(r);
-      const li = document.createElement('li');
-      li.className = 'record-item' + (r.id === currentId ? ' active' : '');
-      li.onclick = () => selectRecord(r.id);
-      li.innerHTML = `<div class="record-item-name">${info.name}</div>
-        ${info.meta ? `<div class="record-item-meta">${info.meta}</div>` : ''}
-        ${info.badge ? `<span class="record-item-badge ${info.badgeClass}">${info.badge}</span>` : ''}`;
-      list.appendChild(li);
+  function buildStudyNode(sid, recs) {
+    const isExpanded = expandedStudies.has(sid);
+    const hasActive = recs.some(r => r.id === currentId);
+
+    const node = document.createElement('div');
+    node.className = 'study-node';
+
+    const header = document.createElement('div');
+    header.className = 'study-header' + (hasActive ? ' has-active' : '');
+    header.innerHTML = `<span class="study-toggle">${isExpanded ? '▾' : '▸'}</span>${sid}`;
+    header.onclick = () => {
+      if (expandedStudies.has(sid)) expandedStudies.delete(sid);
+      else expandedStudies.add(sid);
+      renderSidebar();
+    };
+    node.appendChild(header);
+
+    const children = document.createElement('div');
+    children.className = 'study-children';
+    children.style.display = isExpanded ? 'block' : 'none';
+
+    // Sort: p0 → p1 → p2, then alphabetically within each type
+    const sorted = [...recs].sort((a, b) => {
+      const order = { p0: 0, p1: 1, p2: 2 };
+      const td = (order[a.type] ?? 3) - (order[b.type] ?? 3);
+      if (td !== 0) return td;
+      return getRecordName(a).localeCompare(getRecordName(b));
     });
+    sorted.forEach(r => children.appendChild(buildRecordItem(r)));
+    node.appendChild(children);
+    return node;
+  }
+
+  function buildRecordItem(rec) {
+    const item = document.createElement('div');
+    item.className = 'record-item' + (rec.id === currentId ? ' active' : '');
+    item.onclick = () => selectRecord(rec.id);
+    const name = getRecordName(rec);
+    const meta = getRecordMeta(rec);
+    item.innerHTML = `<div class="record-item-name">${name}</div>
+      ${meta ? `<div class="record-item-meta">${meta}</div>` : ''}`;
+    return item;
+  }
+
+  function getRecordName(rec) {
+    if (rec.type === 'p0') return (rec.study_id || 'csafe-???') + '.jpg';
+    if (rec.type === 'p1') return rec.mod_filename || 'Untitled modification';
+    if (rec.type === 'p2') return rec.altered_filename || 'Untitled alteration';
+    return 'Untitled';
+  }
+
+  function getRecordMeta(rec) {
+    if (rec.type === 'p0') return 'original';
+    if (rec.type === 'p1') return (rec.mod_type || 'modification').toLowerCase();
+    if (rec.type === 'p2') return (rec.model || 'alteration').toLowerCase();
+    return '';
   }
 
   // ── New / Select record ───────────────────────────────────────────────────
 
   function newRecord(type) {
     const id = 'rec_' + Date.now();
-    const study_id = nextCsafeId();
+    // p0 gets a new study ID immediately; p1/p2 derive theirs from the input image on save
+    const study_id = type === 'p0' ? nextCsafeId() : '';
     const rec = { id, type, study_id };
     records.unshift(rec);
     currentId = id;
     currentType = type;
+    if (study_id) expandedStudies.add(study_id);
     renderSidebar();
     showFormArea(true);
     showFormFor(type, rec);
@@ -722,6 +794,8 @@
     const rec = records.find(r => r.id === id);
     currentType = rec.type;
     currentRating = rec.subjective_quality || null;
+    // Expand the study containing this record so it's visible
+    if (rec.study_id) expandedStudies.add(rec.study_id);
     renderSidebar();
     showFormArea(true);
     showFormFor(rec.type, rec);
