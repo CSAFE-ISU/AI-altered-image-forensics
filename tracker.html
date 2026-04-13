@@ -210,6 +210,12 @@
   .gallery-no-img { font-size: 10px; color: var(--text-faint); font-style: italic; text-align: center; padding: 8px; }
   .gallery-label { font-family: var(--mono); font-size: 10px; color: var(--text); word-break: break-all; line-height: 1.4; }
   .gallery-card-meta { font-size: 10px; color: var(--text-faint); }
+  .gallery-row { margin-bottom: 1.25rem; }
+  .gallery-row-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 8px;
+  }
 
   /* ── Lightbox ── */
   #lightbox {
@@ -1402,6 +1408,63 @@
 
   // ── Gallery ───────────────────────────────────────────────────────────────
 
+  function buildGalleryCard(rec) {
+    const filename = getRecordName(rec);
+    const meta = getRecordMeta(rec);
+    const src = '/images/' + encodeURIComponent(filename);
+
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.onclick = () => openLightbox(src, filename, meta);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'gallery-thumb-wrap';
+
+    const img = document.createElement('img');
+    img.className = 'gallery-thumb';
+    img.alt = filename;
+    img.src = src;
+    img.onerror = () => {
+      img.remove();
+      const miss = document.createElement('div');
+      miss.className = 'gallery-no-img';
+      miss.textContent = 'Image not found';
+      wrap.appendChild(miss);
+      card.onclick = null;
+      card.style.cursor = 'default';
+    };
+    wrap.appendChild(img);
+
+    const label = document.createElement('div');
+    label.className = 'gallery-label';
+    label.textContent = filename;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'gallery-card-meta';
+    metaEl.textContent = meta;
+
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.appendChild(metaEl);
+    return card;
+  }
+
+  function buildGalleryRow(label, recs) {
+    if (!recs.length) return null;
+    const row = document.createElement('div');
+    row.className = 'gallery-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'gallery-row-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+    const sorted = [...recs].sort((a, b) => getRecordName(a).localeCompare(getRecordName(b)));
+    sorted.forEach(rec => grid.appendChild(buildGalleryCard(rec)));
+    row.appendChild(grid);
+    return row;
+  }
+
   function openGallery() {
     const content = document.getElementById('gallery-content');
     content.innerHTML = '';
@@ -1410,8 +1473,8 @@
     records.forEach(r => {
       const sid = r.study_id || '';
       if (!sid) return;
-      if (!studyMap[sid]) studyMap[sid] = [];
-      studyMap[sid].push(r);
+      if (!studyMap[sid]) studyMap[sid] = { p0: [], p1: [], p2: [] };
+      (studyMap[sid][r.type] = studyMap[sid][r.type] || []).push(r);
     });
 
     const studyIds = Object.keys(studyMap).sort((a, b) => {
@@ -1428,58 +1491,13 @@
       title.textContent = sid;
       section.appendChild(title);
 
-      const grid = document.createElement('div');
-      grid.className = 'gallery-grid';
+      const { p0 = [], p1 = [], p2 = [] } = studyMap[sid];
+      [
+        buildGalleryRow('Original', p0),
+        buildGalleryRow('Modifications', p1),
+        buildGalleryRow('Alterations', p2),
+      ].forEach(row => { if (row) section.appendChild(row); });
 
-      const sorted = [...studyMap[sid]].sort((a, b) => {
-        const order = { p0: 0, p1: 1, p2: 2 };
-        const td = (order[a.type] ?? 3) - (order[b.type] ?? 3);
-        if (td !== 0) return td;
-        return getRecordName(a).localeCompare(getRecordName(b));
-      });
-
-      sorted.forEach(rec => {
-        const filename = getRecordName(rec);
-        const meta = getRecordMeta(rec);
-        const src = '/images/' + encodeURIComponent(filename);
-
-        const card = document.createElement('div');
-        card.className = 'gallery-card';
-        card.onclick = () => openLightbox(src, filename, meta);
-
-        const wrap = document.createElement('div');
-        wrap.className = 'gallery-thumb-wrap';
-
-        const img = document.createElement('img');
-        img.className = 'gallery-thumb';
-        img.alt = filename;
-        img.src = src;
-        img.onerror = () => {
-          img.remove();
-          const miss = document.createElement('div');
-          miss.className = 'gallery-no-img';
-          miss.textContent = 'Image not found';
-          wrap.appendChild(miss);
-          card.onclick = null;
-          card.style.cursor = 'default';
-        };
-        wrap.appendChild(img);
-
-        const label = document.createElement('div');
-        label.className = 'gallery-label';
-        label.textContent = filename;
-
-        const metaEl = document.createElement('div');
-        metaEl.className = 'gallery-card-meta';
-        metaEl.textContent = meta;
-
-        card.appendChild(wrap);
-        card.appendChild(label);
-        card.appendChild(metaEl);
-        grid.appendChild(card);
-      });
-
-      section.appendChild(grid);
       content.appendChild(section);
     });
 
