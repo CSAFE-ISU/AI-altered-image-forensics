@@ -31,12 +31,21 @@ app = Flask(__name__, static_folder=None)
 # ── Image search ──────────────────────────────────────────────────────────────
 
 def find_image(filename: str) -> pathlib.Path | None:
-    """Return the first file matching `filename` found under any IMAGE_ROOT."""
-    for root in IMAGE_ROOTS:
-        if root.exists():
-            for path in root.rglob(filename):
-                if path.is_file():
-                    return path
+    """Return the first file matching `filename` found under any IMAGE_ROOT.
+
+    Also tries swapping .jpg <-> .jpeg so records and files on disk don't
+    have to agree on the extension.
+    """
+    stem, _, ext = filename.rpartition(".")
+    alt_ext = {"jpg": "jpeg", "jpeg": "jpg"}.get(ext.lower())
+    candidates = [filename] + ([f"{stem}.{alt_ext}"] if alt_ext else [])
+
+    for name in candidates:
+        for root in IMAGE_ROOTS:
+            if root.exists():
+                for path in root.rglob(name):
+                    if path.is_file():
+                        return path
     return None
 
 
