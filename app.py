@@ -111,6 +111,30 @@ def get_models():
     return jsonify(models)
 
 
+@app.route("/api/original_image_info")
+def original_image_info():
+    filename = request.args.get("filename", "").strip()
+    if not filename:
+        return jsonify({"error": "Missing filename"}), 400
+    path = find_image(filename)
+    if not path:
+        return jsonify({"error": "File not found"}), 404
+    try:
+        from PIL import Image
+        size_bytes = path.stat().st_size
+        if size_bytes >= 1_000_000:
+            size_str = f"{size_bytes / 1_000_000:.1f} MB"
+        elif size_bytes >= 1_000:
+            size_str = f"{size_bytes / 1_000:.1f} KB"
+        else:
+            size_str = f"{size_bytes} B"
+        with Image.open(path) as img:
+            w, h = img.size
+        return jsonify({"filesize": size_str, "dimensions": f"{w} \u00d7 {h}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/image_info")
 def image_info():
     model = request.args.get("model", "").strip()

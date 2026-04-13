@@ -294,21 +294,17 @@
           <div class="field">
             <label>Original filename (from camera / source)</label>
             <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
-              oninput="refreshP0Preview()">
+              oninput="refreshP0Preview(); populateP0ImageInfo();">
           </div>
           <div class="two-col">
             <div class="field">
               <label>File size</label>
-              <input type="text" id="p0_filesize" placeholder="e.g. 3.9 MB">
+              <input type="text" id="p0_filesize" placeholder="auto-populated">
             </div>
             <div class="field">
               <label>Dimensions (px)</label>
-              <input type="text" id="p0_dims" placeholder="e.g. 4032 × 3024">
+              <input type="text" id="p0_dims" placeholder="auto-populated">
             </div>
-          </div>
-          <div class="field">
-            <label>Device / camera</label>
-            <input type="text" id="p0_device" placeholder="e.g. iPhone 6s, Canon EOS R5">
           </div>
           <div class="field">
             <label>Notes</label>
@@ -902,7 +898,6 @@
     setVal('p0_original_filename', rec.original_filename);
     setVal('p0_filesize', rec.filesize);
     setVal('p0_dims', rec.dims);
-    setVal('p0_device', rec.device);
     setVal('p0_notes', rec.notes);
     updateFormTitle();
     refreshP0Preview();
@@ -1018,7 +1013,6 @@
         original_filename: getVal('p0_original_filename'),
         filesize: getVal('p0_filesize'),
         dims: getVal('p0_dims'),
-        device: getVal('p0_device'),
         notes: getVal('p0_notes')
       });
       showStatus('status-p0', 'Saved', 'success');
@@ -1351,6 +1345,17 @@
     document.getElementById('copy-rename-btn').disabled = false;
     await updateComputedRename();
     await populateImageInfo();
+  }
+
+  async function populateP0ImageInfo() {
+    const filename = getVal('p0_original_filename');
+    if (!filename) return;
+    try {
+      const res = await fetch('/api/original_image_info?filename=' + encodeURIComponent(filename));
+      const data = await res.json();
+      if (data.filesize) setVal('p0_filesize', data.filesize);
+      if (data.dimensions) setVal('p0_dims', data.dimensions);
+    } catch { /* silently ignore */ }
   }
 
   async function populateImageInfo() {
