@@ -210,6 +210,31 @@
   .gallery-no-img { font-size: 10px; color: var(--text-faint); font-style: italic; text-align: center; padding: 8px; }
   .gallery-label { font-family: var(--mono); font-size: 10px; color: var(--text); word-break: break-all; line-height: 1.4; }
   .gallery-card-meta { font-size: 10px; color: var(--text-faint); }
+  /* ── Region picker ── */
+  .region-picker-wrap {
+    position: relative; width: 100%; max-width: 320px;
+    aspect-ratio: 4/3; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  }
+  .region-picker-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; display: block;
+  }
+  .region-picker-placeholder {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 11px; color: var(--text-faint);
+    font-style: italic; text-align: center; padding: 12px; pointer-events: none;
+  }
+  .region-grid {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;
+  }
+  .region-cell {
+    border: 1px solid rgba(180,180,180,0.45); cursor: pointer; transition: background 0.12s;
+  }
+  .region-cell:hover { background: rgba(26,74,122,0.22); }
+  .region-cell.selected { background: rgba(26,74,122,0.48); border-color: rgba(26,74,122,0.7); }
+
   .gallery-row { margin-bottom: 1.25rem; }
   .gallery-row-label {
     font-family: var(--mono); font-size: 10px; font-weight: 500;
@@ -496,19 +521,23 @@
               </div>
             </div>
             <div class="field">
-              <label>Region altered</label>
-              <select id="p2_region">
-                <option value="">— select —</option>
-                <option>top-left</option>
-                <option>top-center</option>
-                <option>top-right</option>
-                <option>center-left</option>
-                <option>center-center</option>
-                <option>center-right</option>
-                <option>bottom-left</option>
-                <option>bottom-center</option>
-                <option>bottom-right</option>
-              </select>
+              <label>Region altered — click the area of the image that was changed</label>
+              <div class="region-picker-wrap" id="region-picker-wrap">
+                <img class="region-picker-img" id="region-picker-img" src="" alt="" style="display:none;">
+                <div class="region-picker-placeholder" id="region-picker-placeholder">Select altered image above to enable region picker</div>
+                <div class="region-grid">
+                  <div class="region-cell" data-region="top-left"      onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="top-center"    onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="top-right"     onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="center-left"   onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="center-center" onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="center-right"  onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="bottom-left"   onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="bottom-center" onclick="selectRegion(this)"></div>
+                  <div class="region-cell" data-region="bottom-right"  onclick="selectRegion(this)"></div>
+                </div>
+              </div>
+              <input type="hidden" id="p2_region" value="">
             </div>
             <div class="field">
               <label>Notes</label>
@@ -928,7 +957,7 @@
     setVal('p2_prompt', rec.prompt);
     setVal('p2_prompt_type', rec.prompt_strategy);
     setVal('p2_object', rec.object);
-    setVal('p2_region', rec.region_altered);
+    setRegionPicker(rec.region_altered);
     setVal('p2_mask', rec.mask_used);
     setVal('p2_altered_filename', rec.altered_filename);
     setVal('p2_format', rec.output_format);
@@ -1199,6 +1228,42 @@
     card.style.display = (inputFn || outputFn) ? 'block' : 'none';
     setImgSlot('img-p2-input',  'cap-p2-input',  'miss-p2-input',  inputFn);
     setImgSlot('img-p2-output', 'cap-p2-output', 'miss-p2-output', outputFn);
+    updateRegionPickerImage(outputFn);
+  }
+
+  function selectRegion(cell) {
+    document.querySelectorAll('.region-cell').forEach(c => c.classList.remove('selected'));
+    cell.classList.add('selected');
+    document.getElementById('p2_region').value = cell.dataset.region;
+    autoSave();
+  }
+
+  function setRegionPicker(value) {
+    document.querySelectorAll('.region-cell').forEach(c =>
+      c.classList.toggle('selected', c.dataset.region === value)
+    );
+    document.getElementById('p2_region').value = value || '';
+  }
+
+  function updateRegionPickerImage(filename) {
+    const img = document.getElementById('region-picker-img');
+    const placeholder = document.getElementById('region-picker-placeholder');
+    if (!img || !placeholder) return;
+    if (filename) {
+      img.src = '/images/' + encodeURIComponent(filename);
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+      img.onerror = () => {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.textContent = 'Image not found';
+      };
+    } else {
+      img.style.display = 'none';
+      img.src = '';
+      placeholder.style.display = 'flex';
+      placeholder.textContent = 'Select altered image above to enable region picker';
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
