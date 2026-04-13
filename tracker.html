@@ -805,9 +805,8 @@
     updateFormTitle();
     refreshP2Preview();
 
-    // Async: populate AI filename dropdown, then set saved value and compute rename
+    // Async: populate AI filename dropdown and restore saved selection
     await populateAiFilenameDropdown(getP2Model(), rec.ai_assigned_filename);
-    await updateComputedRename();
   }
 
   // ── Input change handlers ─────────────────────────────────────────────────
