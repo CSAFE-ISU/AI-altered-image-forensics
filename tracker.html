@@ -367,16 +367,9 @@
                 <label>Model</label>
                 <select id="p2_model" onchange="handleModelSelect(this)">
                   <option value="">— select —</option>
-                  <option>Grok</option>
-                  <option>Gemini</option>
-                  <option>Adobe Firefly</option>
-                  <option>Photoshop</option>
-                  <option>ChatGPT</option>
-                  <option>Flux</option>
-                  <option>Stable Diffusion</option>
                   <option value="__other__">Other (type below)</option>
                 </select>
-                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;">
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
               </div>
               <div class="field">
                 <label>Version / variant</label>
@@ -434,7 +427,14 @@
             <div class="section-label">Output image</div>
             <div class="field">
               <label>Filename as assigned by AI model</label>
-              <input type="text" id="p2_ai_filename" placeholder="e.g. generated_image_abc123.png">
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select id="p2_ai_filename" onchange="p2AiFilenameChanged()" style="flex:1; min-width:0;">
+                  <option value="">— select a model first —</option>
+                </select>
+                <button class="btn" onclick="refreshAiFilenames()" title="Refresh file list" style="flex-shrink:0;">↻</button>
+                <button class="btn" id="copy-rename-btn" onclick="copyAndRenameImage()" style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+              </div>
+              <span class="status-msg" id="status-copy-rename" style="margin-top:4px; display:inline-block;"></span>
             </div>
             <div class="field">
               <label>Your assigned filename for altered image (auto-suggested, editable)</label>
@@ -676,7 +676,7 @@
       name: r.altered_filename || 'Untitled',
       meta: r.model || '',
       badge: r.model || '',
-      badgeClass: r.model === 'Grok' ? 'badge-grok' : r.model === 'Gemini' ? 'badge-gemini' : r.model ? 'badge-other-model' : ''
+      badgeClass: (r.model||'').toLowerCase() === 'grok' ? 'badge-grok' : (r.model||'').toLowerCase() === 'gemini' ? 'badge-gemini' : r.model ? 'badge-other-model' : ''
     }));
 
     document.getElementById('record-count').textContent =
@@ -766,25 +766,15 @@
     refreshP1Preview();
   }
 
-  function fillP2(rec) {
+  async function fillP2(rec) {
     populateImageDropdown('p2_input_select', rec.input_image);
-    const knownModels = ['Grok','Gemini','Adobe Firefly','Photoshop','ChatGPT','Flux','Stable Diffusion'];
-    if (rec.model && !knownModels.includes(rec.model)) {
-      document.getElementById('p2_model').value = '__other__';
-      document.getElementById('p2_model_custom').style.display = 'block';
-      document.getElementById('p2_model_custom').value = rec.model || '';
-    } else {
-      setVal('p2_model', rec.model);
-      document.getElementById('p2_model_custom').style.display = 'none';
-      document.getElementById('p2_model_custom').value = '';
-    }
+    setModelSelectValue(rec.model);
     setVal('p2_version', rec.model_version);
     setVal('p2_prompt', rec.prompt);
     setVal('p2_prompt_type', rec.prompt_strategy);
     setVal('p2_object', rec.object);
     setVal('p2_region', rec.region_altered);
     setVal('p2_mask', rec.mask_used);
-    setVal('p2_ai_filename', rec.ai_assigned_filename);
     setVal('p2_altered_filename', rec.altered_filename);
     setVal('p2_format', rec.output_format);
     setVal('p2_out_dims', rec.output_dimensions);
@@ -814,6 +804,10 @@
 
     updateFormTitle();
     refreshP2Preview();
+
+    // Async: populate AI filename dropdown, then set saved value and compute rename
+    await populateAiFilenameDropdown(getP2Model(), rec.ai_assigned_filename);
+    await updateComputedRename();
   }
 
   // ── Input change handlers ─────────────────────────────────────────────────
@@ -842,14 +836,11 @@
   function p2InputChanged() {
     const val = document.getElementById('p2_input_select').value;
     if (!val) return;
-    const dotIdx = val.lastIndexOf('.');
-    const base = dotIdx > -1 ? val.slice(0, dotIdx) : val;
-    const ext = dotIdx > -1 ? val.slice(dotIdx) : '.jpg';
-    document.getElementById('p2_altered_filename').value = base + '-b' + ext;
     const rec = records.find(r => r.id === currentId);
     if (rec) rec.input_image = val;
     updateFormTitle();
     refreshP2Preview();
+    updateComputedRename();
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -1071,9 +1062,165 @@
     const custom = document.getElementById('p2_model_custom');
     custom.style.display = sel.value === '__other__' ? 'block' : 'none';
     if (sel.value !== '__other__') custom.value = '';
+    populateAiFilenameDropdown(getP2Model()).then(() => updateComputedRename());
+  }
+
+  // ── Dynamic model + file lists ────────────────────────────────────────────
+
+  async function loadModels() {
+    try {
+      const res = await fetch('/api/models');
+      const models = await res.json();
+      const sel = document.getElementById('p2_model');
+      const otherOpt = sel.querySelector('option[value="__other__"]');
+      sel.innerHTML = '';
+      const blank = document.createElement('option');
+      blank.value = ''; blank.textContent = '— select —';
+      sel.appendChild(blank);
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+      });
+      sel.appendChild(otherOpt);
+    } catch { /* keep existing options */ }
+  }
+
+  function setModelSelectValue(model) {
+    const sel = document.getElementById('p2_model');
+    const custom = document.getElementById('p2_model_custom');
+    if (!model) {
+      sel.value = ''; custom.style.display = 'none'; custom.value = ''; return;
+    }
+    const modelLower = model.toLowerCase();
+    // Exact match first, then case-insensitive
+    for (const opt of sel.options) {
+      if (opt.value === model) { sel.value = model; custom.style.display = 'none'; custom.value = ''; return; }
+    }
+    for (const opt of sel.options) {
+      if (opt.value !== '__other__' && opt.value.toLowerCase() === modelLower) {
+        sel.value = opt.value; custom.style.display = 'none'; custom.value = ''; return;
+      }
+    }
+    // Fall back to custom
+    sel.value = '__other__'; custom.style.display = 'block'; custom.value = model;
+  }
+
+  async function populateAiFilenameDropdown(model, selectedVal) {
+    const sel = document.getElementById('p2_ai_filename');
+    if (!model || model === '__other__') {
+      sel.innerHTML = '<option value="">— select a model first —</option>'; return;
+    }
+    sel.innerHTML = '<option value="">— loading… —</option>';
+    try {
+      const res = await fetch('/api/downloaded_files?model=' + encodeURIComponent(model));
+      const files = await res.json();
+      if (!files.length) {
+        sel.innerHTML = '<option value="">— no files in downloaded folder —</option>'; return;
+      }
+      sel.innerHTML = '<option value="">— select file —</option>';
+      files.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f; opt.textContent = f;
+        if (f === selectedVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch {
+      sel.innerHTML = '<option value="">— could not load files —</option>';
+    }
+  }
+
+  async function refreshAiFilenames() {
+    const current = getVal('p2_ai_filename');
+    await populateAiFilenameDropdown(getP2Model(), current);
+  }
+
+  // ── Copy and Rename ───────────────────────────────────────────────────────
+
+  function getP2Model() {
+    const sel = document.getElementById('p2_model');
+    if (sel.value === '__other__') return document.getElementById('p2_model_custom').value.trim();
+    return sel.value;
+  }
+
+  function clearCopyRenameStatus() {
+    const el = document.getElementById('status-copy-rename');
+    if (el) el.className = 'status-msg';
+  }
+
+  function showPersistentStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'status-msg ' + type;
+  }
+
+  async function updateComputedRename() {
+    const inputImage = document.getElementById('p2_input_select').value;
+    const aiFilename = getVal('p2_ai_filename');
+    const model = getP2Model();
+    if (!inputImage || !aiFilename || !model) return;
+
+    try {
+      const res = await fetch(
+        '/api/compute_renamed?input_image=' + encodeURIComponent(inputImage) +
+        '&ai_filename=' + encodeURIComponent(aiFilename) +
+        '&model=' + encodeURIComponent(model)
+      );
+      const data = await res.json();
+      if (data.filename) {
+        setVal('p2_altered_filename', data.filename);
+        updateFormTitle();
+        refreshP2Preview();
+        if (data.already_exists) {
+          showPersistentStatus('status-copy-rename', 'Already renamed: ' + data.filename, 'warning');
+        } else {
+          clearCopyRenameStatus();
+        }
+      }
+    } catch {
+      // silently ignore — fields stay as-is
+    }
+  }
+
+  async function p2AiFilenameChanged() {
+    await updateComputedRename();
+  }
+
+  async function copyAndRenameImage() {
+    const inputImage = document.getElementById('p2_input_select').value;
+    const aiFilename = getVal('p2_ai_filename');
+    const model = getP2Model();
+    if (!inputImage || !aiFilename || !model) {
+      showStatus('status-copy-rename', 'Select an input image, model, and enter the AI filename first', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/copy_rename_image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input_image: inputImage, ai_filename: aiFilename, model })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showStatus('status-copy-rename', data.warning, 'warning');
+      } else if (data.ok) {
+        setVal('p2_altered_filename', data.filename);
+        updateFormTitle();
+        refreshP2Preview();
+        clearCopyRenameStatus();
+        showStatus('status-copy-rename', 'Copied \u2192 ' + data.filename, 'success');
+      } else {
+        showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────────
+  loadModels();
   loadRecords();
 </script>
 </body>
