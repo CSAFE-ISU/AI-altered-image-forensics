@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Flask app
+records.json
+__pycache__/
+*.pyc

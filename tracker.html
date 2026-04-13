@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Image Alteration Tracker — CSAFE</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f2ed;
+    --surface: #faf9f7;
+    --surface2: #eeecea;
+    --border: #d0cdc7;
+    --border-strong: #b0ada7;
+    --text: #1a1917;
+    --text-muted: #6b6864;
+    --text-faint: #9b9894;
+    --accent: #1a4a7a;
+    --accent-light: #e8f0f8;
+    --accent-border: #a8c4e0;
+    --success: #2d6a4f;
+    --success-bg: #e8f5ee;
+    --warning: #7a4a1a;
+    --warning-bg: #f8f0e8;
+    --danger: #7a1a1a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --radius: 4px;
+    --radius-lg: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+
+  header {
+    background: var(--accent); color: #fff; padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 52px; position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+  .header-btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: var(--radius); cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.1); color: #fff; transition: background 0.15s;
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.22); }
+  .record-count { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.55); }
+
+  .shell { display: grid; grid-template-columns: 270px 1fr; min-height: calc(100vh - 52px); }
+
+  aside {
+    background: var(--surface); border-right: 1px solid var(--border);
+    position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto; padding: 0.75rem 0 1.5rem;
+  }
+  .sidebar-group { margin-bottom: 1rem; }
+  .sidebar-group-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-faint); padding: 0.5rem 1.25rem 0.3rem;
+  }
+  .record-list { list-style: none; }
+  .record-item { padding: 7px 1.25rem; cursor: pointer; border-left: 3px solid transparent; transition: background 0.1s; }
+  .record-item:hover { background: var(--surface2); }
+  .record-item.active { background: var(--accent-light); border-left-color: var(--accent); }
+  .record-item-name { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-item-meta { font-size: 11px; color: var(--text-faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .record-item-badge { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 500; padding: 1px 6px; border-radius: 2px; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .badge-p0 { background: #f0ede8; color: #5a5248; }
+  .badge-p1 { background: #e8f0e8; color: #2d5a2d; }
+  .badge-grok { background: #e8f0e8; color: #2d6a2d; }
+  .badge-gemini { background: #e8eef8; color: #1a4a7a; }
+  .badge-other-model { background: var(--surface2); color: var(--text-muted); }
+  .new-record-btn {
+    display: block; margin: 0.25rem 1.25rem 0; width: calc(100% - 2.5rem);
+    padding: 6px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+    border: 1px dashed var(--border-strong); border-radius: var(--radius);
+    background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s;
+  }
+  .new-record-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .empty-state { padding: 0.4rem 1.25rem; font-size: 11px; color: var(--text-faint); font-style: italic; }
+
+  main { padding: 2rem 2.5rem; max-width: 860px; }
+  .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .form-title { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--text); }
+  .form-subtitle { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+
+  .phase-tabs { display: flex; margin-bottom: 1.75rem; border-bottom: 1px solid var(--border); }
+  .phase-tab {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 8px 18px; cursor: pointer; border: none; background: transparent;
+    color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
+  }
+  .phase-tab:hover { color: var(--text); }
+  .phase-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .phase-panel { display: none; }
+  .phase-panel.active { display: block; }
+
+  .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; font-family: var(--mono); }
+  .field input[type=text], .field input[type=datetime-local], .field select, .field textarea {
+    width: 100%; padding: 7px 10px; font-family: var(--sans); font-size: 13px;
+    color: var(--text); background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent-border); background: #fff; }
+  .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .hint-box { font-size: 12px; color: var(--text-faint); margin-top: -8px; margin-bottom: 1rem; padding: 7px 10px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); font-family: var(--mono); line-height: 1.7; }
+
+  .rating-group { display: flex; gap: 6px; }
+  .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
+  .rating-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+  .rating-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .artifact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+  .artifact-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); transition: all 0.12s; user-select: none; }
+  .artifact-item:hover { border-color: var(--accent-border); background: var(--accent-light); }
+  .artifact-item input[type=checkbox] { margin-top: 1px; accent-color: var(--accent); }
+  .artifact-item.checked { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
+
+  .detector-header { display: grid; grid-template-columns: 1fr 120px 140px 32px; gap: 8px; margin-bottom: 6px; }
+  .detector-header span { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+  .detector-row { display: grid; grid-template-columns: 1fr 120px 140px 32px; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .detector-row input, .detector-row select { width: 100%; padding: 6px 8px; font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); outline: none; }
+  .detector-row input:focus, .detector-row select:focus { border-color: var(--accent-border); }
+  .remove-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-faint); cursor: pointer; font-size: 14px; transition: all 0.12s; }
+  .remove-btn:hover { border-color: var(--danger); color: var(--danger); background: #fff0f0; }
+  .add-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; letter-spacing: 0.03em; margin-top: 4px; }
+  .add-link:hover { opacity: 0.7; }
+
+  .form-actions { display: flex; gap: 10px; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
+  .btn { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; padding: 8px 18px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); transition: all 0.15s; }
+  .btn:hover { background: var(--surface2); border-color: var(--text-faint); color: var(--text); }
+  .btn.save { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.save:hover { opacity: 0.88; }
+  .btn.danger { color: var(--danger); border-color: #d0b0b0; }
+  .btn.danger:hover { background: #fff0f0; border-color: var(--danger); }
+  .status-msg { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: var(--radius); display: none; }
+  .status-msg.success { background: var(--success-bg); color: var(--success); display: inline-block; }
+  .status-msg.warning { background: var(--warning-bg); color: var(--warning); display: inline-block; }
+
+  .no-record { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; color: var(--text-faint); text-align: center; gap: 12px; }
+  .no-record-icon { font-size: 32px; opacity: 0.3; }
+  .no-record p { font-size: 13px; }
+  .no-record small { font-family: var(--mono); font-size: 11px; }
+
+  /* ── Image preview ── */
+  .img-preview-card { background: var(--bg); }
+  .img-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .img-slot { display: flex; flex-direction: column; gap: 6px; }
+  .img-caption { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+  .img-caption span { font-weight: 400; color: var(--text-faint); text-transform: none; letter-spacing: 0; font-size: 10px; margin-left: 6px; word-break: break-all; }
+  .img-preview { max-width: 100%; max-height: 260px; object-fit: contain; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); display: block; }
+  .img-missing { font-size: 11px; color: var(--text-faint); font-style: italic; padding: 8px 0; }
+
+  aside::-webkit-scrollbar { width: 4px; }
+  aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI Image Alteration Tracker — CSAFE</h1>
+  <div class="header-actions">
+    <span id="record-count" class="record-count"></span>
+    <span id="header-status" class="status-msg"></span>
+    <button class="header-btn" onclick="exportAll()">Export JSON</button>
+  </div>
+</header>
+
+<div class="shell">
+  <aside>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Phase 0 — Originals</div>
+      <ul class="record-list" id="list-p0"></ul>
+      <div class="empty-state" id="empty-p0">No originals yet.</div>
+      <button class="new-record-btn" onclick="newRecord('p0')">+ New original</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Phase 1 — Modifications</div>
+      <ul class="record-list" id="list-p1"></ul>
+      <div class="empty-state" id="empty-p1">No modifications yet.</div>
+      <button class="new-record-btn" onclick="newRecord('p1')">+ New modification</button>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-label">Phase 2 — Alterations</div>
+      <ul class="record-list" id="list-p2"></ul>
+      <div class="empty-state" id="empty-p2">No alterations yet.</div>
+      <button class="new-record-btn" onclick="newRecord('p2')">+ New alteration</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="no-record" id="no-record-msg">
+      <div class="no-record-icon">&#9636;</div>
+      <p>No record selected</p>
+      <small>Select a record from the sidebar or create a new one.</small>
+    </div>
+
+    <div id="form-area" style="display:none;">
+      <div class="form-header">
+        <div class="form-title" id="form-title">New record</div>
+        <div class="form-subtitle" id="form-subtitle"></div>
+      </div>
+
+      <!-- ══ PHASE 0 ══ -->
+      <div id="form-p0" style="display:none;">
+        <div class="section-card">
+          <div class="section-label">Study ID</div>
+          <div class="field">
+            <label>Study ID (auto-assigned)</label>
+            <input type="text" id="p0_study_id" style="font-family:var(--mono);font-weight:500;" oninput="updateFormTitle()">
+          </div>
+          <div class="hint-box">
+            This ID ties all files in this study together:<br>
+            csafe-001.jpg &rarr; csafe-001-cropped.jpg &rarr; csafe-001-cropped-b.jpg
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-label">Original image</div>
+          <div class="field">
+            <label>Original filename (from camera / source)</label>
+            <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
+              oninput="refreshP0Preview()">
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>File size</label>
+              <input type="text" id="p0_filesize" placeholder="e.g. 3.9 MB">
+            </div>
+            <div class="field">
+              <label>Dimensions (px)</label>
+              <input type="text" id="p0_dims" placeholder="e.g. 4032 × 3024">
+            </div>
+          </div>
+          <div class="field">
+            <label>Device / camera</label>
+            <input type="text" id="p0_device" placeholder="e.g. iPhone 6s, Canon EOS R5">
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="p0_notes" placeholder="Scene description, lighting conditions, any relevant context..."></textarea>
+          </div>
+        </div>
+
+        <!-- Image preview -->
+        <div class="section-card img-preview-card" id="prev-p0" style="display:none;">
+          <div class="section-label">Image preview</div>
+          <div class="img-slot">
+            <div class="img-caption">Original<span id="cap-p0"></span></div>
+            <img id="img-p0" class="img-preview" src="" alt="Original image">
+            <div class="img-missing" id="miss-p0" style="display:none;">Image not found in images folder.</div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn save" onclick="saveRecord()">Save record</button>
+          <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
+          <button class="btn danger" onclick="deleteRecord()">Delete record</button>
+          <span class="status-msg" id="status-p0"></span>
+        </div>
+      </div>
+
+      <!-- ══ PHASE 1 ══ -->
+      <div id="form-p1" style="display:none;">
+        <div class="section-card">
+          <div class="section-label">Source image</div>
+          <div class="field">
+            <label>Select input image</label>
+            <select id="p1_input_select" onchange="p1InputChanged()">
+              <option value="">— select from available originals and modifications —</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-label">Modification</div>
+          <div class="field">
+            <label>Modification type</label>
+            <select id="p1_mod_type" onchange="suggestModFilename()">
+              <option value="">— select —</option>
+              <option>Cropped</option>
+              <option>Resized</option>
+              <option>Recompressed</option>
+              <option>Rotated</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Modification details</label>
+            <input type="text" id="p1_mod_details" placeholder="e.g. cropped to remove background clutter, recompressed to 80% JPEG in Preview">
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>File size after modification</label>
+              <input type="text" id="p1_mod_filesize" placeholder="e.g. 0.8 MB">
+            </div>
+            <div class="field">
+              <label>Dimensions after modification (px)</label>
+              <input type="text" id="p1_mod_dims" placeholder="e.g. 2016 × 1512">
+            </div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-label">Output file</div>
+          <div class="field">
+            <label>Modified image filename (auto-suggested, editable)</label>
+            <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg"
+              oninput="updateFormTitle(); refreshP1Preview()">
+          </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="p1_notes" placeholder="Any other details about this modification..."></textarea>
+          </div>
+        </div>
+
+        <!-- Image preview -->
+        <div class="section-card img-preview-card" id="prev-p1" style="display:none;">
+          <div class="section-label">Image preview</div>
+          <div class="img-pair">
+            <div class="img-slot">
+              <div class="img-caption">Input<span id="cap-p1-input"></span></div>
+              <img id="img-p1-input" class="img-preview" src="" alt="Input image">
+              <div class="img-missing" id="miss-p1-input" style="display:none;">Image not found.</div>
+            </div>
+            <div class="img-slot">
+              <div class="img-caption">Modified output<span id="cap-p1-output"></span></div>
+              <img id="img-p1-output" class="img-preview" src="" alt="Modified image">
+              <div class="img-missing" id="miss-p1-output" style="display:none;">Image not found.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn save" onclick="saveRecord()">Save record</button>
+          <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
+          <button class="btn danger" onclick="deleteRecord()">Delete record</button>
+          <span class="status-msg" id="status-p1"></span>
+        </div>
+      </div>
+
+      <!-- ══ PHASE 2 ══ -->
+      <div id="form-p2" style="display:none;">
+        <div class="phase-tabs">
+          <button class="phase-tab active" onclick="switchPhase(0)">2a — Alteration</button>
+          <button class="phase-tab" onclick="switchPhase(1)">2b — Analysis</button>
+        </div>
+
+        <!-- 2a -->
+        <div class="phase-panel active" id="panel0">
+          <div class="section-card">
+            <div class="section-label">Input image</div>
+            <div class="field">
+              <label>Select input image</label>
+              <select id="p2_input_select" onchange="p2InputChanged()">
+                <option value="">— select from available originals and modifications —</option>
+              </select>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">AI model</div>
+            <div class="two-col">
+              <div class="field">
+                <label>Model</label>
+                <select id="p2_model" onchange="handleModelSelect(this)">
+                  <option value="">— select —</option>
+                  <option>Grok</option>
+                  <option>Gemini</option>
+                  <option>Adobe Firefly</option>
+                  <option>Photoshop</option>
+                  <option>ChatGPT</option>
+                  <option>Flux</option>
+                  <option>Stable Diffusion</option>
+                  <option value="__other__">Other (type below)</option>
+                </select>
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;">
+              </div>
+              <div class="field">
+                <label>Version / variant</label>
+                <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">Prompt</div>
+            <div class="field">
+              <label>Prompt text</label>
+              <textarea id="p2_prompt" placeholder="Paste the exact prompt given to the model"></textarea>
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>Prompt strategy</label>
+                <select id="p2_prompt_type">
+                  <option value="">— select —</option>
+                  <option>Vague</option>
+                  <option>Specific</option>
+                  <option>Adversarial</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Object added</label>
+                <input type="text" id="p2_object" placeholder="e.g. hammer, handgun, knife">
+              </div>
+            </div>
+            <div class="field">
+              <label>Region altered</label>
+              <select id="p2_region">
+                <option value="">— select —</option>
+                <option>top-left</option>
+                <option>top-center</option>
+                <option>top-right</option>
+                <option>center-left</option>
+                <option>center-center</option>
+                <option>center-right</option>
+                <option>bottom-left</option>
+                <option>bottom-center</option>
+                <option>bottom-right</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Mask / selection used?</label>
+              <select id="p2_mask">
+                <option value="">— unknown —</option>
+                <option>Yes — user-defined mask</option>
+                <option>No — free-form inpainting</option>
+                <option>Yes — bounding box</option>
+              </select>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">Output image</div>
+            <div class="field">
+              <label>Filename as assigned by AI model</label>
+              <input type="text" id="p2_ai_filename" placeholder="e.g. generated_image_abc123.png">
+            </div>
+            <div class="field">
+              <label>Your assigned filename for altered image (auto-suggested, editable)</label>
+              <input type="text" id="p2_altered_filename" placeholder="e.g. csafe-001-cropped-b.jpg"
+                oninput="updateFormTitle(); refreshP2Preview()">
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>Output format</label>
+                <select id="p2_format">
+                  <option value="">— select —</option>
+                  <option>JPEG</option>
+                  <option>PNG</option>
+                  <option>WebP</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Output dimensions (px)</label>
+                <input type="text" id="p2_out_dims" placeholder="e.g. 1024 × 768">
+              </div>
+            </div>
+            <div class="field">
+              <label>Date / time generated</label>
+              <input type="datetime-local" id="p2_datetime">
+            </div>
+            <div class="field">
+              <label>Subjective quality (1 = poor blend, 5 = convincing)</label>
+              <div class="rating-group">
+                <button class="rating-btn" onclick="setRating(1)">1</button>
+                <button class="rating-btn" onclick="setRating(2)">2</button>
+                <button class="rating-btn" onclick="setRating(3)">3</button>
+                <button class="rating-btn" onclick="setRating(4)">4</button>
+                <button class="rating-btn" onclick="setRating(5)">5</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <textarea id="p2_notes" placeholder="Any other observations about this alteration..."></textarea>
+            </div>
+          </div>
+
+          <!-- Image preview -->
+          <div class="section-card img-preview-card" id="prev-p2" style="display:none;">
+            <div class="section-label">Image preview</div>
+            <div class="img-pair">
+              <div class="img-slot">
+                <div class="img-caption">Input<span id="cap-p2-input"></span></div>
+                <img id="img-p2-input" class="img-preview" src="" alt="Input image">
+                <div class="img-missing" id="miss-p2-input" style="display:none;">Image not found.</div>
+              </div>
+              <div class="img-slot">
+                <div class="img-caption">AI-altered output<span id="cap-p2-output"></span></div>
+                <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
+                <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn save" onclick="saveRecord()">Save record</button>
+            <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
+            <button class="btn danger" onclick="deleteRecord()">Delete record</button>
+            <span class="status-msg" id="status-p2a"></span>
+          </div>
+        </div>
+
+        <!-- 2b -->
+        <div class="phase-panel" id="panel1">
+          <div class="section-card">
+            <div class="section-label">Metadata forensics</div>
+            <div class="field">
+              <label>EXIF / metadata anomalies found</label>
+              <textarea id="p2_exif" placeholder="e.g. GPS stripped, software tag reads 'Adobe Firefly', no thumbnail..."></textarea>
+            </div>
+            <div class="field">
+              <label>C2PA / Content Credentials present?</label>
+              <select id="p2_c2pa">
+                <option value="">— unknown —</option>
+                <option>Yes — with provenance data</option>
+                <option>Yes — but empty / stripped</option>
+                <option>No</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Metadata diff vs. input image (summary)</label>
+              <textarea id="p2_metadiff" placeholder="List fields that differ from the input image..."></textarea>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">Visual / pixel-level artifacts</div>
+            <div class="field">
+              <label>Artifacts observed</label>
+              <div class="artifact-grid">
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="ELA anomaly"> ELA anomaly</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Blending seam visible"> Blending seam visible</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Noise inconsistency"> Noise inconsistency</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Lighting mismatch"> Lighting mismatch</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Shadow mismatch"> Shadow mismatch</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Perspective mismatch"> Perspective mismatch</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Compression blocking"> Compression blocking</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Color fringing"> Color fringing</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Clone/copy artifacts"> Clone/copy artifacts</label>
+                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="None visible"> None visible</label>
+              </div>
+            </div>
+            <div class="field">
+              <label>Additional artifact notes</label>
+              <textarea id="p2_artifact_notes" placeholder="Describe location, severity, or any unlisted artifacts..."></textarea>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">AI detector results</div>
+            <div class="detector-header">
+              <span>Detector name + version</span><span>Confidence score</span><span>Verdict</span><span></span>
+            </div>
+            <div id="detector-rows"></div>
+            <button class="add-link" onclick="addDetector()">+ add detector</button>
+            <div class="field" style="margin-top:1rem;">
+              <label>Baseline result (input image through same detectors)</label>
+              <textarea id="p2_baseline" placeholder="e.g. Hive: 3% AI — real; Illuminarty: 8% — real..."></textarea>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">Overall analysis notes</div>
+            <div class="field">
+              <textarea id="p2_analysis_notes" placeholder="Summary findings, anomalies worth flagging, open questions..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn save" onclick="saveRecord()">Save record</button>
+            <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
+            <button class="btn danger" onclick="deleteRecord()">Delete record</button>
+            <span class="status-msg" id="status-p2b"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let records = [];
+  let currentId = null;
+  let currentType = null;
+  let currentRating = null;
+  let detectorCount = 0;
+
+  // ── Server I/O ────────────────────────────────────────────────────────────
+
+  async function loadRecords() {
+    try {
+      const res = await fetch('/api/records');
+      records = await res.json();
+      if (!Array.isArray(records)) records = [];
+      renderSidebar();
+      if (records.length) showStatus('header-status', records.length + ' records loaded', 'success');
+    } catch {
+      showStatus('header-status', 'Could not load records', 'warning');
+    }
+  }
+
+  async function persistRecords() {
+    try {
+      await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(records)
+      });
+    } catch {
+      showStatus('header-status', 'Auto-save failed', 'warning');
+    }
+  }
+
+  function exportAll() {
+    if (!records.length) { showStatus('header-status', 'No records to export', 'warning'); return; }
+    const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ai_image_records_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    showStatus('header-status', records.length + ' records exported', 'success');
+  }
+
+  // ── ID generation ─────────────────────────────────────────────────────────
+
+  function nextCsafeId() {
+    const nums = records
+      .map(r => r.study_id || '')
+      .filter(f => /^csafe-\d+$/.test(f))
+      .map(f => parseInt(f.replace('csafe-', ''), 10));
+    const max = nums.length ? Math.max(...nums) : 0;
+    return 'csafe-' + String(max + 1).padStart(3, '0');
+  }
+
+  // ── Available images for dropdowns ───────────────────────────────────────
+
+  function getAvailableImages() {
+    const imgs = [];
+    records.forEach(r => {
+      if (r.type === 'p0' && r.study_id)
+        imgs.push({ label: r.study_id + '.jpg  [original]', value: r.study_id + '.jpg' });
+      if (r.type === 'p1' && r.mod_filename)
+        imgs.push({ label: r.mod_filename + '  [modification]', value: r.mod_filename });
+    });
+    return imgs;
+  }
+
+  function populateImageDropdown(selectId, selectedVal) {
+    const sel = document.getElementById(selectId);
+    const imgs = getAvailableImages();
+    sel.innerHTML = '<option value="">— select from available originals and modifications —</option>';
+    imgs.forEach(img => {
+      const opt = document.createElement('option');
+      opt.value = img.value;
+      opt.textContent = img.label;
+      if (img.value === selectedVal) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── Sidebar ───────────────────────────────────────────────────────────────
+
+  function renderSidebar() {
+    const byType = { p0: [], p1: [], p2: [] };
+    records.forEach(r => { if (byType[r.type]) byType[r.type].push(r); });
+
+    renderList('list-p0', 'empty-p0', byType.p0, r => ({
+      name: r.study_id || 'Untitled',
+      meta: r.original_filename ? r.original_filename.slice(0, 30) + (r.original_filename.length > 30 ? '…' : '') : '',
+      badge: 'original', badgeClass: 'badge-p0'
+    }));
+    renderList('list-p1', 'empty-p1', byType.p1, r => ({
+      name: r.mod_filename || 'Untitled',
+      meta: r.mod_type || '',
+      badge: r.study_id || '', badgeClass: 'badge-p1'
+    }));
+    renderList('list-p2', 'empty-p2', byType.p2, r => ({
+      name: r.altered_filename || 'Untitled',
+      meta: r.model || '',
+      badge: r.model || '',
+      badgeClass: r.model === 'Grok' ? 'badge-grok' : r.model === 'Gemini' ? 'badge-gemini' : r.model ? 'badge-other-model' : ''
+    }));
+
+    document.getElementById('record-count').textContent =
+      records.length ? records.length + ' record' + (records.length !== 1 ? 's' : '') : '';
+  }
+
+  function renderList(listId, emptyId, items, getInfo) {
+    const list = document.getElementById(listId);
+    const empty = document.getElementById(emptyId);
+    list.innerHTML = '';
+    empty.style.display = items.length ? 'none' : 'block';
+    items.forEach(r => {
+      const info = getInfo(r);
+      const li = document.createElement('li');
+      li.className = 'record-item' + (r.id === currentId ? ' active' : '');
+      li.onclick = () => selectRecord(r.id);
+      li.innerHTML = `<div class="record-item-name">${info.name}</div>
+        ${info.meta ? `<div class="record-item-meta">${info.meta}</div>` : ''}
+        ${info.badge ? `<span class="record-item-badge ${info.badgeClass}">${info.badge}</span>` : ''}`;
+      list.appendChild(li);
+    });
+  }
+
+  // ── New / Select record ───────────────────────────────────────────────────
+
+  function newRecord(type) {
+    const id = 'rec_' + Date.now();
+    const study_id = nextCsafeId();
+    const rec = { id, type, study_id };
+    records.unshift(rec);
+    currentId = id;
+    currentType = type;
+    renderSidebar();
+    showFormArea(true);
+    showFormFor(type, rec);
+    if (type === 'p0') { document.getElementById('p0_study_id').value = study_id; updateFormTitle(); }
+    if (type === 'p2') switchPhase(0);
+  }
+
+  function selectRecord(id) {
+    currentId = id;
+    const rec = records.find(r => r.id === id);
+    currentType = rec.type;
+    currentRating = rec.subjective_quality || null;
+    renderSidebar();
+    showFormArea(true);
+    showFormFor(rec.type, rec);
+    if (rec.type === 'p2') switchPhase(0);
+  }
+
+  function showFormArea(show) {
+    document.getElementById('form-area').style.display = show ? 'block' : 'none';
+    document.getElementById('no-record-msg').style.display = show ? 'none' : 'flex';
+  }
+
+  function showFormFor(type, rec) {
+    ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
+    const labels = { p0: 'Phase 0 — Original image', p1: 'Phase 1 — Modification', p2: 'Phase 2 — AI alteration + analysis' };
+    document.getElementById('form-subtitle').textContent = labels[type] || '';
+    if (type === 'p0') fillP0(rec);
+    if (type === 'p1') fillP1(rec);
+    if (type === 'p2') fillP2(rec);
+  }
+
+  // ── Fill forms ────────────────────────────────────────────────────────────
+
+  function fillP0(rec) {
+    setVal('p0_study_id', rec.study_id);
+    setVal('p0_original_filename', rec.original_filename);
+    setVal('p0_filesize', rec.filesize);
+    setVal('p0_dims', rec.dims);
+    setVal('p0_device', rec.device);
+    setVal('p0_notes', rec.notes);
+    updateFormTitle();
+    refreshP0Preview();
+  }
+
+  function fillP1(rec) {
+    populateImageDropdown('p1_input_select', rec.input_image);
+    setVal('p1_mod_type', rec.mod_type);
+    setVal('p1_mod_details', rec.mod_details);
+    setVal('p1_mod_filesize', rec.mod_filesize);
+    setVal('p1_mod_dims', rec.mod_dims);
+    setVal('p1_mod_filename', rec.mod_filename);
+    setVal('p1_notes', rec.notes);
+    updateFormTitle();
+    refreshP1Preview();
+  }
+
+  function fillP2(rec) {
+    populateImageDropdown('p2_input_select', rec.input_image);
+    const knownModels = ['Grok','Gemini','Adobe Firefly','Photoshop','ChatGPT','Flux','Stable Diffusion'];
+    if (rec.model && !knownModels.includes(rec.model)) {
+      document.getElementById('p2_model').value = '__other__';
+      document.getElementById('p2_model_custom').style.display = 'block';
+      document.getElementById('p2_model_custom').value = rec.model || '';
+    } else {
+      setVal('p2_model', rec.model);
+      document.getElementById('p2_model_custom').style.display = 'none';
+      document.getElementById('p2_model_custom').value = '';
+    }
+    setVal('p2_version', rec.model_version);
+    setVal('p2_prompt', rec.prompt);
+    setVal('p2_prompt_type', rec.prompt_strategy);
+    setVal('p2_object', rec.object);
+    setVal('p2_region', rec.region_altered);
+    setVal('p2_mask', rec.mask_used);
+    setVal('p2_ai_filename', rec.ai_assigned_filename);
+    setVal('p2_altered_filename', rec.altered_filename);
+    setVal('p2_format', rec.output_format);
+    setVal('p2_out_dims', rec.output_dimensions);
+    setVal('p2_datetime', rec.datetime_generated);
+    setVal('p2_notes', rec.notes);
+    setVal('p2_exif', rec.exif_anomalies);
+    setVal('p2_c2pa', rec.c2pa_status);
+    setVal('p2_metadiff', rec.metadata_diff);
+    setVal('p2_artifact_notes', rec.artifact_notes);
+    setVal('p2_baseline', rec.baseline_results);
+    setVal('p2_analysis_notes', rec.analysis_notes);
+
+    currentRating = rec.subjective_quality || null;
+    document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', currentRating && i < currentRating));
+
+    const artifacts = rec.artifacts || [];
+    document.querySelectorAll('.artifact-item').forEach(item => {
+      const cb = item.querySelector('input[type=checkbox]');
+      cb.checked = artifacts.includes(cb.value);
+      item.classList.toggle('checked', cb.checked);
+    });
+
+    document.getElementById('detector-rows').innerHTML = '';
+    detectorCount = 0;
+    (rec.detectors || []).forEach(d => addDetector(d));
+    if (!(rec.detectors || []).length) { addDetector(); addDetector(); }
+
+    updateFormTitle();
+    refreshP2Preview();
+  }
+
+  // ── Input change handlers ─────────────────────────────────────────────────
+
+  function p1InputChanged() {
+    const rec = records.find(r => r.id === currentId);
+    if (rec) rec.input_image = document.getElementById('p1_input_select').value;
+    suggestModFilename();
+    refreshP1Preview();
+  }
+
+  function suggestModFilename() {
+    const input = document.getElementById('p1_input_select').value;
+    const modType = document.getElementById('p1_mod_type').value.toLowerCase();
+    if (!input || !modType) return;
+    const dotIdx = input.lastIndexOf('.');
+    const base = dotIdx > -1 ? input.slice(0, dotIdx) : input;
+    const ext = dotIdx > -1 ? input.slice(dotIdx) : '.jpg';
+    const suffixes = { cropped: '-cropped', resized: '-small', recompressed: '-recomp', rotated: '-rot', other: '-mod' };
+    const suffix = suffixes[modType] || '-mod';
+    document.getElementById('p1_mod_filename').value = base + suffix + ext;
+    updateFormTitle();
+    refreshP1Preview();
+  }
+
+  function p2InputChanged() {
+    const val = document.getElementById('p2_input_select').value;
+    if (!val) return;
+    const dotIdx = val.lastIndexOf('.');
+    const base = dotIdx > -1 ? val.slice(0, dotIdx) : val;
+    const ext = dotIdx > -1 ? val.slice(dotIdx) : '.jpg';
+    document.getElementById('p2_altered_filename').value = base + '-b' + ext;
+    const rec = records.find(r => r.id === currentId);
+    if (rec) rec.input_image = val;
+    updateFormTitle();
+    refreshP2Preview();
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
+  async function saveRecord() {
+    const rec = records.find(r => r.id === currentId);
+    if (!rec) return;
+
+    if (rec.type === 'p0') {
+      Object.assign(rec, {
+        study_id: getVal('p0_study_id'),
+        original_filename: getVal('p0_original_filename'),
+        filesize: getVal('p0_filesize'),
+        dims: getVal('p0_dims'),
+        device: getVal('p0_device'),
+        notes: getVal('p0_notes')
+      });
+      showStatus('status-p0', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p1') {
+      const inputVal = document.getElementById('p1_input_select').value;
+      Object.assign(rec, {
+        input_image: inputVal,
+        study_id: deriveStudyId(inputVal),
+        mod_type: getVal('p1_mod_type'),
+        mod_details: getVal('p1_mod_details'),
+        mod_filesize: getVal('p1_mod_filesize'),
+        mod_dims: getVal('p1_mod_dims'),
+        mod_filename: getVal('p1_mod_filename'),
+        notes: getVal('p1_notes')
+      });
+      showStatus('status-p1', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p2') {
+      const inputVal = document.getElementById('p2_input_select').value;
+      Object.assign(rec, {
+        input_image: inputVal,
+        study_id: deriveStudyId(inputVal),
+        model: document.getElementById('p2_model').value === '__other__' ? getVal('p2_model_custom') : getVal('p2_model'),
+        model_version: getVal('p2_version'),
+        prompt: getVal('p2_prompt'),
+        prompt_strategy: getVal('p2_prompt_type'),
+        object: getVal('p2_object'),
+        region_altered: getVal('p2_region'),
+        mask_used: getVal('p2_mask'),
+        ai_assigned_filename: getVal('p2_ai_filename'),
+        altered_filename: getVal('p2_altered_filename'),
+        output_format: getVal('p2_format'),
+        output_dimensions: getVal('p2_out_dims'),
+        datetime_generated: getVal('p2_datetime'),
+        subjective_quality: currentRating,
+        notes: getVal('p2_notes'),
+        exif_anomalies: getVal('p2_exif'),
+        c2pa_status: getVal('p2_c2pa'),
+        metadata_diff: getVal('p2_metadiff'),
+        artifacts: getArtifacts(),
+        artifact_notes: getVal('p2_artifact_notes'),
+        detectors: getDetectors(),
+        baseline_results: getVal('p2_baseline'),
+        analysis_notes: getVal('p2_analysis_notes')
+      });
+      showStatus('status-p2a', 'Saved', 'success');
+      showStatus('status-p2b', 'Saved', 'success');
+    }
+
+    renderSidebar();
+    await persistRecords();
+  }
+
+  function deriveStudyId(filename) {
+    if (!filename) return '';
+    const match = filename.match(/^(csafe-\d+)/i);
+    return match ? match[1] : '';
+  }
+
+  // ── Delete / Clear ────────────────────────────────────────────────────────
+
+  async function deleteRecord() {
+    if (!currentId || !confirm('Delete this record? This cannot be undone.')) return;
+    records = records.filter(r => r.id !== currentId);
+    currentId = null; currentType = null;
+    renderSidebar(); showFormArea(false);
+    await persistRecords();
+  }
+
+  function clearCurrentForm() {
+    if (!confirm('Clear all fields? Unsaved changes will be lost.')) return;
+    const rec = records.find(r => r.id === currentId);
+    if (!rec) return;
+    const { id, type, study_id } = rec;
+    records = records.map(r => r.id === id ? { id, type, study_id } : r);
+    showFormFor(type, { id, type, study_id });
+  }
+
+  // ── Phase tabs ────────────────────────────────────────────────────────────
+
+  function switchPhase(idx) {
+    document.querySelectorAll('.phase-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+    document.querySelectorAll('.phase-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+  }
+
+  // ── Rating ────────────────────────────────────────────────────────────────
+
+  function setRating(val) {
+    currentRating = val;
+    document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', i < val));
+  }
+
+  // ── Artifacts ─────────────────────────────────────────────────────────────
+
+  function toggleArtifact(label) {
+    setTimeout(() => label.classList.toggle('checked', label.querySelector('input').checked), 0);
+  }
+
+  function getArtifacts() {
+    return [...document.querySelectorAll('.artifact-item input:checked')].map(c => c.value);
+  }
+
+  // ── Detectors ─────────────────────────────────────────────────────────────
+
+  function addDetector(data) {
+    const id = ++detectorCount;
+    const row = document.createElement('div');
+    row.className = 'detector-row'; row.id = 'drow_' + id; row.dataset.id = id;
+    row.innerHTML = `
+      <input type="text" id="det_name_${id}" placeholder="e.g. Hive Moderation v2" value="${data?.detector || ''}">
+      <input type="text" id="det_score_${id}" placeholder="e.g. 87%" value="${data?.confidence || ''}">
+      <select id="det_verdict_${id}">
+        <option value="">—</option>
+        <option${data?.verdict==='AI-generated'?' selected':''}>AI-generated</option>
+        <option${data?.verdict==='Real'?' selected':''}>Real</option>
+        <option${data?.verdict==='Inconclusive'?' selected':''}>Inconclusive</option>
+      </select>
+      <button class="remove-btn" onclick="document.getElementById('drow_${id}').remove()">×</button>`;
+    document.getElementById('detector-rows').appendChild(row);
+  }
+
+  function getDetectors() {
+    return [...document.querySelectorAll('[id^="drow_"]')]
+      .map(row => {
+        const id = row.dataset.id;
+        return {
+          detector: document.getElementById('det_name_' + id)?.value || '',
+          confidence: document.getElementById('det_score_' + id)?.value || '',
+          verdict: document.getElementById('det_verdict_' + id)?.value || ''
+        };
+      })
+      .filter(r => r.detector || r.confidence || r.verdict);
+  }
+
+  // ── Image previews ────────────────────────────────────────────────────────
+
+  function setImgSlot(imgId, captionSpanId, missId, filename) {
+    const img = document.getElementById(imgId);
+    const cap = document.getElementById(captionSpanId);
+    const miss = document.getElementById(missId);
+    if (!filename) {
+      img.style.display = 'none';
+      miss.style.display = 'none';
+      cap.textContent = '';
+      return;
+    }
+    cap.textContent = ' — ' + filename;
+    img.style.display = 'block';
+    miss.style.display = 'none';
+    img.src = '/images/' + encodeURIComponent(filename);
+    img.onload = () => { img.style.display = 'block'; miss.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; miss.style.display = 'block'; };
+  }
+
+  function refreshP0Preview() {
+    const fn = getVal('p0_original_filename');
+    const card = document.getElementById('prev-p0');
+    card.style.display = fn ? 'block' : 'none';
+    setImgSlot('img-p0', 'cap-p0', 'miss-p0', fn);
+  }
+
+  function refreshP1Preview() {
+    const inputFn = document.getElementById('p1_input_select').value;
+    const outputFn = getVal('p1_mod_filename');
+    const card = document.getElementById('prev-p1');
+    card.style.display = (inputFn || outputFn) ? 'block' : 'none';
+    setImgSlot('img-p1-input',  'cap-p1-input',  'miss-p1-input',  inputFn);
+    setImgSlot('img-p1-output', 'cap-p1-output', 'miss-p1-output', outputFn);
+  }
+
+  function refreshP2Preview() {
+    const inputFn = document.getElementById('p2_input_select').value;
+    const outputFn = getVal('p2_altered_filename');
+    const card = document.getElementById('prev-p2');
+    card.style.display = (inputFn || outputFn) ? 'block' : 'none';
+    setImgSlot('img-p2-input',  'cap-p2-input',  'miss-p2-input',  inputFn);
+    setImgSlot('img-p2-output', 'cap-p2-output', 'miss-p2-output', outputFn);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  function getVal(id) { return document.getElementById(id)?.value?.trim() || ''; }
+  function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+  function updateFormTitle() {
+    let title = 'Untitled record';
+    if (currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
+    if (currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
+    if (currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
+    document.getElementById('form-title').textContent = title;
+  }
+
+  function showStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg; el.className = 'status-msg ' + type;
+    setTimeout(() => { el.className = 'status-msg'; }, 3000);
+  }
+
+  function handleModelSelect(sel) {
+    const custom = document.getElementById('p2_model_custom');
+    custom.style.display = sel.value === '__other__' ? 'block' : 'none';
+    if (sel.value !== '__other__') custom.value = '';
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  loadRecords();
+</script>
+</body>
+</html>
