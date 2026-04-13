@@ -464,20 +464,6 @@
               <label>Date / time generated</label>
               <input type="datetime-local" id="p2_datetime">
             </div>
-            <div class="field">
-              <label>Subjective quality (1 = poor blend, 5 = convincing)</label>
-              <div class="rating-group">
-                <button class="rating-btn" onclick="setRating(1)">1</button>
-                <button class="rating-btn" onclick="setRating(2)">2</button>
-                <button class="rating-btn" onclick="setRating(3)">3</button>
-                <button class="rating-btn" onclick="setRating(4)">4</button>
-                <button class="rating-btn" onclick="setRating(5)">5</button>
-              </div>
-            </div>
-            <div class="field">
-              <label>Notes</label>
-              <textarea id="p2_notes" placeholder="Any other observations about this alteration..."></textarea>
-            </div>
           </div>
 
           <!-- Image preview -->
@@ -494,6 +480,39 @@
                 <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
                 <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
               </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-label">Quality</div>
+            <div class="field">
+              <label>Subjective quality (1 = poor blend, 5 = convincing)</label>
+              <div class="rating-group">
+                <button class="rating-btn" onclick="setRating(1)">1</button>
+                <button class="rating-btn" onclick="setRating(2)">2</button>
+                <button class="rating-btn" onclick="setRating(3)">3</button>
+                <button class="rating-btn" onclick="setRating(4)">4</button>
+                <button class="rating-btn" onclick="setRating(5)">5</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Region altered</label>
+              <select id="p2_region">
+                <option value="">— select —</option>
+                <option>top-left</option>
+                <option>top-center</option>
+                <option>top-right</option>
+                <option>center-left</option>
+                <option>center-center</option>
+                <option>center-right</option>
+                <option>bottom-left</option>
+                <option>bottom-center</option>
+                <option>bottom-right</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <textarea id="p2_notes" placeholder="Any other observations about this alteration..."></textarea>
             </div>
           </div>
 
@@ -534,21 +553,6 @@
                 <label>Object added</label>
                 <input type="text" id="p2_object" placeholder="e.g. hammer, handgun, knife">
               </div>
-            </div>
-            <div class="field">
-              <label>Region altered</label>
-              <select id="p2_region">
-                <option value="">— select —</option>
-                <option>top-left</option>
-                <option>top-center</option>
-                <option>top-right</option>
-                <option>center-left</option>
-                <option>center-center</option>
-                <option>center-right</option>
-                <option>bottom-left</option>
-                <option>bottom-center</option>
-                <option>bottom-right</option>
-              </select>
             </div>
             <div class="field">
               <label>Mask / selection used?</label>
