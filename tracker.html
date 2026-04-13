@@ -1184,6 +1184,22 @@
 
   async function p2AiFilenameChanged() {
     await updateComputedRename();
+    await populateImageInfo();
+  }
+
+  async function populateImageInfo() {
+    const model = getP2Model();
+    const filename = getVal('p2_ai_filename');
+    if (!model || !filename) return;
+    try {
+      const res = await fetch(
+        '/api/image_info?model=' + encodeURIComponent(model) +
+        '&filename=' + encodeURIComponent(filename)
+      );
+      const data = await res.json();
+      if (data.format) setVal('p2_format', data.format);
+      if (data.dimensions) setVal('p2_out_dims', data.dimensions);
+    } catch { /* silently ignore */ }
   }
 
   async function copyAndRenameImage() {

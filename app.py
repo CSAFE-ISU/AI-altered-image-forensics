@@ -111,6 +111,29 @@ def get_models():
     return jsonify(models)
 
 
+@app.route("/api/image_info")
+def image_info():
+    model = request.args.get("model", "").strip()
+    filename = request.args.get("filename", "").strip()
+    if not model or not filename:
+        return jsonify({"error": "Missing parameters"}), 400
+    model_dir = find_model_folder(model)
+    if not model_dir:
+        return jsonify({"error": "Model folder not found"}), 404
+    path = model_dir / "downloaded" / filename
+    if not path.is_file():
+        return jsonify({"error": "File not found"}), 404
+    try:
+        from PIL import Image
+        with Image.open(path) as img:
+            w, h = img.size
+            fmt_map = {"JPEG": "JPEG", "PNG": "PNG", "WEBP": "WebP"}
+            fmt = fmt_map.get((img.format or "").upper(), img.format or "")
+            return jsonify({"format": fmt, "dimensions": f"{w} \u00d7 {h}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/downloaded_files")
 def get_downloaded_files():
     model = request.args.get("model", "").strip()
