@@ -427,70 +427,7 @@
             </div>
           </div>
           <div class="section-card">
-            <div class="section-label">AI model</div>
-            <div class="two-col">
-              <div class="field">
-                <label>Model</label>
-                <select id="p2_model" onchange="handleModelSelect(this)">
-                  <option value="">— select —</option>
-                  <option value="__other__">Other (type below)</option>
-                </select>
-                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
-              </div>
-              <div class="field">
-                <label>Version / variant</label>
-                <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
-              </div>
-            </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">Prompt</div>
-            <div class="field">
-              <label>Prompt text</label>
-              <textarea id="p2_prompt" placeholder="Paste the exact prompt given to the model"></textarea>
-            </div>
-            <div class="two-col">
-              <div class="field">
-                <label>Prompt strategy</label>
-                <select id="p2_prompt_type">
-                  <option value="">— select —</option>
-                  <option>Vague</option>
-                  <option>Specific</option>
-                  <option>Adversarial</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Object added</label>
-                <input type="text" id="p2_object" placeholder="e.g. hammer, handgun, knife">
-              </div>
-            </div>
-            <div class="field">
-              <label>Region altered</label>
-              <select id="p2_region">
-                <option value="">— select —</option>
-                <option>top-left</option>
-                <option>top-center</option>
-                <option>top-right</option>
-                <option>center-left</option>
-                <option>center-center</option>
-                <option>center-right</option>
-                <option>bottom-left</option>
-                <option>bottom-center</option>
-                <option>bottom-right</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Mask / selection used?</label>
-              <select id="p2_mask">
-                <option value="">— unknown —</option>
-                <option>Yes — user-defined mask</option>
-                <option>No — free-form inpainting</option>
-                <option>Yes — bounding box</option>
-              </select>
-            </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">Output image</div>
+            <div class="section-label">Altered image</div>
             <div class="field">
               <label>Filename as assigned by AI model</label>
               <div style="display:flex; gap:8px; align-items:center;">
@@ -557,6 +494,70 @@
                 <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
                 <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
               </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="section-label">AI model</div>
+            <div class="two-col">
+              <div class="field">
+                <label>Model</label>
+                <select id="p2_model" onchange="handleModelSelect(this)">
+                  <option value="">— select —</option>
+                  <option value="__other__">Other (type below)</option>
+                </select>
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
+              </div>
+              <div class="field">
+                <label>Version / variant</label>
+                <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">Prompt</div>
+            <div class="field">
+              <label>Prompt text</label>
+              <textarea id="p2_prompt" placeholder="Paste the exact prompt given to the model"></textarea>
+            </div>
+            <div class="two-col">
+              <div class="field">
+                <label>Prompt strategy</label>
+                <select id="p2_prompt_type">
+                  <option value="">— select —</option>
+                  <option>Vague</option>
+                  <option>Specific</option>
+                  <option>Adversarial</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Object added</label>
+                <input type="text" id="p2_object" placeholder="e.g. hammer, handgun, knife">
+              </div>
+            </div>
+            <div class="field">
+              <label>Region altered</label>
+              <select id="p2_region">
+                <option value="">— select —</option>
+                <option>top-left</option>
+                <option>top-center</option>
+                <option>top-right</option>
+                <option>center-left</option>
+                <option>center-center</option>
+                <option>center-right</option>
+                <option>bottom-left</option>
+                <option>bottom-center</option>
+                <option>bottom-right</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Mask / selection used?</label>
+              <select id="p2_mask">
+                <option value="">— unknown —</option>
+                <option>Yes — user-defined mask</option>
+                <option>No — free-form inpainting</option>
+                <option>Yes — bounding box</option>
+              </select>
             </div>
           </div>
 
