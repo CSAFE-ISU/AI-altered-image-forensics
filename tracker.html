@@ -342,39 +342,11 @@
           </div>
         </div>
         <div class="section-card">
-          <div class="section-label">Modification</div>
-          <div class="field">
-            <label>Modification type</label>
-            <select id="p1_mod_type" onchange="suggestModFilename()">
-              <option value="">— select —</option>
-              <option>Cropped</option>
-              <option>Resized</option>
-              <option>Recompressed</option>
-              <option>Rotated</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Modification details</label>
-            <input type="text" id="p1_mod_details" placeholder="e.g. cropped to remove background clutter, recompressed to 80% JPEG in Preview">
-          </div>
-          <div class="two-col">
-            <div class="field">
-              <label>File size after modification</label>
-              <input type="text" id="p1_mod_filesize" placeholder="e.g. 0.8 MB">
-            </div>
-            <div class="field">
-              <label>Dimensions after modification (px)</label>
-              <input type="text" id="p1_mod_dims" placeholder="e.g. 2016 × 1512">
-            </div>
-          </div>
-        </div>
-        <div class="section-card">
-          <div class="section-label">Output file</div>
+          <div class="section-label">Modified image</div>
           <div class="field">
             <label>Modified image filename (auto-suggested, editable)</label>
             <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg"
-              oninput="updateFormTitle(); refreshP1Preview()">
+              oninput="updateFormTitle(); refreshP1Preview(); populateP1ImageInfo();">
           </div>
           <div class="field">
             <label>Notes</label>
@@ -395,6 +367,35 @@
               <div class="img-caption">Modified output<span id="cap-p1-output"></span></div>
               <img id="img-p1-output" class="img-preview" src="" alt="Modified image">
               <div class="img-missing" id="miss-p1-output" style="display:none;">Image not found.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="section-label">Modification</div>
+          <div class="field">
+            <label>Modification type</label>
+            <select id="p1_mod_type" onchange="suggestModFilename()">
+              <option value="">— select —</option>
+              <option>Cropped</option>
+              <option>Resized</option>
+              <option>Recompressed</option>
+              <option>Rotated</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Modification details</label>
+            <input type="text" id="p1_mod_details" placeholder="e.g. cropped to remove background clutter, recompressed to 80% JPEG in Preview">
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>File size after modification</label>
+              <input type="text" id="p1_mod_filesize" placeholder="auto-populated">
+            </div>
+            <div class="field">
+              <label>Dimensions after modification (px)</label>
+              <input type="text" id="p1_mod_dims" placeholder="auto-populated">
             </div>
           </div>
         </div>
@@ -1355,6 +1356,17 @@
       const data = await res.json();
       if (data.filesize) setVal('p0_filesize', data.filesize);
       if (data.dimensions) setVal('p0_dims', data.dimensions);
+    } catch { /* silently ignore */ }
+  }
+
+  async function populateP1ImageInfo() {
+    const filename = getVal('p1_mod_filename');
+    if (!filename) return;
+    try {
+      const res = await fetch('/api/original_image_info?filename=' + encodeURIComponent(filename));
+      const data = await res.json();
+      if (data.filesize) setVal('p1_mod_filesize', data.filesize);
+      if (data.dimensions) setVal('p1_mod_dims', data.dimensions);
     } catch { /* silently ignore */ }
   }
 
