@@ -1267,9 +1267,9 @@
       // Try to match filename against existing records
       const fn = result.filename;
       const matched = records.find(r =>
-        r.original_filename === fn || r.mod_filename === fn ||
-        r.altered_filename === fn || r.ai_assigned_filename === fn ||
-        r.uploaded_filename === fn
+        r.original_filename === fn || r.renamed_filename === fn ||
+        r.mod_filename === fn || r.altered_filename === fn ||
+        r.ai_assigned_filename === fn || r.uploaded_filename === fn
       );
 
       if (matched) {
@@ -1361,6 +1361,7 @@
       Object.assign(rec, {
         study_id: getVal('p0_study_id'),
         original_filename: getVal('p0_original_filename'),
+        renamed_filename: getVal('p0_renamed_filename'),
         filesize: getVal('p0_filesize'),
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes')
