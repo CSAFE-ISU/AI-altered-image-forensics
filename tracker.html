@@ -307,7 +307,7 @@
           <div class="section-label">Study ID</div>
           <div class="field">
             <label>Study ID (auto-assigned)</label>
-            <input type="text" id="p0_study_id" style="font-family:var(--mono);font-weight:500;" oninput="updateFormTitle()">
+            <input type="text" id="p0_study_id" style="font-family:var(--mono);font-weight:500;" oninput="updateFormTitle(); updateP0ComputedRename()">
           </div>
           <div class="hint-box">
             This ID ties all files in this study together:<br>
@@ -318,8 +318,18 @@
           <div class="section-label">Original image</div>
           <div class="field">
             <label>Original filename (from camera / source)</label>
-            <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
-              oninput="refreshP0Preview(); populateP0ImageInfo();">
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
+                style="flex:1; min-width:0;"
+                oninput="refreshP0Preview(); populateP0ImageInfo(); updateP0ComputedRename();">
+              <button id="btn-copy-rename-original" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+            </div>
+            <div id="status-copy-rename-original" style="margin-top:4px;"></div>
+          </div>
+          <div class="field">
+            <label>Renamed filename (auto-assigned)</label>
+            <input type="text" id="p0_renamed_filename" placeholder="auto-suggested" readonly
+              style="width:100%; background:var(--surface2); color:var(--text-faint); font-family:var(--mono);">
           </div>
           <div class="two-col">
             <div class="field">
@@ -699,6 +709,7 @@
   let currentRating = null;
   let detectorCount = 0;
   let copyPerformed = false;
+  let p0CopyPerformed = false;
   let expandedStudies = new Set();
 
   // ── Server I/O ────────────────────────────────────────────────────────────
@@ -934,6 +945,8 @@
     setVal('p0_notes', rec.notes);
     updateFormTitle();
     refreshP0Preview();
+    p0CopyPerformed = false;
+    updateP0ComputedRename();
   }
 
   function fillP1(rec) {
@@ -995,9 +1008,11 @@
     if (rec.altered_filename) {
       copyPerformed = true;
       btn.disabled = true;
+      showPersistentStatus('status-copy-rename', 'Already renamed: ' + rec.altered_filename, 'warning');
     } else {
       copyPerformed = false;
       btn.disabled = false;
+      clearCopyRenameStatus();
     }
   }
 
@@ -1490,6 +1505,78 @@
       }
     } catch {
       showStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  // ── Original image copy / rename ─────────────────────────────────────────
+
+  async function updateP0ComputedRename() {
+    const originalFilename = getVal('p0_original_filename');
+    const studyId = getVal('p0_study_id');
+    const btn = document.getElementById('btn-copy-rename-original');
+    const renamedEl = document.getElementById('p0_renamed_filename');
+    const statusEl = document.getElementById('status-copy-rename-original');
+
+    if (!originalFilename || !studyId) {
+      renamedEl.value = '';
+      if (btn) btn.disabled = true;
+      statusEl.innerHTML = '';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/compute_original_renamed?' +
+        new URLSearchParams({ original_filename: originalFilename, study_id: studyId }));
+      const data = await res.json();
+      if (data.filename) {
+        renamedEl.value = data.filename;
+        if (data.already_exists) {
+          if (btn) btn.disabled = true;
+          showPersistentStatus('status-copy-rename-original', 'Already renamed: ' + data.filename, 'warning');
+          p0CopyPerformed = true;
+        } else {
+          if (btn) btn.disabled = false;
+          statusEl.textContent = '';
+          statusEl.className = 'status-msg';
+          p0CopyPerformed = false;
+        }
+      }
+    } catch { /* silently ignore */ }
+  }
+
+  async function copyAndRenameOriginal() {
+    if (p0CopyPerformed) {
+      showStatus('status-copy-rename-original', 'Already copied as ' + getVal('p0_renamed_filename') + ' — change the filename or study ID to copy again', 'warning');
+      return;
+    }
+    const originalFilename = getVal('p0_original_filename');
+    const studyId = getVal('p0_study_id');
+    if (!originalFilename || !studyId) {
+      showStatus('status-copy-rename-original', 'Enter original filename and study ID first', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/copy_rename_original', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ original_filename: originalFilename, study_id: studyId })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showPersistentStatus('status-copy-rename-original', data.warning, 'warning');
+        document.getElementById('btn-copy-rename-original').disabled = true;
+        p0CopyPerformed = true;
+      } else if (data.ok) {
+        setVal('p0_renamed_filename', data.filename);
+        showPersistentStatus('status-copy-rename-original', 'Copied \u2192 ' + data.filename, 'success');
+        document.getElementById('btn-copy-rename-original').disabled = true;
+        p0CopyPerformed = true;
+      } else {
+        showStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
     }
   }
 

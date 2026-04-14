@@ -257,6 +257,63 @@ def copy_rename_image():
     return jsonify({"ok": True, "filename": dest_filename})
 
 
+# ── Original image rename helpers ────────────────────────────────────────────
+
+ORIG_SRC_DIR  = BASE / "real images" / "01-original"
+ORIG_DEST_DIR = BASE / "real images" / "02-original-renamed"
+
+
+def _compute_original_renamed(original_filename: str, study_id: str) -> tuple[str, bool]:
+    """Return (dest_filename, already_exists) for an original image rename.
+
+    dest_filename is  <study_id>.<original_ext>  (e.g. csafe-001.jpg).
+    already_exists is True if that file is already present in 02-original-renamed/.
+    """
+    ext = ("." + original_filename.rsplit(".", 1)[1]) if "." in original_filename else ""
+    dest_filename = f"{study_id}{ext}"
+    dest_path = ORIG_DEST_DIR / dest_filename
+    return dest_filename, dest_path.exists()
+
+
+@app.route("/api/compute_original_renamed")
+def compute_original_renamed_route():
+    original_filename = request.args.get("original_filename", "").strip()
+    study_id = request.args.get("study_id", "").strip()
+    if not (original_filename and study_id):
+        return jsonify({"error": "Missing required parameters"}), 400
+    filename, already_exists = _compute_original_renamed(original_filename, study_id)
+    return jsonify({"filename": filename, "already_exists": already_exists})
+
+
+@app.route("/api/copy_rename_original", methods=["POST"])
+def copy_rename_original():
+    data = request.get_json(force=True)
+    original_filename = (data.get("original_filename") or "").strip()
+    study_id = (data.get("study_id") or "").strip()
+    if not (original_filename and study_id):
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    dest_filename, already_exists = _compute_original_renamed(original_filename, study_id)
+
+    if already_exists:
+        return jsonify({
+            "ok": False,
+            "warning": f"File already exists: {dest_filename}",
+            "filename": dest_filename,
+        })
+
+    src_path = ORIG_SRC_DIR / original_filename
+    if not src_path.is_file():
+        return jsonify({
+            "error": f"Source file not found: 01-original/{original_filename}"
+        }), 404
+
+    ORIG_DEST_DIR.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src_path, ORIG_DEST_DIR / dest_filename)
+
+    return jsonify({"ok": True, "filename": dest_filename})
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
