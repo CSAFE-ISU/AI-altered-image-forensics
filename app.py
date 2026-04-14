@@ -11,10 +11,13 @@ Records are stored in records.json (next to this file).
 Images are searched recursively in 'real images/' and 'altered images/'.
 """
 
+import base64
+import io
 import json
 import pathlib
 import re
 import shutil
+import subprocess
 
 from flask import Flask, abort, jsonify, request, send_file
 
@@ -314,6 +317,332 @@ def copy_rename_original():
     return jsonify({"ok": True, "filename": dest_filename})
 
 
+# ── Forensic analysis helpers ─────────────────────────────────────────────────
+
+# Fields produced by exiftool that are file-level or derived, not embedded metadata.
+_SKIP_FIELDS = {
+    "SourceFile", "ExifToolVersion", "FileName", "Directory", "FileSize",
+    "FileModifyDate", "FileAccessDate", "FileInodeChangeDate", "FilePermissions",
+    "FileType", "FileTypeExtension", "MIMEType", "ImageWidth", "ImageHeight",
+    "EncodingProcess", "BitsPerSample", "ColorComponents", "YCbCrSubSampling",
+    "Megapixels", "ImageSize",
+}
+
+# Tag key suffixes (after the "Group:" prefix) that should never be checked
+# for AI software strings, because they contain file paths or other values
+# that could cause false positives.
+_SKIP_KEY_SUFFIXES = {
+    "Directory", "FileName", "SourceFile", "FilePath", "FileModifyDate",
+    "FileAccessDate", "FileInodeChangeDate", "FilePermissions",
+}
+
+_AI_SOFTWARE_STRINGS = [
+    "adobe firefly", "dall-e", "dall·e", "midjourney", "stable diffusion",
+    "imagen", "grok", "gemini", "chatgpt", "openai", "ideogram", "runway",
+    "leonardo", "adobe generative", "generative fill",
+]
+
+_EXPECTED_CAMERA_FIELDS = ["Make", "Model", "DateTimeOriginal", "ExifIFD:DateTimeOriginal"]
+
+
+def _run_exiftool(path: pathlib.Path) -> dict:
+    """Run exiftool on path and return a flat tag dict. Returns {} if not installed."""
+    try:
+        result = subprocess.run(
+            ["exiftool", "-json", "-a", "-G1", str(path)],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode != 0:
+            return {}
+        data = json.loads(result.stdout)
+        return data[0] if data else {}
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return {}
+
+
+def _analyze_exif(tags: dict) -> str:
+    """Return a human-readable string of EXIF anomalies for an AI-altered image."""
+    notes = []
+
+    # Check for AI software strings in any tag value.
+    for key, val in tags.items():
+        if key in _SKIP_FIELDS:
+            continue
+        # Also skip by suffix (handles "Group:FieldName" style keys from exiftool -G1).
+        suffix = key.split(":")[-1] if ":" in key else key
+        if suffix in _SKIP_KEY_SUFFIXES:
+            continue
+        val_lower = str(val).lower()
+        for ai_str in _AI_SOFTWARE_STRINGS:
+            if ai_str in val_lower:
+                notes.append(f"{key}: '{val}' (AI software tag)")
+                break
+
+    # Flag missing expected camera fields.
+    has_make = any(k.endswith("Make") for k in tags)
+    has_model = any(k.endswith("Model") for k in tags)
+    has_datetime = any("DateTimeOriginal" in k for k in tags)
+    if not has_make:
+        notes.append("Camera Make absent")
+    if not has_model:
+        notes.append("Camera Model absent")
+    if not has_datetime:
+        notes.append("DateTimeOriginal absent")
+
+    # Flag absent GPS.
+    has_gps = any(k.startswith("GPS") or "GPS" in k for k in tags)
+    if not has_gps:
+        notes.append("GPS data absent")
+
+    if not notes:
+        return "No anomalies detected."
+    return "\n".join(f"• {n}" for n in notes)
+
+
+def _diff_metadata(input_tags: dict, altered_tags: dict) -> str:
+    """Return a human-readable diff of metadata between input and altered images."""
+    lines = []
+
+    input_filtered = {k: v for k, v in input_tags.items() if k not in _SKIP_FIELDS}
+    altered_filtered = {k: v for k, v in altered_tags.items() if k not in _SKIP_FIELDS}
+
+    all_keys = sorted(set(input_filtered) | set(altered_filtered))
+    added, removed, changed = [], [], []
+
+    for k in all_keys:
+        in_val = input_filtered.get(k)
+        alt_val = altered_filtered.get(k)
+        if in_val is None:
+            added.append(f"  {k}: → '{alt_val}'")
+        elif alt_val is None:
+            removed.append(f"  {k}: '{in_val}' → (absent)")
+        elif str(in_val) != str(alt_val):
+            changed.append(f"  {k}: '{in_val}' → '{alt_val}'")
+
+    if added:
+        lines.append("Added:")
+        lines.extend(added)
+    if removed:
+        lines.append("Removed:")
+        lines.extend(removed)
+    if changed:
+        lines.append("Changed:")
+        lines.extend(changed)
+
+    if not lines:
+        return "No metadata differences found."
+    return "\n".join(lines)
+
+
+def _check_c2pa(path: pathlib.Path) -> str:
+    """Check for C2PA / Content Credentials. Returns one of the three dropdown values."""
+    # Try c2patool first.
+    try:
+        result = subprocess.run(
+            ["c2patool", str(path)],
+            capture_output=True, text=True, timeout=15,
+        )
+        output = result.stdout + result.stderr
+        if result.returncode == 0 and output.strip():
+            output_lower = output.lower()
+            if "no claim" in output_lower or "no manifest" in output_lower:
+                return "No"
+            if "ingredient" in output_lower or "claim_generator" in output_lower or "assertions" in output_lower:
+                return "Yes — with provenance data"
+            return "Yes — but empty / stripped"
+    except FileNotFoundError:
+        pass
+    except subprocess.TimeoutExpired:
+        pass
+
+    # Fallback: check XMP data via Pillow for c2pa namespace.
+    try:
+        from PIL import Image
+        with Image.open(path) as img:
+            xmp = img.info.get("xmp", b"")
+            if isinstance(xmp, bytes):
+                xmp = xmp.decode("utf-8", errors="ignore")
+            if "c2pa" in xmp.lower():
+                return "Yes — with provenance data"
+    except Exception:
+        pass
+
+    return "No"
+
+
+def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
+    """Run Error Level Analysis. Returns (flagged, max_diff, base64_png)."""
+    ELA_QUALITY = 90
+    ELA_SCALE = 10
+    ELA_THRESHOLD = 15
+
+    try:
+        from PIL import Image, ImageChops, ImageEnhance
+        import numpy as np
+
+        with Image.open(path) as img:
+            img_rgb = img.convert("RGB")
+
+        buf = io.BytesIO()
+        img_rgb.save(buf, format="JPEG", quality=ELA_QUALITY)
+        buf.seek(0)
+        recompressed = Image.open(buf).convert("RGB")
+
+        diff = ImageChops.difference(img_rgb, recompressed)
+        diff_arr = np.array(diff)
+        max_diff = int(diff_arr.max())
+
+        # Scale up for visibility.
+        scaled = diff_arr * ELA_SCALE
+        scaled = np.clip(scaled, 0, 255).astype("uint8")
+        ela_img = Image.fromarray(scaled, "RGB")
+
+        out_buf = io.BytesIO()
+        ela_img.save(out_buf, format="PNG")
+        b64 = base64.b64encode(out_buf.getvalue()).decode("ascii")
+
+        return max_diff > ELA_THRESHOLD, max_diff, b64
+    except Exception:
+        return False, 0, ""
+
+
+def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
+    """Estimate per-block noise and flag regions with inconsistent levels."""
+    BLOCK_SIZE = 64
+    THRESHOLD = 1.5  # std of block noise estimates
+
+    try:
+        import numpy as np
+        from PIL import Image
+
+        with Image.open(path) as img:
+            gray = np.array(img.convert("L"), dtype=float)
+
+        h, w = gray.shape
+        # Simple high-pass: subtract 3×3 mean.
+        from PIL import ImageFilter
+        with Image.open(path) as img:
+            blurred = np.array(img.convert("L").filter(ImageFilter.BoxBlur(3)), dtype=float)
+        hp = gray - blurred
+
+        block_noises = []
+        for y in range(0, h - BLOCK_SIZE + 1, BLOCK_SIZE):
+            for x in range(0, w - BLOCK_SIZE + 1, BLOCK_SIZE):
+                block = hp[y:y + BLOCK_SIZE, x:x + BLOCK_SIZE]
+                block_noises.append(float(np.std(block)))
+
+        if not block_noises:
+            return False, ""
+
+        noise_std = float(np.std(block_noises))
+        flagged = noise_std > THRESHOLD
+        note = f"Noise inconsistency: block noise std={noise_std:.2f} (threshold {THRESHOLD})."
+        return flagged, note if flagged else ""
+    except Exception:
+        return False, ""
+
+
+def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
+    """Detect DCT blocking artifacts in JPEG images."""
+    BLOCK_SIZE = 8
+    RATIO_THRESHOLD = 1.3
+
+    try:
+        from PIL import Image
+        import numpy as np
+
+        with Image.open(path) as img:
+            if (img.format or "").upper() not in ("JPEG", "JPG"):
+                return False, ""
+            gray = np.array(img.convert("L"), dtype=float)
+
+        h, w = gray.shape
+
+        # Mean absolute difference at 8-pixel boundaries vs. one pixel away.
+        boundary_diffs, interior_diffs = [], []
+        for y in range(BLOCK_SIZE, h - 1, BLOCK_SIZE):
+            row_diff = np.mean(np.abs(gray[y, :] - gray[y - 1, :]))
+            inner_diff = np.mean(np.abs(gray[y - 1, :] - gray[y - 2, :]))
+            boundary_diffs.append(row_diff)
+            interior_diffs.append(inner_diff)
+        for x in range(BLOCK_SIZE, w - 1, BLOCK_SIZE):
+            col_diff = np.mean(np.abs(gray[:, x] - gray[:, x - 1]))
+            inner_diff = np.mean(np.abs(gray[:, x - 1] - gray[:, x - 2]))
+            boundary_diffs.append(col_diff)
+            interior_diffs.append(inner_diff)
+
+        if not boundary_diffs or not interior_diffs:
+            return False, ""
+
+        avg_boundary = float(np.mean(boundary_diffs))
+        avg_interior = float(np.mean(interior_diffs))
+        if avg_interior == 0:
+            return False, ""
+
+        ratio = avg_boundary / avg_interior
+        flagged = ratio > RATIO_THRESHOLD
+        note = f"Compression blocking: boundary/interior diff ratio={ratio:.2f} (threshold {RATIO_THRESHOLD})."
+        return flagged, note if flagged else ""
+    except Exception:
+        return False, ""
+
+
+@app.route("/api/analyze", methods=["POST"])
+def analyze_image():
+    data = request.get_json(force=True)
+    altered_filename = (data.get("altered_filename") or "").strip()
+    model = (data.get("model") or "").strip()
+    input_image = (data.get("input_image") or "").strip()
+
+    if not (altered_filename and model):
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    # Locate the altered image.
+    model_dir = find_model_folder(model)
+    if not model_dir:
+        return jsonify({"error": f"Model folder not found: {model}"}), 404
+    altered_path = model_dir / "renamed" / altered_filename
+    if not altered_path.is_file():
+        return jsonify({"error": f"Altered image not found: {altered_filename}"}), 404
+
+    # Locate the input (original) image if provided.
+    input_path = find_image(input_image) if input_image else None
+
+    # Run all analyses.
+    altered_tags = _run_exiftool(altered_path)
+    input_tags = _run_exiftool(input_path) if input_path else {}
+
+    exif_anomalies = _analyze_exif(altered_tags) if altered_tags else "(exiftool not available)"
+    metadata_diff = _diff_metadata(input_tags, altered_tags) if (input_tags and altered_tags) else "(input image metadata unavailable)"
+    c2pa_status = _check_c2pa(altered_path)
+
+    ela_flagged, ela_max_diff, ela_b64 = _run_ela(altered_path)
+    noise_flagged, noise_note = _check_noise_inconsistency(altered_path)
+    blocking_flagged, blocking_note = _check_compression_blocking(altered_path)
+
+    # Build artifacts list and notes.
+    artifacts = []
+    artifact_note_parts = []
+    if ela_flagged:
+        artifacts.append("ELA anomaly")
+        artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+    if noise_flagged:
+        artifacts.append("Noise inconsistency")
+        artifact_note_parts.append(noise_note)
+    if blocking_flagged:
+        artifacts.append("Compression blocking")
+        artifact_note_parts.append(blocking_note)
+
+    return jsonify({
+        "exif_anomalies": exif_anomalies,
+        "c2pa_status": c2pa_status,
+        "metadata_diff": metadata_diff,
+        "artifacts": artifacts,
+        "artifact_notes": "\n".join(artifact_note_parts),
+        "ela_image_b64": ela_b64,
+    })
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
@@ -327,5 +656,7 @@ if __name__ == "__main__":
         else:
             DATA_FILE.write_text("[]", encoding="utf-8")
 
-    print("\n  CSAFE Tracker running → http://localhost:5000\n")
-    app.run(debug=True, port=5000)
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n  CSAFE Tracker running → http://localhost:{port}\n")
+    app.run(debug=True, port=port)

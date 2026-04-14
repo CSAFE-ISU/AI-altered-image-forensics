@@ -132,6 +132,7 @@
   .add-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; letter-spacing: 0.03em; margin-top: 4px; }
   .add-link:hover { opacity: 0.7; }
 
+  .analyze-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
   .form-actions { display: flex; gap: 10px; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   .btn { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; padding: 8px 18px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); transition: all 0.15s; }
   .btn:hover { background: var(--surface2); border-color: var(--text-faint); color: var(--text); }
@@ -612,6 +613,10 @@
 
         <!-- 2b -->
         <div class="phase-panel" id="panel1">
+          <div class="analyze-bar">
+            <button class="btn" id="analyze-btn" onclick="runAnalysis()">Run Analysis</button>
+            <span class="status-msg" id="status-analyze"></span>
+          </div>
           <div class="section-card">
             <div class="section-label">Metadata forensics</div>
             <div class="field">
@@ -649,6 +654,10 @@
                 <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="None visible"> None visible</label>
               </div>
             </div>
+            <details id="ela-preview" style="display:none; margin-top:0.75rem;">
+              <summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted, #888);">ELA visualization</summary>
+              <img id="ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">
+            </details>
             <div class="field">
               <label>Additional artifact notes</label>
               <textarea id="p2_artifact_notes" placeholder="Describe location, severity, or any unlisted artifacts..."></textarea>
@@ -1164,6 +1173,78 @@
 
   function getArtifacts() {
     return [...document.querySelectorAll('.artifact-item input:checked')].map(c => c.value);
+  }
+
+  // ── Run Analysis ──────────────────────────────────────────────────────────
+
+  async function runAnalysis() {
+    const rec = records.find(r => r.id === currentId);
+    if (!rec) return;
+
+    const altered = rec.altered_filename || '';
+    const model   = rec.model || '';
+    const input   = rec.input_image || '';
+
+    if (!altered || !model) {
+      showStatus('status-analyze', 'Fill in Model and Altered Filename (2a tab) first.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('analyze-btn');
+    btn.disabled = true;
+    showStatus('status-analyze', 'Running\u2026', '');
+
+    try {
+      const resp = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ altered_filename: altered, model, input_image: input }),
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus('status-analyze', result.error || 'Analysis failed.', 'error');
+        return;
+      }
+
+      // Populate metadata fields.
+      if (result.exif_anomalies) document.getElementById('p2_exif').value = result.exif_anomalies;
+      if (result.c2pa_status)   document.getElementById('p2_c2pa').value = result.c2pa_status;
+      if (result.metadata_diff) document.getElementById('p2_metadiff').value = result.metadata_diff;
+
+      // Check artifact checkboxes returned by analysis.
+      if (result.artifacts && result.artifacts.length) {
+        document.querySelectorAll('.artifact-item').forEach(label => {
+          const cb = label.querySelector('input');
+          if (result.artifacts.includes(cb.value)) {
+            cb.checked = true;
+            label.classList.add('checked');
+          }
+        });
+      }
+
+      // Populate artifact notes.
+      if (result.artifact_notes) {
+        const notesEl = document.getElementById('p2_artifact_notes');
+        notesEl.value = result.artifact_notes;
+      }
+
+      // Show ELA visualization.
+      const elaPreview = document.getElementById('ela-preview');
+      const elaImg     = document.getElementById('ela-img');
+      if (result.ela_image_b64) {
+        elaImg.src = 'data:image/png;base64,' + result.ela_image_b64;
+        elaPreview.style.display = '';
+        elaPreview.open = true;
+      } else {
+        elaPreview.style.display = 'none';
+      }
+
+      showStatus('status-analyze', 'Analysis complete', 'success');
+    } catch (err) {
+      showStatus('status-analyze', 'Network error: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ── Detectors ─────────────────────────────────────────────────────────────
