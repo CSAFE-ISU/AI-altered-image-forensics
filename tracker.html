@@ -133,6 +133,10 @@
   .add-link:hover { opacity: 0.7; }
 
   .analyze-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
+  .c2pa-table td { padding: 3px 8px 3px 0; vertical-align: top; }
+  .c2pa-table td:first-child { color: var(--text-muted, #888); white-space: nowrap; padding-right: 12px; }
+  .c2pa-table .c2pa-warn { color: #c0392b; font-weight: 500; }
+  .c2pa-table .c2pa-ok { color: #27ae60; }
   .form-actions { display: flex; gap: 10px; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   .btn { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; padding: 8px 18px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); transition: all 0.15s; }
   .btn:hover { background: var(--surface2); border-color: var(--text-faint); color: var(--text); }
@@ -632,6 +636,11 @@
                 <option>No</option>
               </select>
             </div>
+            <details id="c2pa-details" style="display:none; margin-top:0.25rem; margin-bottom:0.5rem;">
+              <summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted, #888); user-select:none;">C2PA details</summary>
+              <table id="c2pa-table" style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.82rem;">
+              </table>
+            </details>
             <div class="field">
               <label>Metadata diff vs. input image (summary)</label>
               <textarea id="p2_metadiff" placeholder="List fields that differ from the input image..."></textarea>
@@ -1226,6 +1235,34 @@
       if (result.artifact_notes) {
         const notesEl = document.getElementById('p2_artifact_notes');
         notesEl.value = result.artifact_notes;
+      }
+
+      // Populate C2PA details table.
+      const c2paDetails = document.getElementById('c2pa-details');
+      const c2paTable   = document.getElementById('c2pa-table');
+      if (result.c2pa_details) {
+        const d = result.c2pa_details;
+        const rows = [];
+        if (d.claim_generator)     rows.push(['Claim generator', d.claim_generator]);
+        if (d.software_agent)      rows.push(['Software agent',  d.software_agent]);
+        if (d.c2pa_version)        rows.push(['C2PA version',    d.c2pa_version]);
+        if (d.actions?.length)     rows.push(['Actions',         d.actions.join(', ')]);
+        if (d.digital_source_type) rows.push(['Digital source type', d.digital_source_type]);
+        if (d.manifest_id)         rows.push(['Manifest ID',     d.manifest_id]);
+        if (d.validation_failures?.length) {
+          rows.push(['Validation failures',
+            d.validation_failure_explanations?.join('; ') || d.validation_failures.join('; '),
+            'c2pa-warn']);
+        } else {
+          rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+        }
+        c2paTable.innerHTML = rows.map(([label, value, cls]) =>
+          `<tr class="c2pa-table"><td>${label}</td><td${cls ? ` class="${cls}"` : ''}>${value}</td></tr>`
+        ).join('');
+        c2paDetails.style.display = '';
+        c2paDetails.open = true;
+      } else {
+        c2paDetails.style.display = 'none';
       }
 
       // Show ELA visualization.

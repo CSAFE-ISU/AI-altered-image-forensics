@@ -482,6 +482,55 @@ def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
     return "No"
 
 
+def _extract_c2pa_details(tags: dict) -> dict | None:
+    """Extract human-readable C2PA provenance fields from exiftool tags.
+
+    Returns a dict with the most forensically relevant fields, or None if no
+    C2PA data is present.
+    """
+    if not any("JUMBF" in k and "c2pa" in str(v).lower() for k, v in tags.items()):
+        return None
+
+    def _get(key):
+        return tags.get(f"CBOR:{key}")
+
+    # Digital source type: extract last path segment from IPTC URI.
+    dst_raw = _get("ActionsDigitalSourceType") or ""
+    digital_source_type = dst_raw.rstrip("/").rsplit("/", 1)[-1] if dst_raw else None
+
+    # Actions: normalise to list and strip "c2pa." prefix for readability.
+    actions_raw = _get("ActionsAction") or []
+    if isinstance(actions_raw, str):
+        actions_raw = [actions_raw]
+    actions = [a.replace("c2pa.", "") for a in actions_raw]
+
+    # Validation: collect failure codes/explanations.
+    fail_codes = _get("ValidationResultsActiveManifestFailureCode") or []
+    if isinstance(fail_codes, str):
+        fail_codes = [fail_codes]
+    fail_explanations = _get("ValidationResultsActiveManifestFailureExplanation") or []
+    if isinstance(fail_explanations, str):
+        fail_explanations = [fail_explanations]
+
+    # Active manifest ID: first urn:c2pa:... label from JUMBF.
+    manifest_id = None
+    for val in tags.values():
+        if isinstance(val, str) and val.startswith("urn:c2pa:"):
+            manifest_id = val
+            break
+
+    return {
+        "claim_generator":      _get("Claim_Generator_InfoName"),
+        "software_agent":       _get("ActionsSoftwareAgentName"),
+        "c2pa_version":         _get("Claim_Generator_InfoOrgContentauthC2Pa_Rs"),
+        "actions":              actions or None,
+        "digital_source_type":  digital_source_type or None,
+        "validation_failures":  fail_codes or None,
+        "validation_failure_explanations": fail_explanations or None,
+        "manifest_id":          manifest_id,
+    }
+
+
 def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
     """Run Error Level Analysis. Returns (flagged, max_diff, base64_png)."""
     ELA_QUALITY = 90
@@ -627,6 +676,7 @@ def analyze_image():
     exif_anomalies = _analyze_exif(altered_tags) if altered_tags else "(exiftool not available)"
     metadata_diff = _diff_metadata(input_tags, altered_tags) if (input_tags and altered_tags) else "(input image metadata unavailable)"
     c2pa_status = _check_c2pa(altered_path, altered_tags)
+    c2pa_details = _extract_c2pa_details(altered_tags)
 
     ela_flagged, ela_max_diff, ela_b64 = _run_ela(altered_path)
     noise_flagged, noise_note = _check_noise_inconsistency(altered_path)
@@ -648,6 +698,7 @@ def analyze_image():
     return jsonify({
         "exif_anomalies": exif_anomalies,
         "c2pa_status": c2pa_status,
+        "c2pa_details": c2pa_details,
         "metadata_diff": metadata_diff,
         "artifacts": artifacts,
         "artifact_notes": "\n".join(artifact_note_parts),
