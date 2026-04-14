@@ -28,10 +28,10 @@ DATA_FILE = BASE / "records.json"
 IMAGE_ROOTS = [
     BASE / "real images",
     BASE / "altered images",
-    BASE / "uploaded images",
+    BASE / "analyzed images",
 ]
 
-UPLOAD_DIR = BASE / "uploaded images"
+UPLOAD_DIR = BASE / "analyzed images"
 
 app = Flask(__name__, static_folder=None)
 
