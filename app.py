@@ -434,9 +434,15 @@ def _diff_metadata(input_tags: dict, altered_tags: dict) -> str:
     return "\n".join(lines)
 
 
-def _check_c2pa(path: pathlib.Path) -> str:
-    """Check for C2PA / Content Credentials. Returns one of the three dropdown values."""
-    # Try c2patool first.
+def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
+    """Check for C2PA / Content Credentials. Returns one of the three dropdown values.
+
+    Detection order:
+    1. c2patool CLI (most authoritative)
+    2. JUMBF tags in the pre-extracted exiftool output (covers PNG/JPEG C2PA blocks)
+    3. XMP namespace check via Pillow (last resort)
+    """
+    # 1. Try c2patool first.
     try:
         result = subprocess.run(
             ["c2patool", str(path)],
@@ -455,7 +461,13 @@ def _check_c2pa(path: pathlib.Path) -> str:
     except subprocess.TimeoutExpired:
         pass
 
-    # Fallback: check XMP data via Pillow for c2pa namespace.
+    # 2. Check JUMBF tags from exiftool output.
+    # exiftool exposes C2PA manifests embedded in PNG/JPEG as JUMBF:JUMDLabel = "c2pa".
+    for key, val in tags.items():
+        if "JUMBF" in key and "c2pa" in str(val).lower():
+            return "Yes — with provenance data"
+
+    # 3. Fallback: check XMP data via Pillow for c2pa namespace.
     try:
         from PIL import Image
         with Image.open(path) as img:
@@ -614,7 +626,7 @@ def analyze_image():
 
     exif_anomalies = _analyze_exif(altered_tags) if altered_tags else "(exiftool not available)"
     metadata_diff = _diff_metadata(input_tags, altered_tags) if (input_tags and altered_tags) else "(input image metadata unavailable)"
-    c2pa_status = _check_c2pa(altered_path)
+    c2pa_status = _check_c2pa(altered_path, altered_tags)
 
     ela_flagged, ela_max_diff, ela_b64 = _run_ela(altered_path)
     noise_flagged, noise_note = _check_noise_inconsistency(altered_path)
