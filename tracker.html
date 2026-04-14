@@ -132,7 +132,15 @@
   .add-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; letter-spacing: 0.03em; margin-top: 4px; }
   .add-link:hover { opacity: 0.7; }
 
-  .analyze-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 1rem; }
+  .analysis-section { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+  .analysis-summary { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; user-select: none; list-style: none; }
+  .analysis-summary::-webkit-details-marker { display: none; }
+  .analysis-summary::before { content: '▸ '; font-size: 9px; }
+  details[open] .analysis-summary::before { content: '▾ '; }
+  .analysis-empty { font-size: 0.85rem; color: var(--text-muted); margin: 0.75rem 0; font-style: italic; }
+  .artifact-display { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.5rem 0 0.75rem; }
+  .artifact-tag { font-family: var(--mono); font-size: 11px; padding: 3px 8px; background: var(--accent-light); color: var(--accent); border-radius: var(--radius); }
+  .sidebar-section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); padding: 0.75rem 1.25rem 0.3rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   .c2pa-table td { padding: 3px 8px 3px 0; vertical-align: top; }
   .c2pa-table td:first-child { color: var(--text-muted, #888); white-space: nowrap; padding-right: 12px; }
   .c2pa-table .c2pa-warn { color: #c0392b; font-weight: 500; }
@@ -289,8 +297,13 @@
       <button class="new-record-btn" onclick="newRecord('p0')">+ New original</button>
       <button class="new-record-btn" onclick="newRecord('p1')">+ New modification</button>
       <button class="new-record-btn" onclick="newRecord('p2')">+ New alteration</button>
+      <button class="new-record-btn" onclick="newAnalysis()">+ New analysis</button>
     </div>
     <div id="study-tree"></div>
+    <div id="analyses-section" style="display:none">
+      <div class="sidebar-section-label">Analyses</div>
+      <div id="analyses-tree"></div>
+    </div>
   </aside>
 
   <main>
@@ -361,6 +374,26 @@
             <div class="img-missing" id="miss-p0" style="display:none;">Image not found in images folder.</div>
           </div>
         </div>
+
+        <details id="an-p0-section" class="analysis-section">
+          <summary class="analysis-summary">Analysis results</summary>
+          <p class="analysis-empty" id="an-p0-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div id="an-p0-results" style="display:none">
+            <div class="section-card">
+              <div class="section-label">Metadata forensics</div>
+              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p0-exif" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p0-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p0-metadiff" readonly style="background:var(--bg)"></textarea></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Visual / pixel-level artifacts</div>
+              <div id="an-p0-artifact-list" class="artifact-display"></div>
+              <div class="field"><label>Artifact notes</label><textarea id="an-p0-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <details id="an-p0-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p0-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
+            </div>
+          </div>
+        </details>
 
         <div class="form-actions">
           <button class="btn save" onclick="saveRecord()">Save record</button>
@@ -440,6 +473,26 @@
           </div>
         </div>
 
+        <details id="an-p1-section" class="analysis-section">
+          <summary class="analysis-summary">Analysis results</summary>
+          <p class="analysis-empty" id="an-p1-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div id="an-p1-results" style="display:none">
+            <div class="section-card">
+              <div class="section-label">Metadata forensics</div>
+              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p1-exif" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p1-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p1-metadiff" readonly style="background:var(--bg)"></textarea></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Visual / pixel-level artifacts</div>
+              <div id="an-p1-artifact-list" class="artifact-display"></div>
+              <div class="field"><label>Artifact notes</label><textarea id="an-p1-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <details id="an-p1-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p1-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
+            </div>
+          </div>
+        </details>
+
         <div class="form-actions">
           <button class="btn save" onclick="saveRecord()">Save record</button>
           <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
@@ -450,13 +503,6 @@
 
       <!-- ══ PHASE 2 ══ -->
       <div id="form-p2" style="display:none;">
-        <div class="phase-tabs">
-          <button class="phase-tab active" onclick="switchPhase(0)">2a — Alteration</button>
-          <button class="phase-tab" onclick="switchPhase(1)">2b — Analysis</button>
-        </div>
-
-        <!-- 2a -->
-        <div class="phase-panel active" id="panel0">
           <div class="section-card">
             <div class="section-label">Input image</div>
             <div class="field">
@@ -607,97 +653,92 @@
             </div>
           </div>
 
+        <details id="an-p2-section" class="analysis-section">
+          <summary class="analysis-summary">Analysis results</summary>
+          <p class="analysis-empty" id="an-p2-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div id="an-p2-results" style="display:none">
+            <div class="section-card">
+              <div class="section-label">Metadata forensics</div>
+              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p2-exif" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p2-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p2-metadiff" readonly style="background:var(--bg)"></textarea></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Visual / pixel-level artifacts</div>
+              <div id="an-p2-artifact-list" class="artifact-display"></div>
+              <div class="field"><label>Artifact notes</label><textarea id="an-p2-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <details id="an-p2-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p2-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
+            </div>
+          </div>
+        </details>
+
           <div class="form-actions">
             <button class="btn save" onclick="saveRecord()">Save record</button>
             <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
             <button class="btn danger" onclick="deleteRecord()">Delete record</button>
             <span class="status-msg" id="status-p2a"></span>
           </div>
+      </div>
+
+      <!-- ══ PHASE 3 ══ -->
+      <div id="form-p3" style="display:none;">
+        <div class="section-card">
+          <div class="section-label">Upload image</div>
+          <div class="field">
+            <label>Select image to analyze</label>
+            <input type="file" id="p3-file-input" accept="image/*">
+          </div>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:0.75rem;">
+            <button class="btn save" id="p3-upload-btn" onclick="uploadAndAnalyze()">Upload &amp; Analyze</button>
+            <span class="status-msg" id="p3-status"></span>
+          </div>
         </div>
 
-        <!-- 2b -->
-        <div class="phase-panel" id="panel1">
-          <div class="analyze-bar">
-            <button class="btn" id="analyze-btn" onclick="runAnalysis()">Run Analysis</button>
-            <span class="status-msg" id="status-analyze"></span>
+        <div class="section-card" id="p3-file-info" style="display:none">
+          <div class="section-label">File info</div>
+          <div class="two-col">
+            <div class="field"><label>Filename</label><input type="text" id="p3-filename-display" readonly style="background:var(--bg)"></div>
+            <div class="field"><label>Linked record</label><input type="text" id="p3-linked-display" readonly style="background:var(--bg)"></div>
           </div>
+          <div class="two-col">
+            <div class="field"><label>File size</label><input type="text" id="p3-filesize-display" readonly style="background:var(--bg)"></div>
+            <div class="field"><label>Dimensions</label><input type="text" id="p3-dims-display" readonly style="background:var(--bg)"></div>
+          </div>
+        </div>
+
+        <p class="analysis-empty" id="p3-empty" style="display:none; padding:0.5rem 0">Upload an image above to run analysis.</p>
+
+        <div id="an-p3-results" style="display:none">
           <div class="section-card">
             <div class="section-label">Metadata forensics</div>
-            <div class="field">
-              <label>EXIF / metadata anomalies found</label>
-              <textarea id="p2_exif" placeholder="e.g. GPS stripped, software tag reads 'Adobe Firefly', no thumbnail..."></textarea>
-            </div>
-            <div class="field">
-              <label>C2PA / Content Credentials present?</label>
-              <select id="p2_c2pa">
-                <option value="">— unknown —</option>
-                <option>Yes — with provenance data</option>
-                <option>Yes — but empty / stripped</option>
-                <option>No</option>
-              </select>
-            </div>
-            <details id="c2pa-details" style="display:none; margin-top:0.25rem; margin-bottom:0.5rem;">
-              <summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted, #888); user-select:none;">C2PA details</summary>
-              <table id="c2pa-table" style="width:100%; border-collapse:collapse; margin-top:0.5rem; font-size:0.82rem;">
-              </table>
-            </details>
-            <div class="field">
-              <label>Metadata diff vs. input image (summary)</label>
-              <textarea id="p2_metadiff" placeholder="List fields that differ from the input image..."></textarea>
-            </div>
+            <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p3-exif" readonly style="background:var(--bg)"></textarea></div>
+            <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p3-c2pa" readonly style="background:var(--bg); width:100%"></div>
+            <details id="an-p3-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p3-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <div class="field"><label>Metadata diff</label><textarea id="an-p3-metadiff" readonly style="background:var(--bg)"></textarea></div>
           </div>
           <div class="section-card">
             <div class="section-label">Visual / pixel-level artifacts</div>
-            <div class="field">
-              <label>Artifacts observed</label>
-              <div class="artifact-grid">
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="ELA anomaly"> ELA anomaly</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Blending seam visible"> Blending seam visible</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Noise inconsistency"> Noise inconsistency</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Lighting mismatch"> Lighting mismatch</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Shadow mismatch"> Shadow mismatch</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Perspective mismatch"> Perspective mismatch</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Compression blocking"> Compression blocking</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Color fringing"> Color fringing</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="Clone/copy artifacts"> Clone/copy artifacts</label>
-                <label class="artifact-item" onclick="toggleArtifact(this)"><input type="checkbox" value="None visible"> None visible</label>
-              </div>
-            </div>
-            <details id="ela-preview" style="display:none; margin-top:0.75rem;">
-              <summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted, #888);">ELA visualization</summary>
-              <img id="ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;">
-            </details>
-            <div class="field">
-              <label>Additional artifact notes</label>
-              <textarea id="p2_artifact_notes" placeholder="Describe location, severity, or any unlisted artifacts..."></textarea>
-            </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">AI detector results</div>
-            <div class="detector-header">
-              <span>Detector name + version</span><span>Confidence score</span><span>Verdict</span><span></span>
-            </div>
-            <div id="detector-rows"></div>
-            <button class="add-link" onclick="addDetector()">+ add detector</button>
-            <div class="field" style="margin-top:1rem;">
-              <label>Baseline result (input image through same detectors)</label>
-              <textarea id="p2_baseline" placeholder="e.g. Hive: 3% AI — real; Illuminarty: 8% — real..."></textarea>
-            </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">Overall analysis notes</div>
-            <div class="field">
-              <textarea id="p2_analysis_notes" placeholder="Summary findings, anomalies worth flagging, open questions..."></textarea>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn save" onclick="saveRecord()">Save record</button>
-            <button class="btn" onclick="clearCurrentForm()">Clear fields</button>
-            <button class="btn danger" onclick="deleteRecord()">Delete record</button>
-            <span class="status-msg" id="status-p2b"></span>
+            <div id="an-p3-artifact-list" class="artifact-display"></div>
+            <div class="field"><label>Artifact notes</label><textarea id="an-p3-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+            <details id="an-p3-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p3-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
           </div>
         </div>
+
+        <div class="section-card" id="p3-notes-card" style="display:none">
+          <div class="section-label">Notes</div>
+          <div class="field">
+            <textarea id="p3-analysis-notes" placeholder="Additional observations..."></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions" id="p3-form-actions" style="display:none">
+          <button class="btn save" onclick="saveRecord()">Save record</button>
+          <button class="btn danger" onclick="deleteRecord()">Delete record</button>
+          <span class="status-msg" id="status-p3"></span>
+        </div>
       </div>
+
     </div>
   </main>
 </div>
@@ -806,10 +847,12 @@
   // ── Sidebar ───────────────────────────────────────────────────────────────
 
   function renderSidebar() {
-    // Group records by study_id
+    // Group records by study_id (exclude p3 — shown separately)
     const studyMap = {};
     const unsorted = [];
+    const analyses = [];
     records.forEach(r => {
+      if (r.type === 'p3') { analyses.push(r); return; }
       const sid = r.study_id || '';
       if (sid) {
         if (!studyMap[sid]) studyMap[sid] = [];
@@ -844,6 +887,17 @@
       unsorted.forEach(r => children.appendChild(buildRecordItem(r)));
       node.appendChild(children);
       tree.appendChild(node);
+    }
+
+    // Analyses section (p3 records)
+    const analysesSection = document.getElementById('analyses-section');
+    const analysesTree    = document.getElementById('analyses-tree');
+    if (analyses.length) {
+      analysesSection.style.display = '';
+      analysesTree.innerHTML = '';
+      analyses.forEach(r => analysesTree.appendChild(buildRecordItem(r)));
+    } else {
+      analysesSection.style.display = 'none';
     }
 
     document.getElementById('record-count').textContent =
@@ -898,6 +952,7 @@
     if (rec.type === 'p0') return (rec.study_id || 'csafe-???') + '.jpg';
     if (rec.type === 'p1') return rec.mod_filename || 'Untitled modification';
     if (rec.type === 'p2') return rec.altered_filename || 'Untitled alteration';
+    if (rec.type === 'p3') return rec.uploaded_filename || 'New analysis';
     return 'Untitled';
   }
 
@@ -905,6 +960,7 @@
     if (rec.type === 'p0') return 'original';
     if (rec.type === 'p1') return (rec.mod_type || 'modification').toLowerCase();
     if (rec.type === 'p2') return (rec.model || 'alteration').toLowerCase();
+    if (rec.type === 'p3') return 'analysis';
     return '';
   }
 
@@ -923,7 +979,26 @@
     showFormArea(true);
     showFormFor(type, rec);
     if (type === 'p0') { document.getElementById('p0_study_id').value = study_id; updateFormTitle(); }
-    if (type === 'p2') switchPhase(0);
+  }
+
+  function newAnalysis() {
+    const id = 'rec_' + Date.now();
+    const rec = { id, type: 'p3' };
+    records.push(rec);
+    currentId = id;
+    currentType = 'p3';
+    renderSidebar();
+    showFormArea(true);
+    showFormFor('p3', rec);
+    // Reset upload form
+    document.getElementById('p3-file-input').value = '';
+    document.getElementById('p3-file-info').style.display = 'none';
+    document.getElementById('p3-empty').style.display = 'none';
+    document.getElementById('an-p3-results').style.display = 'none';
+    document.getElementById('p3-notes-card').style.display = 'none';
+    document.getElementById('p3-form-actions').style.display = 'none';
+    document.getElementById('p3-status').className = 'status-msg';
+    document.getElementById('form-title').textContent = 'New analysis';
   }
 
   function selectRecord(id) {
@@ -936,7 +1011,6 @@
     renderSidebar();
     showFormArea(true);
     showFormFor(rec.type, rec);
-    if (rec.type === 'p2') switchPhase(0);
   }
 
   function showFormArea(show) {
@@ -945,12 +1019,13 @@
   }
 
   function showFormFor(type, rec) {
-    ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
-    const labels = { p0: 'Phase 0 — Original image', p1: 'Phase 1 — Modification', p2: 'Phase 2 — AI alteration + analysis' };
+    ['p0','p1','p2','p3'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
+    const labels = { p0: 'Page 0 — Original image', p1: 'Page 1 — Modification', p2: 'Page 2 — AI alteration', p3: 'Page 3 — Analysis' };
     document.getElementById('form-subtitle').textContent = labels[type] || '';
     if (type === 'p0') fillP0(rec);
     if (type === 'p1') fillP1(rec);
     if (type === 'p2') fillP2(rec);
+    if (type === 'p3') fillP3(rec);
   }
 
   // ── Fill forms ────────────────────────────────────────────────────────────
@@ -965,6 +1040,7 @@
     refreshP0Preview();
     p0CopyPerformed = false;
     updateP0ComputedRename();
+    fillAnalysisSection('p0', rec);
   }
 
   function fillP1(rec) {
@@ -977,6 +1053,7 @@
     setVal('p1_notes', rec.notes);
     updateFormTitle();
     refreshP1Preview();
+    fillAnalysisSection('p1', rec);
   }
 
   async function fillP2(rec) {
@@ -993,27 +1070,9 @@
     setVal('p2_out_dims', rec.output_dimensions);
     setVal('p2_datetime', rec.datetime_generated);
     setVal('p2_notes', rec.notes);
-    setVal('p2_exif', rec.exif_anomalies);
-    setVal('p2_c2pa', rec.c2pa_status);
-    setVal('p2_metadiff', rec.metadata_diff);
-    setVal('p2_artifact_notes', rec.artifact_notes);
-    setVal('p2_baseline', rec.baseline_results);
-    setVal('p2_analysis_notes', rec.analysis_notes);
 
     currentRating = rec.subjective_quality || null;
     document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', currentRating && i < currentRating));
-
-    const artifacts = rec.artifacts || [];
-    document.querySelectorAll('.artifact-item').forEach(item => {
-      const cb = item.querySelector('input[type=checkbox]');
-      cb.checked = artifacts.includes(cb.value);
-      item.classList.toggle('checked', cb.checked);
-    });
-
-    document.getElementById('detector-rows').innerHTML = '';
-    detectorCount = 0;
-    (rec.detectors || []).forEach(d => addDetector(d));
-    if (!(rec.detectors || []).length) { addDetector(); addDetector(); }
 
     updateFormTitle();
     refreshP2Preview();
@@ -1031,6 +1090,231 @@
       copyPerformed = false;
       btn.disabled = false;
       clearCopyRenameStatus();
+    }
+
+    fillAnalysisSection('p2', rec);
+  }
+
+  function fillAnalysisSection(prefix, rec) {
+    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes;
+    const section  = document.getElementById('an-' + prefix + '-section');
+    const empty    = document.getElementById('an-' + prefix + '-empty');
+    const results  = document.getElementById('an-' + prefix + '-results');
+    if (!section) return;
+    if (!hasData) {
+      if (empty) empty.style.display = '';
+      if (results) results.style.display = 'none';
+      section.open = false;
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (results) results.style.display = '';
+    section.open = true;
+
+    setVal('an-' + prefix + '-exif', rec.exif_anomalies);
+    setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
+    setVal('an-' + prefix + '-metadiff', rec.metadata_diff);
+    setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
+
+    // Artifact tags
+    const listEl = document.getElementById('an-' + prefix + '-artifact-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      (rec.artifacts || []).forEach(a => {
+        const tag = document.createElement('span');
+        tag.className = 'artifact-tag';
+        tag.textContent = a;
+        listEl.appendChild(tag);
+      });
+    }
+
+    // C2PA details table
+    const detailsEl = document.getElementById('an-' + prefix + '-c2pa-details');
+    const tableEl   = document.getElementById('an-' + prefix + '-c2pa-table');
+    if (detailsEl && tableEl && rec.c2pa_details) {
+      const d = rec.c2pa_details;
+      const rows = [];
+      if (d.claim_generator)     rows.push(['Claim generator', d.claim_generator]);
+      if (d.software_agent)      rows.push(['Software agent',  d.software_agent]);
+      if (d.c2pa_version)        rows.push(['C2PA version',    d.c2pa_version]);
+      if (d.actions?.length)     rows.push(['Actions',         d.actions.join(', ')]);
+      if (d.digital_source_type) rows.push(['Digital source type', d.digital_source_type]);
+      if (d.manifest_id)         rows.push(['Manifest ID',     d.manifest_id]);
+      if (d.validation_failures?.length) {
+        rows.push(['Validation failures',
+          d.validation_failure_explanations?.join('; ') || d.validation_failures.join('; '),
+          'c2pa-warn']);
+      } else if (rows.length) {
+        rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+      }
+      tableEl.innerHTML = rows.map(([label, value, cls]) =>
+        `<tr><td>${label}</td><td${cls ? ` class="${cls}"` : ''}>${value}</td></tr>`
+      ).join('');
+      detailsEl.style.display = '';
+    } else if (detailsEl) {
+      detailsEl.style.display = 'none';
+    }
+
+    // ELA image
+    const elaPreview = document.getElementById('an-' + prefix + '-ela-preview');
+    const elaImg     = document.getElementById('an-' + prefix + '-ela-img');
+    if (elaPreview && elaImg) {
+      if (rec.ela_image_b64) {
+        elaImg.src = 'data:image/png;base64,' + rec.ela_image_b64;
+        elaPreview.style.display = '';
+      } else {
+        elaPreview.style.display = 'none';
+      }
+    }
+  }
+
+  function fillP3(rec) {
+    document.getElementById('form-title').textContent = rec.uploaded_filename || 'Analysis';
+    if (rec.uploaded_filename) {
+      setVal('p3-filename-display', rec.uploaded_filename);
+      setVal('p3-filesize-display', rec.filesize || '');
+      setVal('p3-dims-display', rec.dims || '');
+      setVal('p3-linked-display', rec.linked_record || 'Standalone');
+      document.getElementById('p3-file-info').style.display = '';
+      document.getElementById('an-p3-results').style.display = '';
+      document.getElementById('p3-notes-card').style.display = '';
+      document.getElementById('p3-form-actions').style.display = '';
+      document.getElementById('p3-empty').style.display = 'none';
+
+      setVal('an-p3-exif', rec.exif_anomalies);
+      setVal('an-p3-c2pa', rec.c2pa_status);
+      setVal('an-p3-metadiff', rec.metadata_diff);
+      setVal('an-p3-artifact-notes', rec.artifact_notes);
+      setVal('p3-analysis-notes', rec.analysis_notes);
+
+      const listEl = document.getElementById('an-p3-artifact-list');
+      if (listEl) {
+        listEl.innerHTML = '';
+        (rec.artifacts || []).forEach(a => {
+          const tag = document.createElement('span');
+          tag.className = 'artifact-tag';
+          tag.textContent = a;
+          listEl.appendChild(tag);
+        });
+      }
+
+      const detailsEl = document.getElementById('an-p3-c2pa-details');
+      const tableEl   = document.getElementById('an-p3-c2pa-table');
+      if (detailsEl && tableEl && rec.c2pa_details) {
+        const d = rec.c2pa_details;
+        const rows = [];
+        if (d.claim_generator)     rows.push(['Claim generator', d.claim_generator]);
+        if (d.software_agent)      rows.push(['Software agent',  d.software_agent]);
+        if (d.c2pa_version)        rows.push(['C2PA version',    d.c2pa_version]);
+        if (d.actions?.length)     rows.push(['Actions',         d.actions.join(', ')]);
+        if (d.digital_source_type) rows.push(['Digital source type', d.digital_source_type]);
+        if (d.manifest_id)         rows.push(['Manifest ID',     d.manifest_id]);
+        if (d.validation_failures?.length) {
+          rows.push(['Validation failures',
+            d.validation_failure_explanations?.join('; ') || d.validation_failures.join('; '),
+            'c2pa-warn']);
+        } else if (rows.length) {
+          rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+        }
+        tableEl.innerHTML = rows.map(([label, value, cls]) =>
+          `<tr><td>${label}</td><td${cls ? ` class="${cls}"` : ''}>${value}</td></tr>`
+        ).join('');
+        detailsEl.style.display = '';
+      } else if (detailsEl) {
+        detailsEl.style.display = 'none';
+      }
+
+      const elaPreview = document.getElementById('an-p3-ela-preview');
+      const elaImg     = document.getElementById('an-p3-ela-img');
+      if (elaPreview && elaImg) {
+        if (rec.ela_image_b64) {
+          elaImg.src = 'data:image/png;base64,' + rec.ela_image_b64;
+          elaPreview.style.display = '';
+        } else {
+          elaPreview.style.display = 'none';
+        }
+      }
+    } else {
+      document.getElementById('p3-file-info').style.display = 'none';
+      document.getElementById('an-p3-results').style.display = 'none';
+      document.getElementById('p3-notes-card').style.display = 'none';
+      document.getElementById('p3-form-actions').style.display = 'none';
+      document.getElementById('p3-empty').style.display = 'none';
+    }
+  }
+
+  async function uploadAndAnalyze() {
+    const fileInput = document.getElementById('p3-file-input');
+    if (!fileInput.files.length) {
+      showStatus('p3-status', 'Select a file first', 'warning');
+      return;
+    }
+    const file = fileInput.files[0];
+    const btn = document.getElementById('p3-upload-btn');
+    btn.disabled = true;
+    showStatus('p3-status', 'Uploading\u2026', '');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch('/api/upload_and_analyze', { method: 'POST', body: formData });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus('p3-status', result.error || 'Upload failed', 'warning');
+        return;
+      }
+
+      // Try to match filename against existing records
+      const fn = result.filename;
+      const matched = records.find(r =>
+        r.original_filename === fn || r.mod_filename === fn ||
+        r.altered_filename === fn || r.ai_assigned_filename === fn ||
+        r.uploaded_filename === fn
+      );
+
+      if (matched) {
+        // Attach analysis to existing record and navigate to it
+        Object.assign(matched, {
+          exif_anomalies: result.exif_anomalies,
+          c2pa_status:    result.c2pa_status,
+          c2pa_details:   result.c2pa_details,
+          metadata_diff:  result.metadata_diff || '',
+          artifacts:      result.artifacts,
+          artifact_notes: result.artifact_notes,
+          ela_image_b64:  result.ela_image_b64
+        });
+        // Remove the blank p3 placeholder we created in newAnalysis()
+        records = records.filter(r => r.id !== currentId);
+        await persistRecords();
+        selectRecord(matched.id);
+        showStatus('header-status', 'Analysis linked to ' + getRecordName(matched), 'success');
+      } else {
+        // Save as standalone p3 record
+        const rec = records.find(r => r.id === currentId);
+        Object.assign(rec, {
+          uploaded_filename: result.filename,
+          filesize:          result.filesize,
+          dims:              result.dims,
+          uploaded_at:       new Date().toISOString(),
+          exif_anomalies:    result.exif_anomalies,
+          c2pa_status:       result.c2pa_status,
+          c2pa_details:      result.c2pa_details,
+          metadata_diff:     result.metadata_diff || '',
+          artifacts:         result.artifacts,
+          artifact_notes:    result.artifact_notes,
+          ela_image_b64:     result.ela_image_b64,
+          analysis_notes:    '',
+          linked_record:     ''
+        });
+        renderSidebar();
+        fillP3(rec);
+        await persistRecords();
+        showStatus('p3-status', 'Analysis complete', 'success');
+      }
+    } catch (err) {
+      showStatus('p3-status', 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
     }
   }
 
@@ -1117,18 +1401,14 @@
         output_dimensions: getVal('p2_out_dims'),
         datetime_generated: getVal('p2_datetime'),
         subjective_quality: currentRating,
-        notes: getVal('p2_notes'),
-        exif_anomalies: getVal('p2_exif'),
-        c2pa_status: getVal('p2_c2pa'),
-        metadata_diff: getVal('p2_metadiff'),
-        artifacts: getArtifacts(),
-        artifact_notes: getVal('p2_artifact_notes'),
-        detectors: getDetectors(),
-        baseline_results: getVal('p2_baseline'),
-        analysis_notes: getVal('p2_analysis_notes')
+        notes: getVal('p2_notes')
       });
       showStatus('status-p2a', 'Saved', 'success');
-      showStatus('status-p2b', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p3') {
+      Object.assign(rec, { analysis_notes: getVal('p3-analysis-notes') });
+      showStatus('status-p3', 'Saved', 'success');
     }
 
     renderSidebar();
@@ -1182,106 +1462,6 @@
 
   function getArtifacts() {
     return [...document.querySelectorAll('.artifact-item input:checked')].map(c => c.value);
-  }
-
-  // ── Run Analysis ──────────────────────────────────────────────────────────
-
-  async function runAnalysis() {
-    const rec = records.find(r => r.id === currentId);
-    if (!rec) return;
-
-    const altered = rec.altered_filename || '';
-    const model   = rec.model || '';
-    const input   = rec.input_image || '';
-
-    if (!altered || !model) {
-      showStatus('status-analyze', 'Fill in Model and Altered Filename (2a tab) first.', 'error');
-      return;
-    }
-
-    const btn = document.getElementById('analyze-btn');
-    btn.disabled = true;
-    showStatus('status-analyze', 'Running\u2026', '');
-
-    try {
-      const resp = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ altered_filename: altered, model, input_image: input }),
-      });
-      const result = await resp.json();
-      if (!resp.ok) {
-        showStatus('status-analyze', result.error || 'Analysis failed.', 'error');
-        return;
-      }
-
-      // Populate metadata fields.
-      if (result.exif_anomalies) document.getElementById('p2_exif').value = result.exif_anomalies;
-      if (result.c2pa_status)   document.getElementById('p2_c2pa').value = result.c2pa_status;
-      if (result.metadata_diff) document.getElementById('p2_metadiff').value = result.metadata_diff;
-
-      // Check artifact checkboxes returned by analysis.
-      if (result.artifacts && result.artifacts.length) {
-        document.querySelectorAll('.artifact-item').forEach(label => {
-          const cb = label.querySelector('input');
-          if (result.artifacts.includes(cb.value)) {
-            cb.checked = true;
-            label.classList.add('checked');
-          }
-        });
-      }
-
-      // Populate artifact notes.
-      if (result.artifact_notes) {
-        const notesEl = document.getElementById('p2_artifact_notes');
-        notesEl.value = result.artifact_notes;
-      }
-
-      // Populate C2PA details table.
-      const c2paDetails = document.getElementById('c2pa-details');
-      const c2paTable   = document.getElementById('c2pa-table');
-      if (result.c2pa_details) {
-        const d = result.c2pa_details;
-        const rows = [];
-        if (d.claim_generator)     rows.push(['Claim generator', d.claim_generator]);
-        if (d.software_agent)      rows.push(['Software agent',  d.software_agent]);
-        if (d.c2pa_version)        rows.push(['C2PA version',    d.c2pa_version]);
-        if (d.actions?.length)     rows.push(['Actions',         d.actions.join(', ')]);
-        if (d.digital_source_type) rows.push(['Digital source type', d.digital_source_type]);
-        if (d.manifest_id)         rows.push(['Manifest ID',     d.manifest_id]);
-        if (d.validation_failures?.length) {
-          rows.push(['Validation failures',
-            d.validation_failure_explanations?.join('; ') || d.validation_failures.join('; '),
-            'c2pa-warn']);
-        } else {
-          rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
-        }
-        c2paTable.innerHTML = rows.map(([label, value, cls]) =>
-          `<tr class="c2pa-table"><td>${label}</td><td${cls ? ` class="${cls}"` : ''}>${value}</td></tr>`
-        ).join('');
-        c2paDetails.style.display = '';
-        c2paDetails.open = true;
-      } else {
-        c2paDetails.style.display = 'none';
-      }
-
-      // Show ELA visualization.
-      const elaPreview = document.getElementById('ela-preview');
-      const elaImg     = document.getElementById('ela-img');
-      if (result.ela_image_b64) {
-        elaImg.src = 'data:image/png;base64,' + result.ela_image_b64;
-        elaPreview.style.display = '';
-        elaPreview.open = true;
-      } else {
-        elaPreview.style.display = 'none';
-      }
-
-      showStatus('status-analyze', 'Analysis complete', 'success');
-    } catch (err) {
-      showStatus('status-analyze', 'Network error: ' + err.message, 'error');
-    } finally {
-      btn.disabled = false;
-    }
   }
 
   // ── Detectors ─────────────────────────────────────────────────────────────
@@ -1409,8 +1589,11 @@
     if (currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
     if (currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
     if (currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
+    if (currentType === 'p3') { const rec = records.find(r => r.id === currentId); title = rec?.uploaded_filename || 'New analysis'; }
     document.getElementById('form-title').textContent = title;
   }
+
+  function autoSave() { persistRecords(); }
 
   function showStatus(id, msg, type) {
     const el = document.getElementById(id);

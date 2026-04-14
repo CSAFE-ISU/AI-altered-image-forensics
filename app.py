@@ -28,7 +28,10 @@ DATA_FILE = BASE / "records.json"
 IMAGE_ROOTS = [
     BASE / "real images",
     BASE / "altered images",
+    BASE / "uploaded images",
 ]
+
+UPLOAD_DIR = BASE / "uploaded images"
 
 app = Flask(__name__, static_folder=None)
 
@@ -700,6 +703,75 @@ def analyze_image():
         "c2pa_status": c2pa_status,
         "c2pa_details": c2pa_details,
         "metadata_diff": metadata_diff,
+        "artifacts": artifacts,
+        "artifact_notes": "\n".join(artifact_note_parts),
+        "ela_image_b64": ela_b64,
+    })
+
+
+# ── Upload and analyze ────────────────────────────────────────────────────────
+
+@app.route("/api/upload_and_analyze", methods=["POST"])
+def upload_and_analyze():
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"error": "No filename"}), 400
+
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file.filename)
+    if not filename:
+        return jsonify({"error": "Invalid filename"}), 400
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    path = UPLOAD_DIR / filename
+    file.save(str(path))
+
+    # File info
+    try:
+        from PIL import Image
+        size_bytes = path.stat().st_size
+        if size_bytes >= 1_000_000:
+            size_str = f"{size_bytes / 1_000_000:.1f} MB"
+        elif size_bytes >= 1_000:
+            size_str = f"{size_bytes / 1_000:.1f} KB"
+        else:
+            size_str = f"{size_bytes} B"
+        with Image.open(path) as img:
+            w, h = img.size
+        dims = f"{w} \u00d7 {h}"
+    except Exception:
+        size_str, dims = "", ""
+
+    # Analysis pipeline (no input image to diff against on standalone upload)
+    tags = _run_exiftool(path)
+    exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
+    c2pa_status = _check_c2pa(path, tags)
+    c2pa_details = _extract_c2pa_details(tags)
+
+    ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
+    noise_flagged, noise_note = _check_noise_inconsistency(path)
+    blocking_flagged, blocking_note = _check_compression_blocking(path)
+
+    artifacts, artifact_note_parts = [], []
+    if ela_flagged:
+        artifacts.append("ELA anomaly")
+        artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+    if noise_flagged:
+        artifacts.append("Noise inconsistency")
+        artifact_note_parts.append(noise_note)
+    if blocking_flagged:
+        artifacts.append("Compression blocking")
+        artifact_note_parts.append(blocking_note)
+
+    return jsonify({
+        "filename": filename,
+        "filesize": size_str,
+        "dims": dims,
+        "exif_anomalies": exif_anomalies,
+        "c2pa_status": c2pa_status,
+        "c2pa_details": c2pa_details,
         "artifacts": artifacts,
         "artifact_notes": "\n".join(artifact_note_parts),
         "ela_image_b64": ela_b64,
