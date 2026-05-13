@@ -18,11 +18,13 @@ The tracker is a Flask web app (`app.py` + `tracker.html`) that records informat
 
 2. **Configure database credentials**
 
-   Copy `.env.example` to `.env` and fill in the Supabase credentials (get these from a team member):
+   Copy `.env.example` to `.env`:
 
    ```bash
    cp .env.example .env
    ```
+
+   Then fill in your Supabase credentials. You can get these by logging in to [supabase.com](https://supabase.com), opening the **AI-altered Images** project, and going to **Project Settings → Data API**. The API URL is on the Data API tab; the Publishable Key is on the API Keys tab. (Ask a team member to add you to the project under **Project Settings → Team** if you don't have access yet.)
 
    ```
    SUPABASE_URL=https://your-project-id.supabase.co
