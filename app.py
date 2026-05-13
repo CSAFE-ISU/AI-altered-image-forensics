@@ -2,27 +2,41 @@
 CSAFE AI Image Alteration Tracker — local Flask server.
 
 Usage:
-    pip install flask
+    pip install -r requirements.txt
     python app.py
 
 Then open http://localhost:5000 in your browser.
 
-Records are stored in records.json (next to this file).
+Records are stored in a shared Supabase database. Copy .env.example to .env
+and fill in your SUPABASE_URL and SUPABASE_KEY. Falls back to a local
+records.json file if those variables are not set (useful for offline dev).
+
 Images are searched recursively in 'real images/' and 'altered images/'.
 """
 
 import base64
 import io
 import json
+import os
 import pathlib
 import re
 import shutil
 import subprocess
 
+from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, request, send_file
+
+load_dotenv()
 
 BASE = pathlib.Path(__file__).parent
 DATA_FILE = BASE / "records.json"
+
+_supabase = None
+_SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+_SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+if _SUPABASE_URL and _SUPABASE_KEY:
+    from supabase import create_client
+    _supabase = create_client(_SUPABASE_URL, _SUPABASE_KEY)
 
 # All directories that may contain images.
 IMAGE_ROOTS = [
@@ -69,6 +83,9 @@ def index():
 
 @app.route("/api/records", methods=["GET"])
 def get_records():
+    if _supabase:
+        result = _supabase.table("records").select("data").execute()
+        return jsonify([row["data"] for row in result.data])
     if DATA_FILE.exists():
         return jsonify(json.loads(DATA_FILE.read_text(encoding="utf-8")))
     return jsonify([])
@@ -79,6 +96,15 @@ def set_records():
     data = request.get_json(force=True)
     if not isinstance(data, list):
         return jsonify({"error": "expected a JSON array"}), 400
+    if _supabase:
+        if data:
+            rows = [{"id": r["id"], "data": r} for r in data if "id" in r]
+            _supabase.table("records").upsert(rows).execute()
+            ids = [r["id"] for r in data if "id" in r]
+            _supabase.table("records").delete().not_.in_("id", ids).execute()
+        else:
+            _supabase.table("records").delete().neq("id", "").execute()
+        return jsonify({"ok": True, "count": len(data)})
     DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return jsonify({"ok": True, "count": len(data)})
 
@@ -781,17 +807,19 @@ def upload_and_analyze():
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Seed records.json from the most recent exported file if it doesn't exist.
-    if not DATA_FILE.exists():
-        candidates = sorted(BASE.glob("ai_image_records_*.json"))
-        if candidates:
-            seed = candidates[-1]
-            DATA_FILE.write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
-            print(f"  Seeded records.json from {seed.name}")
-        else:
-            DATA_FILE.write_text("[]", encoding="utf-8")
+    if _supabase:
+        print("  Using Supabase database.")
+    else:
+        print("  SUPABASE_URL/KEY not set — falling back to local records.json.")
+        if not DATA_FILE.exists():
+            candidates = sorted(BASE.glob("ai_image_records_*.json"))
+            if candidates:
+                seed = candidates[-1]
+                DATA_FILE.write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
+                print(f"  Seeded records.json from {seed.name}")
+            else:
+                DATA_FILE.write_text("[]", encoding="utf-8")
 
-    import os
     port = int(os.environ.get("PORT", 5000))
     print(f"\n  CSAFE Tracker running → http://localhost:{port}\n")
     app.run(debug=True, port=port)
