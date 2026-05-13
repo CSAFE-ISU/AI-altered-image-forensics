@@ -112,6 +112,7 @@
   .hint-box { font-size: 12px; color: var(--text-faint); margin-top: -4px; margin-bottom: 1rem; line-height: 1.6; }
   .auto-field { background: var(--surface2) !important; color: var(--text-muted); cursor: default; }
   .auto-field:focus { border-color: var(--border) !important; background: var(--surface2) !important; }
+  select.auto-field:disabled { opacity: 1; }
   .auto-tag { font-weight: 400; color: var(--text-faint); font-size: 11px; margin-left: 4px; }
   .instruction-box {
     font-size: 12px; color: var(--text-muted); margin-top: -4px; margin-bottom: 1rem;
@@ -840,6 +841,9 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   let p0CopyPerformed = false;
   let expandedStudies = new Set();
 
+  function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
+  function unlockField(id) { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = false; } else { el.readOnly = false; } el.classList.remove('auto-field'); }
+
   // ── Server I/O ────────────────────────────────────────────────────────────
 
   async function loadRecords() {
@@ -1155,10 +1159,14 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
       copyPerformed = true;
       btn.disabled = true;
       showPersistentStatus('status-copy-rename', 'Already renamed: ' + rec.altered_filename, 'warning');
+      lockField('p2_altered_filename');
+      lockField('p2_ai_filename');
     } else {
       copyPerformed = false;
       btn.disabled = false;
       clearCopyRenameStatus();
+      unlockField('p2_altered_filename');
+      unlockField('p2_ai_filename');
     }
 
     fillAnalysisSection('p2', rec);
@@ -1800,6 +1808,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   async function p2AiFilenameChanged() {
     copyPerformed = false;
     document.getElementById('copy-rename-btn').disabled = false;
+    unlockField('p2_ai_filename');
     await updateComputedRename();
     await populateImageInfo();
   }
@@ -1871,6 +1880,8 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         showStatus('status-copy-rename', 'Copied \u2192 ' + data.filename, 'success');
         copyPerformed = true;
         document.getElementById('copy-rename-btn').disabled = true;
+        lockField('p2_altered_filename');
+        lockField('p2_ai_filename');
       } else {
         showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
       }
@@ -1905,11 +1916,13 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           if (btn) btn.disabled = true;
           showPersistentStatus('status-copy-rename-original', 'Already renamed: ' + data.filename, 'warning');
           p0CopyPerformed = true;
+          lockField('p0_original_filename');
         } else {
           if (btn) btn.disabled = false;
           statusEl.textContent = '';
           statusEl.className = 'status-msg';
           p0CopyPerformed = false;
+          unlockField('p0_original_filename');
         }
       }
     } catch { /* silently ignore */ }
@@ -1938,11 +1951,13 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         showPersistentStatus('status-copy-rename-original', data.warning, 'warning');
         document.getElementById('btn-copy-rename-original').disabled = true;
         p0CopyPerformed = true;
+        lockField('p0_original_filename');
       } else if (data.ok) {
         setVal('p0_renamed_filename', data.filename);
         showPersistentStatus('status-copy-rename-original', 'Copied \u2192 ' + data.filename, 'success');
         document.getElementById('btn-copy-rename-original').disabled = true;
         p0CopyPerformed = true;
+        lockField('p0_original_filename');
       } else {
         showStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
       }
