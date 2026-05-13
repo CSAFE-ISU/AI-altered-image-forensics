@@ -347,6 +347,29 @@ def copy_rename_original():
     return jsonify({"ok": True, "filename": dest_filename})
 
 
+MOD_DIR = BASE / "real images" / "03-modified"
+
+
+@app.route("/api/rename_modified", methods=["POST"])
+def rename_modified():
+    data = request.get_json(force=True)
+    current_filename = (data.get("current_filename") or "").strip()
+    new_filename = (data.get("new_filename") or "").strip()
+    if not (current_filename and new_filename):
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    src_path = MOD_DIR / current_filename
+    if not src_path.is_file():
+        return jsonify({"error": f"File not found in 03-modified/: {current_filename}"}), 404
+
+    dest_path = MOD_DIR / new_filename
+    if dest_path.exists():
+        return jsonify({"ok": False, "warning": f"File already exists: {new_filename}", "filename": new_filename})
+
+    src_path.rename(dest_path)
+    return jsonify({"ok": True, "filename": new_filename})
+
+
 # ── Forensic analysis helpers ─────────────────────────────────────────────────
 
 # Fields produced by exiftool that are file-level or derived, not embedded metadata.
