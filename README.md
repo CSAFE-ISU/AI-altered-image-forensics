@@ -6,7 +6,7 @@ A dataset and tracking tool for studying how AI image-editing models alter photo
 
 ## The Tracker
 
-The tracker is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action.
+The tracker is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action. Supabase is hosted on AWS and accessible from anywhere with an internet connection.
 
 ### Setup
 
