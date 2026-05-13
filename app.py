@@ -98,9 +98,10 @@ def set_records():
         return jsonify({"error": "expected a JSON array"}), 400
     if _supabase:
         if data:
-            rows = [{"id": r["id"], "data": r} for r in data if "id" in r]
-            _supabase.table("records").upsert(rows).execute()
             ids = [r["id"] for r in data if "id" in r]
+            for r in data:
+                if "id" in r:
+                    _supabase.table("records").upsert({"id": r["id"], "data": r}).execute()
             _supabase.table("records").delete().not_.in_("id", ids).execute()
         else:
             _supabase.table("records").delete().neq("id", "").execute()

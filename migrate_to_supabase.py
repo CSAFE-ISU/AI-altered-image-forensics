@@ -40,5 +40,7 @@ if skipped:
     print(f"Warning: skipped {skipped} record(s) with no 'id' field")
 
 print(f"Uploading {len(rows)} records to Supabase...")
-client.table("records").upsert(rows).execute()
+for i, row in enumerate(rows, 1):
+    client.table("records").upsert(row).execute()
+    print(f"  {i}/{len(rows)} — {row['id']}")
 print("Done.")
