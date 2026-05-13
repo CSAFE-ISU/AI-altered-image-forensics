@@ -109,7 +109,17 @@
   .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-  .hint-box { font-size: 12px; color: var(--text-faint); margin-top: -8px; margin-bottom: 1rem; padding: 7px 10px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); font-family: var(--mono); line-height: 1.7; }
+  .hint-box { font-size: 12px; color: var(--text-faint); margin-top: -4px; margin-bottom: 1rem; line-height: 1.6; }
+  .auto-field { background: var(--surface2) !important; color: var(--text-muted); cursor: default; }
+  .auto-field:focus { border-color: var(--border) !important; background: var(--surface2) !important; }
+  .auto-tag { font-weight: 400; color: var(--text-faint); font-size: 11px; margin-left: 4px; }
+  .instruction-box {
+    font-size: 12px; color: var(--text-muted); margin-top: -4px; margin-bottom: 1rem;
+    line-height: 1.6; padding: 7px 10px 7px 12px;
+    border-left: 3px solid var(--accent); background: var(--accent-light);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .instruction-box strong { color: var(--accent); font-weight: 600; }
 
   .rating-group { display: flex; gap: 6px; }
   .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
@@ -277,6 +287,29 @@
 
   aside::-webkit-scrollbar { width: 4px; }
   aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Tooltips ── */
+  .help-label { display: inline-flex; align-items: center; gap: 5px; }
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--border); color: var(--text-muted);
+    font-size: 10px; font-family: var(--mono); font-weight: 500;
+    cursor: help; flex-shrink: 0; line-height: 1;
+  }
+  .tooltip-icon:hover { background: var(--accent); color: #fff; }
+  .tooltip-bubble {
+    display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+    background: #2a2825; color: #f4f2ed; font-size: 11px; font-family: var(--sans);
+    padding: 7px 11px; border-radius: var(--radius); white-space: pre-wrap;
+    width: 260px; line-height: 1.55; z-index: 50; pointer-events: none;
+  }
+  .tooltip-bubble::after {
+    content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #2a2825;
+  }
+  .tooltip-wrap:hover .tooltip-bubble { display: block; }
 </style>
 </head>
 <body>
@@ -325,7 +358,7 @@
           <div class="section-label">Study ID</div>
           <div class="field">
             <label>Study ID (auto-assigned)</label>
-            <input type="text" id="p0_study_id" style="font-family:var(--mono);font-weight:500;" oninput="updateFormTitle(); updateP0ComputedRename()">
+            <input type="text" id="p0_study_id" oninput="updateFormTitle(); updateP0ComputedRename()">
           </div>
           <div class="hint-box">
             This ID ties all files in this study together:<br>
@@ -334,29 +367,39 @@
         </div>
         <div class="section-card">
           <div class="section-label">Original image</div>
+          <div class="instruction-box"><strong>Manual Action:</strong> Copy the original image file into <code>real images/01-original/</code> before entering the filename below.</div>
           <div class="field">
-            <label>Original filename (from camera / source)</label>
+            <label class="help-label">
+              Original filename (from camera / source)
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-bubble">Enter the filename exactly as it appears in real images/01-original/ (e.g. iPhone6s-2_Scene-20190630-185705.jpg). File size and dimensions will be auto-populated.</span>
+              </span>
+            </label>
             <div style="display:flex; gap:8px; align-items:center;">
               <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
                 style="flex:1; min-width:0;"
                 oninput="refreshP0Preview(); populateP0ImageInfo(); updateP0ComputedRename();">
-              <button id="btn-copy-rename-original" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+              <span class="tooltip-wrap">
+                <button id="btn-copy-rename-original" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+                <span class="tooltip-bubble">Creates a renamed copy of the file in real images/02-original-renamed/ using the study ID as the new filename (e.g. csafe-001.jpg).</span>
+              </span>
             </div>
             <div id="status-copy-rename-original" style="margin-top:4px;"></div>
           </div>
           <div class="field">
-            <label>Renamed filename (auto-assigned)</label>
+            <label>Renamed filename <span class="auto-tag">(auto)</span></label>
             <input type="text" id="p0_renamed_filename" placeholder="auto-suggested" readonly
-              style="width:100%; background:var(--surface2); color:var(--text-faint); font-family:var(--mono);">
+              class="auto-field" style="width:100%;">
           </div>
           <div class="two-col">
             <div class="field">
-              <label>File size</label>
-              <input type="text" id="p0_filesize" placeholder="auto-populated">
+              <label>File size <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p0_filesize" placeholder="auto-populated" readonly class="auto-field">
             </div>
             <div class="field">
-              <label>Dimensions (px)</label>
-              <input type="text" id="p0_dims" placeholder="auto-populated">
+              <label>Dimensions (px) <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p0_dims" placeholder="auto-populated" readonly class="auto-field">
             </div>
           </div>
           <div class="field">
@@ -381,15 +424,15 @@
           <div id="an-p0-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p0-exif" readonly style="background:var(--bg)"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p0-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p0-exif" readonly class="auto-field"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p0-metadiff" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p0-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
               <div id="an-p0-artifact-list" class="artifact-display"></div>
-              <div class="field"><label>Artifact notes</label><textarea id="an-p0-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p0-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p0-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p0-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
             </div>
           </div>
@@ -416,6 +459,7 @@
         </div>
         <div class="section-card">
           <div class="section-label">Modified image</div>
+          <div class="instruction-box"><strong>Manual Action:</strong> Apply the modification externally (e.g. in Preview or Photoshop) and save the result into <code>real images/03-modified/</code> before entering the filename below.</div>
           <div class="field">
             <label>Modified image filename (auto-suggested, editable)</label>
             <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg"
@@ -463,12 +507,12 @@
           </div>
           <div class="two-col">
             <div class="field">
-              <label>File size after modification</label>
-              <input type="text" id="p1_mod_filesize" placeholder="auto-populated">
+              <label>File size after modification <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p1_mod_filesize" placeholder="auto-populated" readonly class="auto-field">
             </div>
             <div class="field">
-              <label>Dimensions after modification (px)</label>
-              <input type="text" id="p1_mod_dims" placeholder="auto-populated">
+              <label>Dimensions after modification (px) <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p1_mod_dims" placeholder="auto-populated" readonly class="auto-field">
             </div>
           </div>
         </div>
@@ -479,15 +523,15 @@
           <div id="an-p1-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p1-exif" readonly style="background:var(--bg)"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p1-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p1-exif" readonly class="auto-field"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p1-metadiff" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p1-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
               <div id="an-p1-artifact-list" class="artifact-display"></div>
-              <div class="field"><label>Artifact notes</label><textarea id="an-p1-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p1-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p1-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p1-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
             </div>
           </div>
@@ -514,14 +558,24 @@
           </div>
           <div class="section-card">
             <div class="section-label">Altered image</div>
+            <div class="instruction-box"><strong>Manual Action:</strong> Save the downloaded image — keeping the AI-assigned filename — into <code>altered images/&lt;model&gt;/downloaded/</code> before selecting below. Select the model first; the dropdown will then list available files.</div>
             <div class="field">
-              <label>Filename as assigned by AI model</label>
+              <label class="help-label">
+                Filename as assigned by AI model
+                <span class="tooltip-wrap">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-bubble">The filename the AI tool gave the image when you downloaded it (e.g. grok-image-8e38d268.png). Select the model first, then choose from the dropdown.</span>
+                </span>
+              </label>
               <div style="display:flex; gap:8px; align-items:center;">
                 <select id="p2_ai_filename" onchange="p2AiFilenameChanged()" style="flex:1; min-width:0;">
                   <option value="">— select a model first —</option>
                 </select>
                 <button class="btn" onclick="refreshAiFilenames()" title="Refresh file list" style="flex-shrink:0;">↻</button>
-                <button class="btn" id="copy-rename-btn" onclick="copyAndRenameImage()" style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+                <span class="tooltip-wrap">
+                  <button class="btn" id="copy-rename-btn" onclick="copyAndRenameImage()" style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+                  <span class="tooltip-bubble">Creates a renamed copy of the file in altered images/&lt;model&gt;/renamed/ using the study-based filename (e.g. csafe-001-b001.png).</span>
+                </span>
               </div>
               <span class="status-msg" id="status-copy-rename" style="margin-top:4px; display:inline-block;"></span>
             </div>
@@ -532,8 +586,8 @@
             </div>
             <div class="two-col">
               <div class="field">
-                <label>Output format</label>
-                <select id="p2_format">
+                <label>Output format <span class="auto-tag">(auto)</span></label>
+                <select id="p2_format" class="auto-field">
                   <option value="">— select —</option>
                   <option>JPEG</option>
                   <option>PNG</option>
@@ -542,8 +596,8 @@
                 </select>
               </div>
               <div class="field">
-                <label>Output dimensions (px)</label>
-                <input type="text" id="p2_out_dims" placeholder="e.g. 1024 × 768">
+                <label>Output dimensions (px) <span class="auto-tag">(auto)</span></label>
+                <input type="text" id="p2_out_dims" placeholder="auto-populated" readonly class="auto-field">
               </div>
             </div>
             <div class="field">
@@ -631,7 +685,15 @@
             </div>
             <div class="two-col">
               <div class="field">
-                <label>Prompt strategy</label>
+                <label class="help-label">
+                  Prompt strategy
+                  <span class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-bubble">Vague — general description, no detail about placement or appearance.
+Specific — precise instructions about what to add and where.
+Adversarial — prompt designed to test or bypass safety filters.</span>
+                  </span>
+                </label>
                 <select id="p2_prompt_type">
                   <option value="">— select —</option>
                   <option>Vague</option>
@@ -640,7 +702,13 @@
                 </select>
               </div>
               <div class="field">
-                <label>Object added</label>
+                <label class="help-label">
+                  Object added
+                  <span class="tooltip-wrap">
+                    <span class="tooltip-icon">?</span>
+                    <span class="tooltip-bubble">The forensically relevant object or change introduced by the AI (e.g. hammer, handgun, knife, blood spatter). Use a short noun phrase.</span>
+                  </span>
+                </label>
                 <input type="text" id="p2_object" placeholder="e.g. hammer, handgun, knife">
               </div>
             </div>
@@ -659,15 +727,15 @@
           <div id="an-p2-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p2-exif" readonly style="background:var(--bg)"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p2-c2pa" readonly style="background:var(--bg); width:100%"></div>
+              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p2-exif" readonly class="auto-field"></textarea></div>
+              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image</label><textarea id="an-p2-metadiff" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p2-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
               <div id="an-p2-artifact-list" class="artifact-display"></div>
-              <div class="field"><label>Artifact notes</label><textarea id="an-p2-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+              <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p2-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p2-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p2-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
             </div>
           </div>
@@ -693,17 +761,18 @@
             <button class="btn save" id="p3-upload-btn" onclick="uploadAndAnalyze()">Upload &amp; Analyze</button>
             <span class="status-msg" id="p3-status"></span>
           </div>
+          <div class="hint-box" style="margin-top:0.75rem;">Runs EXIF analysis, C2PA check, ELA, noise inconsistency, and compression blocking on the uploaded image. If the filename matches an existing record, results are attached to that record. Otherwise a standalone analysis record is created under <strong>Analyses</strong> in the sidebar.</div>
         </div>
 
         <div class="section-card" id="p3-file-info" style="display:none">
           <div class="section-label">File info</div>
           <div class="two-col">
-            <div class="field"><label>Filename</label><input type="text" id="p3-filename-display" readonly style="background:var(--bg)"></div>
-            <div class="field"><label>Linked record</label><input type="text" id="p3-linked-display" readonly style="background:var(--bg)"></div>
+            <div class="field"><label>Filename</label><input type="text" id="p3-filename-display" readonly class="auto-field"></div>
+            <div class="field"><label>Linked record</label><input type="text" id="p3-linked-display" readonly class="auto-field"></div>
           </div>
           <div class="two-col">
-            <div class="field"><label>File size</label><input type="text" id="p3-filesize-display" readonly style="background:var(--bg)"></div>
-            <div class="field"><label>Dimensions</label><input type="text" id="p3-dims-display" readonly style="background:var(--bg)"></div>
+            <div class="field"><label>File size</label><input type="text" id="p3-filesize-display" readonly class="auto-field"></div>
+            <div class="field"><label>Dimensions</label><input type="text" id="p3-dims-display" readonly class="auto-field"></div>
           </div>
         </div>
 
@@ -712,15 +781,15 @@
         <div id="an-p3-results" style="display:none">
           <div class="section-card">
             <div class="section-label">Metadata forensics</div>
-            <div class="field"><label>EXIF / metadata anomalies</label><textarea id="an-p3-exif" readonly style="background:var(--bg)"></textarea></div>
-            <div class="field"><label>C2PA / Content Credentials</label><input type="text" id="an-p3-c2pa" readonly style="background:var(--bg); width:100%"></div>
+            <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p3-exif" readonly class="auto-field"></textarea></div>
+            <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-c2pa" readonly class="auto-field" style="width:100%"></div>
             <details id="an-p3-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p3-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <div class="field"><label>Metadata diff</label><textarea id="an-p3-metadiff" readonly style="background:var(--bg)"></textarea></div>
+            <div class="field"><label>Metadata diff</label><textarea id="an-p3-metadiff" readonly class="auto-field"></textarea></div>
           </div>
           <div class="section-card">
             <div class="section-label">Visual / pixel-level artifacts</div>
             <div id="an-p3-artifact-list" class="artifact-display"></div>
-            <div class="field"><label>Artifact notes</label><textarea id="an-p3-artifact-notes" readonly style="background:var(--bg)"></textarea></div>
+            <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p3-artifact-notes" readonly class="auto-field"></textarea></div>
             <details id="an-p3-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p3-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
           </div>
         </div>
