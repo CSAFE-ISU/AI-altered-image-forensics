@@ -6,25 +6,42 @@ A dataset and tracking tool for studying how AI image-editing models alter photo
 
 ## The Tracker
 
-The tracker is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in `records.json` and auto-saved on every save action.
+The tracker is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action.
 
-### Starting the app
+### Setup
 
-```bash
-PORT=5001 python3 app.py
-```
+1. **Install Python dependencies**
 
-Then open [http://localhost:5001](http://localhost:5001) in a browser.
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-> Port 5000 is blocked by macOS AirPlay Receiver; use 5001 or any other available port.
+2. **Configure database credentials**
 
-### Dependencies
+   Copy `.env.example` to `.env` and fill in the Supabase credentials (get these from a team member):
 
-```bash
-pip install flask pillow numpy
-```
+   ```bash
+   cp .env.example .env
+   ```
 
-External CLI tools (both degrade gracefully if absent):
+   ```
+   SUPABASE_URL=https://your-project-id.supabase.co
+   SUPABASE_KEY=your-publishable-key
+   ```
+
+3. **Start the app**
+
+   ```bash
+   PORT=5001 python3 app.py
+   ```
+
+   Then open [http://localhost:5001](http://localhost:5001) in a browser.
+
+   > Port 5000 is blocked by macOS AirPlay Receiver; use 5001 or any other available port.
+
+### External CLI tools
+
+Both degrade gracefully if absent:
 - [`exiftool`](https://exiftool.org/) — EXIF/metadata extraction
 - [`c2patool`](https://github.com/contentauth/c2patool) — C2PA / Content Credentials inspection
 
@@ -125,10 +142,10 @@ Upload an image and perform basic forensic analysis.
 
 ## Saving and exporting
 
-- **Save record** — writes form fields to `records.json`; auto-confirms with a status message
+- **Save record** — writes form fields to the shared database; auto-confirms with a status message
 - **Clear fields** — resets the visible form without deleting the record
 - **Delete record** — permanently removes the record
-- **Export JSON** (top-right header button) — downloads `records.json` as `ai_image_records_YYYY-MM-DD.json`
+- **Export JSON** (top-right header button) — downloads all records as `ai_image_records_YYYY-MM-DD.json`
 - **Gallery** (top-right header button) — browse all images grouped by study
 
 ---
@@ -153,7 +170,10 @@ The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the 
 .
 ├── app.py                          # Flask backend
 ├── tracker.html                    # Single-page frontend
-├── records.json                    # All tracker records (auto-saved)
+├── .env                            # Supabase credentials (not committed — get from a team member)
+├── .env.example                    # Credential template
+├── requirements.txt                # Python dependencies
+├── migrate_to_supabase.py          # One-time migration script (already run)
 ├── real images/
 │   ├── 01-original/                # Files as received from camera
 │   ├── 02-original-renamed/        # Renamed copies (csafe-001.jpg, etc.)
