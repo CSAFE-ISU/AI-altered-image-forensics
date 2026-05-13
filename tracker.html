@@ -460,15 +460,36 @@
         </div>
         <div class="section-card">
           <div class="section-label">Modified image</div>
-          <div class="instruction-box"><strong>Manual Action:</strong> Apply the modification externally (e.g. in Preview or Photoshop) and save the result into <code>real images/03-modified/</code> before entering the filename below.</div>
           <div class="field">
-            <label>Modified image filename (auto-suggested, editable)</label>
-            <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg"
-              oninput="updateFormTitle(); refreshP1Preview(); populateP1ImageInfo();">
+            <label>Modification type</label>
+            <select id="p1_mod_type" onchange="suggestModFilename()">
+              <option value="">— select —</option>
+              <option>Cropped</option>
+              <option>Resized</option>
+              <option>Recompressed</option>
+              <option>Rotated</option>
+              <option>Other</option>
+            </select>
           </div>
+          <div class="instruction-box"><strong>Manual Action:</strong> Modify the image externally (e.g. in Preview or Photoshop) and save the result into <code>real images/03-modified/</code> using the original filename (e.g. <code>csafe-001.jpg</code>). Then click Rename below.</div>
           <div class="field">
-            <label>Notes</label>
-            <textarea id="p1_notes" placeholder="Any other details about this modification..."></textarea>
+            <label>Modified image filename <span class="auto-tag">(auto-suggested, editable)</span></label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg" style="flex:1; min-width:0;"
+                oninput="updateFormTitle(); refreshP1Preview();">
+              <button id="p1-rename-btn" onclick="renameModified()" disabled style="white-space:nowrap; flex-shrink:0;">Rename</button>
+            </div>
+            <span class="status-msg" id="status-p1-rename" style="margin-top:4px; display:inline-block;"></span>
+          </div>
+          <div class="two-col">
+            <div class="field">
+              <label>File size <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p1_mod_filesize" placeholder="auto-populated" readonly class="auto-field">
+            </div>
+            <div class="field">
+              <label>Dimensions (px) <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p1_mod_dims" placeholder="auto-populated" readonly class="auto-field">
+            </div>
           </div>
         </div>
 
@@ -490,31 +511,14 @@
         </div>
 
         <div class="section-card">
-          <div class="section-label">Modification</div>
-          <div class="field">
-            <label>Modification type</label>
-            <select id="p1_mod_type" onchange="suggestModFilename()">
-              <option value="">— select —</option>
-              <option>Cropped</option>
-              <option>Resized</option>
-              <option>Recompressed</option>
-              <option>Rotated</option>
-              <option>Other</option>
-            </select>
-          </div>
+          <div class="section-label">Modification details</div>
           <div class="field">
             <label>Modification details</label>
             <input type="text" id="p1_mod_details" placeholder="e.g. cropped to remove background clutter, recompressed to 80% JPEG in Preview">
           </div>
-          <div class="two-col">
-            <div class="field">
-              <label>File size after modification <span class="auto-tag">(auto)</span></label>
-              <input type="text" id="p1_mod_filesize" placeholder="auto-populated" readonly class="auto-field">
-            </div>
-            <div class="field">
-              <label>Dimensions after modification (px) <span class="auto-tag">(auto)</span></label>
-              <input type="text" id="p1_mod_dims" placeholder="auto-populated" readonly class="auto-field">
-            </div>
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="p1_notes" placeholder="Any other details about this modification..."></textarea>
           </div>
         </div>
 
@@ -839,6 +843,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   let detectorCount = 0;
   let copyPerformed = false;
   let p0CopyPerformed = false;
+  let p1RenamePerformed = false;
   let expandedStudies = new Set();
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -1124,6 +1129,18 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     setVal('p1_mod_dims', rec.mod_dims);
     setVal('p1_mod_filename', rec.mod_filename);
     setVal('p1_notes', rec.notes);
+    const btn = document.getElementById('p1-rename-btn');
+    if (rec.mod_filename) {
+      p1RenamePerformed = true;
+      if (btn) btn.disabled = true;
+      lockField('p1_mod_filename');
+      lockField('p1_mod_type');
+    } else {
+      p1RenamePerformed = false;
+      if (btn) btn.disabled = true;
+      unlockField('p1_mod_filename');
+      unlockField('p1_mod_type');
+    }
     updateFormTitle();
     refreshP1Preview();
     fillAnalysisSection('p1', rec);
@@ -1158,7 +1175,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     if (rec.altered_filename) {
       copyPerformed = true;
       btn.disabled = true;
-      showPersistentStatus('status-copy-rename', 'Already renamed: ' + rec.altered_filename, 'warning');
       lockField('p2_altered_filename');
       lockField('p2_ai_filename');
     } else {
@@ -1405,15 +1421,18 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   }
 
   function suggestModFilename() {
+    if (p1RenamePerformed) return;
     const input = document.getElementById('p1_input_select').value;
     const modType = document.getElementById('p1_mod_type').value.toLowerCase();
-    if (!input || !modType) return;
+    const btn = document.getElementById('p1-rename-btn');
+    if (!input || !modType) { if (btn) btn.disabled = true; return; }
     const dotIdx = input.lastIndexOf('.');
     const base = dotIdx > -1 ? input.slice(0, dotIdx) : input;
     const ext = dotIdx > -1 ? input.slice(dotIdx) : '.jpg';
     const suffixes = { cropped: '-cropped', resized: '-small', recompressed: '-recomp', rotated: '-rot', other: '-mod' };
     const suffix = suffixes[modType] || '-mod';
     document.getElementById('p1_mod_filename').value = base + suffix + ext;
+    if (btn) btn.disabled = false;
     updateFormTitle();
     refreshP1Preview();
   }
@@ -1794,9 +1813,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         setVal('p2_altered_filename', data.filename);
         updateFormTitle();
         refreshP2Preview();
-        if (data.already_exists) {
-          showPersistentStatus('status-copy-rename', 'Already renamed: ' + data.filename, 'warning');
-        } else {
+        if (!data.already_exists) {
           clearCopyRenameStatus();
         }
       }
@@ -1890,6 +1907,44 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
   }
 
+  // ── Modified image rename ────────────────────────────────────────────────
+
+  async function renameModified() {
+    const inputFilename = document.getElementById('p1_input_select').value;
+    const newFilename = getVal('p1_mod_filename');
+    if (!inputFilename || !newFilename) {
+      showStatus('status-p1-rename', 'Select an input image and enter a filename first', 'warning');
+      return;
+    }
+    if (inputFilename === newFilename) {
+      showStatus('status-p1-rename', 'New filename must be different from the original', 'warning');
+      return;
+    }
+    try {
+      const res = await fetch('/api/rename_modified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_filename: inputFilename, new_filename: newFilename })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showStatus('status-p1-rename', data.warning, 'warning');
+      } else if (data.ok) {
+        p1RenamePerformed = true;
+        document.getElementById('p1-rename-btn').disabled = true;
+        lockField('p1_mod_filename');
+        lockField('p1_mod_type');
+        showStatus('status-p1-rename', 'Renamed → ' + data.filename, 'success');
+        refreshP1Preview();
+        await populateP1ImageInfo();
+      } else {
+        showStatus('status-p1-rename', data.error || 'Rename failed', 'warning');
+      }
+    } catch {
+      showStatus('status-p1-rename', 'Rename failed — server unreachable', 'warning');
+    }
+  }
+
   // ── Original image copy / rename ─────────────────────────────────────────
 
   async function updateP0ComputedRename() {
@@ -1914,7 +1969,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         renamedEl.value = data.filename;
         if (data.already_exists) {
           if (btn) btn.disabled = true;
-          showPersistentStatus('status-copy-rename-original', 'Already renamed: ' + data.filename, 'warning');
           p0CopyPerformed = true;
           lockField('p0_original_filename');
         } else {
