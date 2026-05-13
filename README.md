@@ -2,21 +2,40 @@
 
 A dataset and tracking tool for studying how AI image-editing models alter photographs, and how those alterations can be detected. Developed in support of research at the [Center for Statistics and Applications in Forensic Evidence (CSAFE)](https://forensicstats.org/).
 
----
+The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action. Supabase is hosted on AWS and accessible from anywhere with an internet connection.
 
-## The Tracker
+## Setup
 
-The tracker is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action. Supabase is hosted on AWS and accessible from anywhere with an internet connection.
+1. **Clone the Repository**
 
-### Setup
+   The repopository is on GitHub: https://github.com/CSAFE-ISU/AI-altered-image-forensics.git. Clone it to your computer.
 
-1. **Install Python dependencies**
+
+2. **Install Python dependencies**
+
+   Open a terminal and change directories to the AI-altered-image-forensics folder.
+
+   ```bash
+   cd path/to/AI-altered-image-forensics
+   ``` 
+
+   Install the required Python packages.
 
    ```bash
    pip install -r requirements.txt
    ```
 
-2. **Configure database credentials**
+3. **Install ExifTool**
+
+   Install [`exiftool`](https://exiftool.org/) for EXIF and metadata extraction.
+   
+
+4. **Create a Free Supabase Account**
+
+   Go to [supabase.com](https://supabase.com) and create a free account. Ask a team member to add you to the **AI-altered Images** project under **Project Settings → Team**.
+
+
+5. **Configure database credentials**
 
    Copy `.env.example` to `.env`:
 
@@ -24,14 +43,14 @@ The tracker is a Flask web app (`app.py` + `tracker.html`) that records informat
    cp .env.example .env
    ```
 
-   Then fill in your Supabase credentials. You can get these by logging in to [supabase.com](https://supabase.com), opening the **AI-altered Images** project, and going to **Project Settings → Data API**. The API URL is on the Data API tab; the Publishable Key is on the API Keys tab. (Ask a team member to add you to the project under **Project Settings → Team** if you don't have access yet.)
+   Then fill in your Supabase credentials. You can get these by logging in to [supabase.com](https://supabase.com), opening the **AI-altered Images** project, and going to **Project Settings → Data API**. The API URL is on the Data API tab; the Publishable Key is on the API Keys tab.
 
    ```
    SUPABASE_URL=https://your-project-id.supabase.co
    SUPABASE_KEY=your-publishable-key
    ```
 
-3. **Start the app**
+6. **Start the app**
 
    ```bash
    PORT=5001 python3 app.py
@@ -43,15 +62,14 @@ The tracker is a Flask web app (`app.py` + `tracker.html`) that records informat
 
 ### External CLI tools
 
-Both degrade gracefully if absent:
-- [`exiftool`](https://exiftool.org/) — EXIF/metadata extraction
+Degrade gracefully if absent:
 - [`c2patool`](https://github.com/contentauth/c2patool) — C2PA / Content Credentials inspection
 
 ---
 
-## Record types
+## Using the Tracking Tool
 
-Records appear in the left sidebar, grouped by study ID. There are four record types:
+Records appear in the left sidebar, grouped by a unique *study ID* assigned to each original image by the app. There are four record types:
 
 1. **Original** — an unmodified image file as it came from the camera
 2. **Modified** — a copy of an original (or another modification) that has been cropped, rotated, recompressed, or otherwise transformed; scene content is unchanged, except where cropping removes part of the frame
@@ -139,16 +157,6 @@ Upload an image and perform basic forensic analysis.
    | Compression blocking | DCT boundary analysis | Visible 8×8 block boundaries (JPEG only) |
 
 5. Click **Save record** to store the analysis results.
-
----
-
-## Saving and exporting
-
-- **Save record** — writes form fields to the shared database; auto-confirms with a status message
-- **Clear fields** — resets the visible form without deleting the record
-- **Delete record** — permanently removes the record
-- **Export JSON** (top-right header button) — downloads all records as `ai_image_records_YYYY-MM-DD.json`
-- **Gallery** (top-right header button) — browse all images grouped by study
 
 ---
 
