@@ -10,3 +10,6 @@ __pycache__/
 
 # Supabase credentials — never commit
 .env
+
+# Local working folders
+Gautham/
