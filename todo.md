@@ -2,7 +2,7 @@
 
 - [x] Update README
 - [x] Rename uploaded images folder as analyzed images
-- [ ] Make records.json available to other users so we can share the same database
+- [x] Make records.json available to other users so we can share the same database
 - [ ] Rename "Page <#>" as "Step <#>" in the app and documentation
 - [ ] Move the Model and Version / variant fields to the top of the Altered Image box on page 2
 - [ ] Consider the pros and cons of storing all extracted EXIF data in records.json
