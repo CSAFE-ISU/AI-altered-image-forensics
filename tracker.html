@@ -368,7 +368,6 @@
         </div>
         <div class="section-card">
           <div class="section-label">Original image</div>
-          <div class="instruction-box"><strong>Manual Action:</strong> Copy the original image into <code>real images/01-original/</code>, then click Browse to select it.</div>
           <div class="field">
             <label class="help-label">
               Original filename (from camera / source)
@@ -473,13 +472,12 @@
               <option>Other</option>
             </select>
           </div>
-          <div class="instruction-box"><strong>Manual Action:</strong> Modify the image externally (e.g. in Preview or Photoshop) and save the result into <code>real images/03-modified/</code> using the original filename (e.g. <code>csafe-001.jpg</code>). Then click Rename below.</div>
           <div class="field">
             <label>Modified image filename <span class="auto-tag">(auto-suggested, editable)</span></label>
             <div style="display:flex; gap:8px; align-items:center;">
               <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg" style="flex:1; min-width:0;"
                 oninput="updateFormTitle(); refreshP1Preview();">
-              <button id="p1-rename-btn" onclick="renameModified()" disabled style="white-space:nowrap; flex-shrink:0;">Rename</button>
+              <button id="p1-rename-btn" class="btn" onclick="document.getElementById('p1-mod-file').click()" disabled style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
             </div>
             <span class="status-msg" id="status-p1-rename" style="margin-top:4px; display:inline-block;"></span>
           </div>
@@ -584,7 +582,6 @@
           </div>
           <div class="section-card">
             <div class="section-label">Altered image</div>
-            <div class="instruction-box"><strong>Manual Action:</strong> Save the downloaded image — keeping the AI-assigned filename — into <code>altered images/&lt;model&gt;/downloaded/</code> before selecting below. (The model must be selected in the AI Model section for the image list to be populated.)</div>
             <div class="field">
               <label class="help-label">
                 Filename as assigned by AI model
@@ -840,6 +837,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
 <input type="file" id="p0-file-input" accept="image/*" style="display:none" onchange="onOriginalFilePicked(this)">
 <input type="file" id="p1-input-file" accept="image/*" style="display:none" onchange="onP1InputFilePicked(this)">
+<input type="file" id="p1-mod-file" accept="image/*" style="display:none" onchange="onP1ModFilePicked(this)">
 <input type="file" id="p2-input-file" accept="image/*" style="display:none" onchange="onP2InputFilePicked(this)">
 <input type="file" id="p2-ai-file" accept="image/*" style="display:none" onchange="onAiFilePicked(this)">
 
@@ -1864,51 +1862,39 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
   }
 
-  // ── Modified image rename ────────────────────────────────────────────────
-
-  async function renameModified() {
-    const inputFilename = document.getElementById('p1_input_select').value;
-    const newFilename = getVal('p1_mod_filename');
-    if (!inputFilename || !newFilename) {
-      showStatus('status-p1-rename', 'Select an input image and enter a filename first', 'warning');
-      return;
-    }
-    if (inputFilename === newFilename) {
-      showStatus('status-p1-rename', 'New filename must be different from the original', 'warning');
-      return;
-    }
-    try {
-      const res = await fetch('/api/rename_modified', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ current_filename: inputFilename, new_filename: newFilename })
-      });
-      const data = await res.json();
-      if (data.warning) {
-        showStatus('status-p1-rename', data.warning, 'warning');
-      } else if (data.ok) {
-        p1RenamePerformed = true;
-        document.getElementById('p1-rename-btn').disabled = true;
-        lockField('p1_mod_filename');
-        lockField('p1_mod_type');
-        showStatus('status-p1-rename', 'Renamed → ' + data.filename, 'success');
-        refreshP1Preview();
-        await populateP1ImageInfo();
-      } else {
-        showStatus('status-p1-rename', data.error || 'Rename failed', 'warning');
-      }
-    } catch {
-      showStatus('status-p1-rename', 'Rename failed — server unreachable', 'warning');
-    }
+  async function uploadFile(file, endpoint, extraFields) {
+    const form = new FormData();
+    form.append('file', file);
+    if (extraFields) for (const [k, v] of Object.entries(extraFields)) form.append(k, v);
+    const res = await fetch(endpoint, { method: 'POST', body: form });
+    return await res.json();
   }
 
-  function onOriginalFilePicked(input) {
+  async function onOriginalFilePicked(input) {
     if (!input.files.length) return;
-    setVal('p0_original_filename', input.files[0].name);
+    const file = input.files[0];
     input.value = '';
-    refreshP0Preview();
-    populateP0ImageInfo();
-    updateP0ComputedRename();
+    const dup = records.find(r => r.type === 'p0' && r.original_filename === file.name);
+    if (dup) {
+      showPersistentStatus('status-copy-rename-original',
+        `This original image already exists in the database (study ID: ${dup.study_id}).`, 'warning');
+      return;
+    }
+    showPersistentStatus('status-copy-rename-original', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_original');
+      if (data.ok) {
+        setVal('p0_original_filename', data.filename);
+        document.getElementById('status-copy-rename-original').className = 'status-msg';
+        refreshP0Preview();
+        populateP0ImageInfo();
+        updateP0ComputedRename();
+      } else {
+        showPersistentStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
+    }
   }
 
   function onP1InputFilePicked(input) {
@@ -1918,6 +1904,36 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     p1InputChanged();
   }
 
+  async function onP1ModFilePicked(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    input.value = '';
+    const destFilename = getVal('p1_mod_filename');
+    if (!destFilename) {
+      showStatus('status-p1-rename', 'Set the modification type first to generate a filename', 'warning');
+      return;
+    }
+    showPersistentStatus('status-p1-rename', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_modified', { dest_filename: destFilename });
+      if (data.warning) {
+        showPersistentStatus('status-p1-rename', data.warning, 'warning');
+      } else if (data.ok) {
+        p1RenamePerformed = true;
+        document.getElementById('p1-rename-btn').disabled = true;
+        lockField('p1_mod_filename');
+        lockField('p1_mod_type');
+        showPersistentStatus('status-p1-rename', 'Copied → ' + data.filename, 'success');
+        refreshP1Preview();
+        await populateP1ImageInfo();
+      } else {
+        showPersistentStatus('status-p1-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-p1-rename', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
   function onP2InputFilePicked(input) {
     if (!input.files.length) return;
     setVal('p2_input_select', input.files[0].name);
@@ -1925,11 +1941,28 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     p2InputChanged();
   }
 
-  function onAiFilePicked(input) {
+  async function onAiFilePicked(input) {
     if (!input.files.length) return;
-    setVal('p2_ai_filename', input.files[0].name);
+    const file = input.files[0];
     input.value = '';
-    p2AiFilenameChanged();
+    const model = getP2Model();
+    if (!model) {
+      showStatus('status-copy-rename', 'Select a model before browsing for the AI file', 'warning');
+      return;
+    }
+    showPersistentStatus('status-copy-rename', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_downloaded', { model });
+      if (data.ok) {
+        setVal('p2_ai_filename', data.filename);
+        document.getElementById('status-copy-rename').className = 'status-msg';
+        p2AiFilenameChanged();
+      } else {
+        showPersistentStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
   }
 
   // ── Original image copy / rename ─────────────────────────────────────────
