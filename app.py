@@ -373,6 +373,49 @@ def copy_rename_original():
 MOD_DIR = BASE / "real images" / "03-modified"
 
 
+@app.route("/api/upload_original", methods=["POST"])
+def upload_original():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files['file']
+    if not f.filename:
+        return jsonify({"error": "Empty filename"}), 400
+    ORIG_SRC_DIR.mkdir(parents=True, exist_ok=True)
+    dest = ORIG_SRC_DIR / f.filename
+    f.save(str(dest))
+    return jsonify({"ok": True, "filename": f.filename})
+
+
+@app.route("/api/upload_modified", methods=["POST"])
+def upload_modified():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files['file']
+    dest_filename = (request.form.get("dest_filename") or f.filename).strip()
+    MOD_DIR.mkdir(parents=True, exist_ok=True)
+    dest = MOD_DIR / dest_filename
+    if dest.exists():
+        return jsonify({"ok": False, "warning": f"File already exists: {dest_filename}", "filename": dest_filename})
+    f.save(str(dest))
+    return jsonify({"ok": True, "filename": dest_filename})
+
+
+@app.route("/api/upload_downloaded", methods=["POST"])
+def upload_downloaded():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files['file']
+    model = (request.form.get("model") or "").strip()
+    if not model:
+        return jsonify({"error": "No model specified"}), 400
+    model_dir = find_model_folder(model) or (BASE / "altered images" / model)
+    downloaded = model_dir / "downloaded"
+    downloaded.mkdir(parents=True, exist_ok=True)
+    dest = downloaded / f.filename
+    f.save(str(dest))
+    return jsonify({"ok": True, "filename": f.filename})
+
+
 @app.route("/api/rename_modified", methods=["POST"])
 def rename_modified():
     data = request.get_json(force=True)
