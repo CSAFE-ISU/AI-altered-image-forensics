@@ -110,6 +110,18 @@ def set_records():
     return jsonify({"ok": True, "count": len(data)})
 
 
+@app.route("/api/records/<record_id>", methods=["DELETE"])
+def delete_record(record_id: str):
+    if _supabase:
+        _supabase.table("records").delete().eq("id", record_id).execute()
+    else:
+        if DATA_FILE.exists():
+            data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            data = [r for r in data if r.get("id") != record_id]
+            DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return jsonify({"ok": True, "id": record_id})
+
+
 @app.route("/images/<path:filename>")
 def serve_image(filename: str):
     path = find_image(filename)
@@ -189,6 +201,17 @@ def image_info():
             return jsonify({"format": fmt, "dimensions": f"{w} \u00d7 {h}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/original_files")
+def get_original_files():
+    if not ORIG_SRC_DIR.is_dir():
+        return jsonify([])
+    files = sorted(
+        f.name for f in ORIG_SRC_DIR.iterdir()
+        if f.is_file() and not f.name.startswith(".")
+    )
+    return jsonify(files)
 
 
 @app.route("/api/downloaded_files")

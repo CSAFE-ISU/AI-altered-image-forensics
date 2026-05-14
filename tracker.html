@@ -368,21 +368,21 @@
         </div>
         <div class="section-card">
           <div class="section-label">Original image</div>
-          <div class="instruction-box"><strong>Manual Action:</strong> Copy the original image file into <code>real images/01-original/</code> before entering the filename below.</div>
+          <div class="instruction-box"><strong>Manual Action:</strong> Copy the original image into <code>real images/01-original/</code>, then click Browse to select it.</div>
           <div class="field">
             <label class="help-label">
               Original filename (from camera / source)
               <span class="tooltip-wrap">
                 <span class="tooltip-icon">?</span>
-                <span class="tooltip-bubble">Enter the filename exactly as it appears in real images/01-original/ (e.g. iPhone6s-2_Scene-20190630-185705.jpg). File size and dimensions will be auto-populated.</span>
+                <span class="tooltip-bubble">Select the file from real images/01-original/. File size and dimensions will be auto-populated.</span>
               </span>
             </label>
             <div style="display:flex; gap:8px; align-items:center;">
-              <input type="text" id="p0_original_filename" placeholder="e.g. iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg"
-                style="flex:1; min-width:0;"
-                oninput="refreshP0Preview(); populateP0ImageInfo(); updateP0ComputedRename();">
+              <input type="text" id="p0_original_filename" placeholder="select via Browse →"
+                style="flex:1; min-width:0;" readonly class="auto-field">
+              <button id="btn-browse-original" class="btn" onclick="document.getElementById('p0-file-input').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
               <span class="tooltip-wrap">
-                <button id="btn-copy-rename-original" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
+                <button id="btn-copy-rename-original" class="btn" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
                 <span class="tooltip-bubble">Creates a renamed copy of the file in real images/02-original-renamed/ using the study ID as the new filename (e.g. csafe-001.jpg).</span>
               </span>
             </div>
@@ -835,6 +835,8 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   </div>
 </div>
 
+<input type="file" id="p0-file-input" accept="image/*" style="display:none" onchange="onOriginalFilePicked(this)">
+
 <script>
   let records = [];
   let currentId = null;
@@ -1117,6 +1119,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     updateFormTitle();
     refreshP0Preview();
     p0CopyPerformed = false;
+    document.getElementById('btn-browse-original').disabled = false;
     updateP0ComputedRename();
     fillAnalysisSection('p0', rec);
   }
@@ -1522,10 +1525,13 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
   async function deleteRecord() {
     if (!currentId || !confirm('Delete this record? This cannot be undone.')) return;
-    records = records.filter(r => r.id !== currentId);
+    const idToDelete = currentId;
+    records = records.filter(r => r.id !== idToDelete);
     currentId = null; currentType = null;
     renderSidebar(); showFormArea(false);
-    await persistRecords();
+    try {
+      await fetch('/api/records/' + encodeURIComponent(idToDelete), { method: 'DELETE' });
+    } catch { /* silently ignore — record is already removed from local state */ }
   }
 
   function clearCurrentForm() {
@@ -1945,6 +1951,15 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
   }
 
+  function onOriginalFilePicked(input) {
+    if (!input.files.length) return;
+    setVal('p0_original_filename', input.files[0].name);
+    input.value = '';
+    refreshP0Preview();
+    populateP0ImageInfo();
+    updateP0ComputedRename();
+  }
+
   // ── Original image copy / rename ─────────────────────────────────────────
 
   async function updateP0ComputedRename() {
@@ -1970,13 +1985,13 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         if (data.already_exists) {
           if (btn) btn.disabled = true;
           p0CopyPerformed = true;
-          lockField('p0_original_filename');
+          document.getElementById('btn-browse-original').disabled = true;
         } else {
           if (btn) btn.disabled = false;
           statusEl.textContent = '';
           statusEl.className = 'status-msg';
           p0CopyPerformed = false;
-          unlockField('p0_original_filename');
+          document.getElementById('btn-browse-original').disabled = false;
         }
       }
     } catch { /* silently ignore */ }
@@ -2004,14 +2019,14 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
       if (data.warning) {
         showPersistentStatus('status-copy-rename-original', data.warning, 'warning');
         document.getElementById('btn-copy-rename-original').disabled = true;
+        document.getElementById('btn-browse-original').disabled = true;
         p0CopyPerformed = true;
-        lockField('p0_original_filename');
       } else if (data.ok) {
         setVal('p0_renamed_filename', data.filename);
         showPersistentStatus('status-copy-rename-original', 'Copied \u2192 ' + data.filename, 'success');
         document.getElementById('btn-copy-rename-original').disabled = true;
+        document.getElementById('btn-browse-original').disabled = true;
         p0CopyPerformed = true;
-        lockField('p0_original_filename');
       } else {
         showStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
       }
