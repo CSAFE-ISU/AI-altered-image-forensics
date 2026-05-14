@@ -453,9 +453,11 @@
           <div class="section-label">Source image</div>
           <div class="field">
             <label>Select input image</label>
-            <select id="p1_input_select" onchange="p1InputChanged()">
-              <option value="">— select from available originals and modifications —</option>
-            </select>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="text" id="p1_input_select" placeholder="select via Browse →"
+                style="flex:1; min-width:0;" readonly class="auto-field">
+              <button id="btn-browse-p1-input" class="btn" onclick="document.getElementById('p1-input-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
+            </div>
           </div>
         </div>
         <div class="section-card">
@@ -556,9 +558,11 @@
             <div class="section-label">Input image</div>
             <div class="field">
               <label>Select input image</label>
-              <select id="p2_input_select" onchange="p2InputChanged()">
-                <option value="">— select from available originals and modifications —</option>
-              </select>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" id="p2_input_select" placeholder="select via Browse →"
+                  style="flex:1; min-width:0;" readonly class="auto-field">
+                <button id="btn-browse-p2-input" class="btn" onclick="document.getElementById('p2-input-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
+              </div>
             </div>
           </div>
           <div class="section-card">
@@ -570,7 +574,7 @@
                   <option value="">— select —</option>
                   <option value="__other__">Other (type below)</option>
                 </select>
-                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="setVal('p2_ai_filename', ''); updateComputedRename();">
               </div>
               <div class="field">
                 <label>Version / variant</label>
@@ -590,10 +594,9 @@
                 </span>
               </label>
               <div style="display:flex; gap:8px; align-items:center;">
-                <select id="p2_ai_filename" onchange="p2AiFilenameChanged()" style="flex:1; min-width:0;">
-                  <option value="">— select a model first —</option>
-                </select>
-                <button class="btn" onclick="refreshAiFilenames()" title="Refresh file list" style="flex-shrink:0;">↻</button>
+                <input type="text" id="p2_ai_filename" placeholder="select via Browse →"
+                  style="flex:1; min-width:0;" readonly class="auto-field">
+                <button id="btn-browse-p2-ai" class="btn" onclick="document.getElementById('p2-ai-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
                 <span class="tooltip-wrap">
                   <button class="btn" id="copy-rename-btn" onclick="copyAndRenameImage()" style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
                   <span class="tooltip-bubble">Creates a renamed copy of the file in altered images/&lt;model&gt;/renamed/ using the study-based filename (e.g. csafe-001-b001.png).</span>
@@ -836,6 +839,9 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 </div>
 
 <input type="file" id="p0-file-input" accept="image/*" style="display:none" onchange="onOriginalFilePicked(this)">
+<input type="file" id="p1-input-file" accept="image/*" style="display:none" onchange="onP1InputFilePicked(this)">
+<input type="file" id="p2-input-file" accept="image/*" style="display:none" onchange="onP2InputFilePicked(this)">
+<input type="file" id="p2-ai-file" accept="image/*" style="display:none" onchange="onAiFilePicked(this)">
 
 <script>
   let records = [];
@@ -896,32 +902,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
       .map(f => parseInt(f.replace('csafe-', ''), 10));
     const max = nums.length ? Math.max(...nums) : 0;
     return 'csafe-' + String(max + 1).padStart(3, '0');
-  }
-
-  // ── Available images for dropdowns ───────────────────────────────────────
-
-  function getAvailableImages() {
-    const imgs = [];
-    records.forEach(r => {
-      if (r.type === 'p0' && r.study_id)
-        imgs.push({ label: r.study_id + '.jpg  [original]', value: r.study_id + '.jpg' });
-      if (r.type === 'p1' && r.mod_filename)
-        imgs.push({ label: r.mod_filename + '  [modification]', value: r.mod_filename });
-    });
-    return imgs;
-  }
-
-  function populateImageDropdown(selectId, selectedVal) {
-    const sel = document.getElementById(selectId);
-    const imgs = getAvailableImages();
-    sel.innerHTML = '<option value="">— select from available originals and modifications —</option>';
-    imgs.forEach(img => {
-      const opt = document.createElement('option');
-      opt.value = img.value;
-      opt.textContent = img.label;
-      if (img.value === selectedVal) opt.selected = true;
-      sel.appendChild(opt);
-    });
   }
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
@@ -1125,7 +1105,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   }
 
   function fillP1(rec) {
-    populateImageDropdown('p1_input_select', rec.input_image);
+    setVal('p1_input_select', rec.input_image || '');
     setVal('p1_mod_type', rec.mod_type);
     setVal('p1_mod_details', rec.mod_details);
     setVal('p1_mod_filesize', rec.mod_filesize);
@@ -1150,7 +1130,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   }
 
   async function fillP2(rec) {
-    populateImageDropdown('p2_input_select', rec.input_image);
+    setVal('p2_input_select', rec.input_image || '');
     setModelSelectValue(rec.model);
     setVal('p2_version', rec.model_version);
     setVal('p2_prompt', rec.prompt);
@@ -1170,8 +1150,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     updateFormTitle();
     refreshP2Preview();
 
-    // Async: populate AI filename dropdown and restore saved selection
-    await populateAiFilenameDropdown(getP2Model(), rec.ai_assigned_filename);
+    setVal('p2_ai_filename', rec.ai_assigned_filename || '');
 
     // Disable copy button if a renamed file is already recorded for this entry
     const btn = document.getElementById('copy-rename-btn');
@@ -1179,13 +1158,13 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
       copyPerformed = true;
       btn.disabled = true;
       lockField('p2_altered_filename');
-      lockField('p2_ai_filename');
+      document.getElementById('btn-browse-p2-ai').disabled = true;
     } else {
       copyPerformed = false;
       btn.disabled = false;
       clearCopyRenameStatus();
       unlockField('p2_altered_filename');
-      unlockField('p2_ai_filename');
+      document.getElementById('btn-browse-p2-ai').disabled = false;
     }
 
     fillAnalysisSection('p2', rec);
@@ -1709,7 +1688,8 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     const custom = document.getElementById('p2_model_custom');
     custom.style.display = sel.value === '__other__' ? 'block' : 'none';
     if (sel.value !== '__other__') custom.value = '';
-    populateAiFilenameDropdown(getP2Model()).then(() => updateComputedRename());
+    setVal('p2_ai_filename', '');
+    updateComputedRename();
   }
 
   // ── Dynamic model + file lists ────────────────────────────────────────────
@@ -1751,35 +1731,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
     // Fall back to custom
     sel.value = '__other__'; custom.style.display = 'block'; custom.value = model;
-  }
-
-  async function populateAiFilenameDropdown(model, selectedVal) {
-    const sel = document.getElementById('p2_ai_filename');
-    if (!model || model === '__other__') {
-      sel.innerHTML = '<option value="">— select a model first —</option>'; return;
-    }
-    sel.innerHTML = '<option value="">— loading… —</option>';
-    try {
-      const res = await fetch('/api/downloaded_files?model=' + encodeURIComponent(model));
-      const files = await res.json();
-      if (!files.length) {
-        sel.innerHTML = '<option value="">— no files in downloaded folder —</option>'; return;
-      }
-      sel.innerHTML = '<option value="">— select file —</option>';
-      files.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f; opt.textContent = f;
-        sel.appendChild(opt);
-      });
-      if (selectedVal) sel.value = selectedVal;  // set after all options added to avoid triggering onchange
-    } catch {
-      sel.innerHTML = '<option value="">— could not load files —</option>';
-    }
-  }
-
-  async function refreshAiFilenames() {
-    const current = getVal('p2_ai_filename');
-    await populateAiFilenameDropdown(getP2Model(), current);
   }
 
   // ── Copy and Rename ───────────────────────────────────────────────────────
@@ -1831,7 +1782,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   async function p2AiFilenameChanged() {
     copyPerformed = false;
     document.getElementById('copy-rename-btn').disabled = false;
-    unlockField('p2_ai_filename');
+    document.getElementById('btn-browse-p2-ai').disabled = false;
     await updateComputedRename();
     await populateImageInfo();
   }
@@ -1904,7 +1855,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         copyPerformed = true;
         document.getElementById('copy-rename-btn').disabled = true;
         lockField('p2_altered_filename');
-        lockField('p2_ai_filename');
+        document.getElementById('btn-browse-p2-ai').disabled = true;
       } else {
         showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
       }
@@ -1958,6 +1909,27 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     refreshP0Preview();
     populateP0ImageInfo();
     updateP0ComputedRename();
+  }
+
+  function onP1InputFilePicked(input) {
+    if (!input.files.length) return;
+    setVal('p1_input_select', input.files[0].name);
+    input.value = '';
+    p1InputChanged();
+  }
+
+  function onP2InputFilePicked(input) {
+    if (!input.files.length) return;
+    setVal('p2_input_select', input.files[0].name);
+    input.value = '';
+    p2InputChanged();
+  }
+
+  function onAiFilePicked(input) {
+    if (!input.files.length) return;
+    setVal('p2_ai_filename', input.files[0].name);
+    input.value = '';
+    p2AiFilenameChanged();
   }
 
   // ── Original image copy / rename ─────────────────────────────────────────
