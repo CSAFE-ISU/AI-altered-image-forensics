@@ -363,7 +363,7 @@
           </div>
           <div class="hint-box">
             This ID ties all files in this study together:<br>
-            csafe-001.jpg &rarr; csafe-001-cropped.jpg &rarr; csafe-001-cropped-b.jpg
+            csafe-001.jpg &rarr; csafe-001-cropped.jpg &rarr; csafe-001-cropped-b001.jpg
           </div>
         </div>
         <div class="section-card">
@@ -562,8 +562,25 @@
             </div>
           </div>
           <div class="section-card">
+            <div class="section-label">AI model</div>
+            <div class="two-col">
+              <div class="field">
+                <label>Model</label>
+                <select id="p2_model" onchange="handleModelSelect(this)">
+                  <option value="">— select —</option>
+                  <option value="__other__">Other (type below)</option>
+                </select>
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
+              </div>
+              <div class="field">
+                <label>Version / variant</label>
+                <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
+              </div>
+            </div>
+          </div>
+          <div class="section-card">
             <div class="section-label">Altered image</div>
-            <div class="instruction-box"><strong>Manual Action:</strong> Save the downloaded image — keeping the AI-assigned filename — into <code>altered images/&lt;model&gt;/downloaded/</code> before selecting below. Select the model first; the dropdown will then list available files.</div>
+            <div class="instruction-box"><strong>Manual Action:</strong> Save the downloaded image — keeping the AI-assigned filename — into <code>altered images/&lt;model&gt;/downloaded/</code> before selecting below. (The model must be selected in the AI Model section for the image list to be populated.)</div>
             <div class="field">
               <label class="help-label">
                 Filename as assigned by AI model
@@ -586,7 +603,7 @@
             </div>
             <div class="field">
               <label>Your assigned filename for altered image (auto-suggested, editable)</label>
-              <input type="text" id="p2_altered_filename" placeholder="e.g. csafe-001-cropped-b.jpg"
+              <input type="text" id="p2_altered_filename" placeholder="e.g. csafe-001-b001.jpg"
                 oninput="updateFormTitle(); refreshP2Preview()">
             </div>
             <div class="two-col">
@@ -665,23 +682,6 @@
             </div>
           </div>
 
-          <div class="section-card">
-            <div class="section-label">AI model</div>
-            <div class="two-col">
-              <div class="field">
-                <label>Model</label>
-                <select id="p2_model" onchange="handleModelSelect(this)">
-                  <option value="">— select —</option>
-                  <option value="__other__">Other (type below)</option>
-                </select>
-                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="populateAiFilenameDropdown(getP2Model()); updateComputedRename();">
-              </div>
-              <div class="field">
-                <label>Version / variant</label>
-                <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
-              </div>
-            </div>
-          </div>
           <div class="section-card">
             <div class="section-label">Prompt</div>
             <div class="field">
