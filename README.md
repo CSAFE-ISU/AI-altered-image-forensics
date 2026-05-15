@@ -8,7 +8,7 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
 
 1. **Clone the Repository**
 
-   The repopository is on GitHub: https://github.com/CSAFE-ISU/AI-altered-image-forensics.git. Clone it to your computer.
+   The repository is on GitHub: https://github.com/CSAFE-ISU/AI-altered-image-forensics.git. Clone it to your computer.
 
 
 2. **Install Python dependencies**
@@ -81,11 +81,10 @@ Records appear in the left sidebar, grouped by a unique *study ID* assigned to e
 Rename the original image with a unique study ID and record details about the image.
 
 1. Click **+ New original** in the sidebar.
-2. Copy the original image file into `real images/01-original/`.
-3. Enter the original image's filename in the **Original filename** field (e.g. `iPhone6s-2_Scene-20190630-185705_JPG-00_I100_E30_o.jpg`). The Study ID is auto-assigned (`csafe-001`, `csafe-002`, …) and the renamed filename is auto-suggested (e.g. `csafe-001.jpg`).
-4. Click **Copy and Rename** to create a renamed copy of the file in `real images/02-original-renamed/`.
-5. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
-6. Click **Save record**. This saves the information to `records.json`.
+2. Click **Browse…** next to the **Original filename** field and select the image from anywhere on your computer. The app copies it into `real images/01-original/` automatically. The Study ID is auto-assigned (`csafe-001`, `csafe-002`, …) and the renamed filename is auto-suggested (e.g. `csafe-001.jpg`). If the image already exists in the database, a warning is shown with the matching study ID instead.
+3. Click **Copy and Rename** to create a renamed copy of the file in `real images/02-original-renamed/`.
+4. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
+5. Click **Save record**.
 
 Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
@@ -96,14 +95,13 @@ Any forensic analysis run on this image (see Page 3) will appear in the **Analys
 Record any pre-processing applied to the original image before it is fed to an AI model (cropping, resizing, recompression, etc.).
 
 1. Click **+ New modification** in the sidebar.
-2. Select the source image from the **Input image** dropdown (lists all recorded originals and modifications).
-3. Apply the desired transformation to the image externally (e.g. export at 80% JPEG quality in Preview). Save the result into `real images/03-modified/`.
-4. Select the transformation type from **Modification type** (Cropped / Resized / Recompressed / Rotated / Other).
-5. Describe the transformation in **Modification details** (e.g. `exported in Preview at 80% JPEG quality`).
-6. Enter the modified file's name in the **Modified filename** field. The app auto-suggests a name from the study ID and modification type (e.g. `csafe-001-recomp.jpg`); edit the suggested filename if needed.
-7. File size and dimensions are auto-populated.
-8. Optionally, add additional context in **Notes**.
-9. Click **Save record**.
+2. Click **Browse…** next to **Select input image** and select the source image (an original or a previously recorded modification) from your computer.
+3. Select the transformation type from **Modification type** (Cropped / Resized / Recompressed / Rotated / Other). The app auto-suggests a modified filename (e.g. `csafe-001-recomp.jpg`); edit the **Modified image filename** field if needed.
+4. Apply the desired transformation externally (e.g. export at 80% JPEG quality in Preview).
+5. Click **Browse…** next to the **Modified image filename** field and select the transformed file from anywhere on your computer. The app copies it into `real images/03-modified/` automatically, and file size and dimensions are auto-populated.
+6. Describe the transformation in **Modification details** (e.g. `exported in Preview at 80% JPEG quality`).
+7. Optionally, add additional context in **Notes**.
+8. Click **Save record**.
 
 Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
@@ -114,14 +112,12 @@ Any forensic analysis run on this image (see Page 3) will appear in the **Analys
 Record details about an AI altered image.
 
 1. Click **+ New alteration** in the sidebar.
-2. Select the source image from the **Input image** dropdown (lists all recorded originals and modifications).
-3. Generate an altered image using an AI tool or software such as Photoshop.
-   - If using an AI tool, save the downloaded file, with its AI-assigned filename, into `altered images/<model>/downloaded/`
-   - If using Photoshop or similar software, pick a filename that is different from the input image and save the altered image in `altered images/<software>/downloaded`
-4. Fill in the model details:
+2. Click **Browse…** next to **Select input image** and select the source image (an original or a previously recorded modification) from your computer.
+3. Fill in the model details:
    - **Model** — select from the list (Grok / Gemini / Adobe Firefly / Photoshop / ChatGPT / Flux / Stable Diffusion / Other)
    - **Version / variant** — if you can find information about the version or setting chosen, record it (e.g. `Grok-2`, `Gemini 2.0 Flash`, `Grok: I chose Quality instead of Speed`)
-5. Enter the AI-assigned filename in the **AI-assigned filename** field (e.g. `grok-image-8e38d268.png`). The **Your assigned filename** field auto-suggests the input image's filename with `-b<###>` tacked on before the file extension. The three-digit number is assigned sequentially for each original and modified image. (e.g. `csafe-002-b001.png`, `csafe-002-b002.png`, `csafe-001-recomp-b001.png`, `csafe-001-recomp-b002.png`)
+4. Generate an altered image using an AI tool or software such as Photoshop.
+5. Click **Browse…** next to the **Filename as assigned by AI model** field and select the downloaded altered image from anywhere on your computer. The app copies it into `altered images/<model>/downloaded/` automatically and fills in the AI-assigned filename. The **Your assigned filename** field auto-suggests the input image's name with `-b<###>` appended before the extension, assigned sequentially per input image (e.g. `csafe-002-b001.png`, `csafe-002-b002.png`, `csafe-001-recomp-b001.png`). Edit the suggested filename if needed. (Note: the Browse button is disabled until a model is selected.)
 6. Click **Copy and Rename** to create a renamed copy in `altered images/<model>/renamed/`.
 7. Output format and dimensions are auto-populated.
 8. Set the **Date / time generated** to when the image was produced.
