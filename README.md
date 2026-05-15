@@ -113,8 +113,6 @@ If a modified version (cropping, resizing, recompression, etc.) of the original 
 
 Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
----
-
 ### Upload an AI altered image
 
 Record details about an AI altered image:
