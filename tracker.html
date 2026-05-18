@@ -452,11 +452,9 @@
           <div class="section-label">Source image</div>
           <div class="field">
             <label>Select input image</label>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <input type="text" id="p1_input_select" placeholder="select via Browse →"
-                style="flex:1; min-width:0;" readonly class="auto-field">
-              <button id="btn-browse-p1-input" class="btn" onclick="document.getElementById('p1-input-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
-            </div>
+            <select id="p1_input_select" onchange="p1InputChanged()">
+              <option value="">— select —</option>
+            </select>
           </div>
         </div>
         <div class="section-card">
@@ -556,11 +554,9 @@
             <div class="section-label">Input image</div>
             <div class="field">
               <label>Select input image</label>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <input type="text" id="p2_input_select" placeholder="select via Browse →"
-                  style="flex:1; min-width:0;" readonly class="auto-field">
-                <button id="btn-browse-p2-input" class="btn" onclick="document.getElementById('p2-input-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
-              </div>
+              <select id="p2_input_select" onchange="p2InputChanged()">
+                <option value="">— select —</option>
+              </select>
             </div>
           </div>
           <div class="section-card">
@@ -836,9 +832,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 </div>
 
 <input type="file" id="p0-file-input" accept="image/*" style="display:none" onchange="onOriginalFilePicked(this)">
-<input type="file" id="p1-input-file" accept="image/*" style="display:none" onchange="onP1InputFilePicked(this)">
 <input type="file" id="p1-mod-file" accept="image/*" style="display:none" onchange="onP1ModFilePicked(this)">
-<input type="file" id="p2-input-file" accept="image/*" style="display:none" onchange="onP2InputFilePicked(this)">
 <input type="file" id="p2-ai-file" accept="image/*" style="display:none" onchange="onAiFilePicked(this)">
 
 <script>
@@ -863,6 +857,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
       records = await res.json();
       if (!Array.isArray(records)) records = [];
       renderSidebar();
+      updateInputImageLabels();
       if (records.length) showStatus('header-status', records.length + ' records loaded', 'success');
     } catch {
       showStatus('header-status', 'Could not load records', 'warning');
@@ -1692,6 +1687,54 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
   // ── Dynamic model + file lists ────────────────────────────────────────────
 
+  async function loadInputImages() {
+    try {
+      const res = await fetch('/api/input_images');
+      const { original = [], modified = [] } = await res.json();
+      ['p1_input_select', 'p2_input_select'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">— select —</option>';
+        if (original.length) {
+          const grp = document.createElement('optgroup');
+          grp.label = 'Original images';
+          original.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f; opt.textContent = f;
+            grp.appendChild(opt);
+          });
+          sel.appendChild(grp);
+        }
+        if (modified.length) {
+          const grp = document.createElement('optgroup');
+          grp.label = 'Modified images';
+          modified.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f; opt.textContent = f;
+            grp.appendChild(opt);
+          });
+          sel.appendChild(grp);
+        }
+      });
+    } catch { /* keep existing options */ }
+  }
+
+  function updateInputImageLabels() {
+    const map = {};
+    records.forEach(r => {
+      if (r.type === 'p0' && r.renamed_filename && r.original_filename) {
+        map[r.renamed_filename] = r.original_filename;
+      }
+    });
+    ['p1_input_select', 'p2_input_select'].forEach(id => {
+      const sel = document.getElementById(id);
+      for (const opt of sel.options) {
+        if (!opt.value) continue;
+        const orig = map[opt.value];
+        opt.textContent = orig ? `${opt.value} (${orig})` : opt.value;
+      }
+    });
+  }
+
   async function loadModels() {
     try {
       const res = await fetch('/api/models');
@@ -1897,13 +1940,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
   }
 
-  function onP1InputFilePicked(input) {
-    if (!input.files.length) return;
-    setVal('p1_input_select', input.files[0].name);
-    input.value = '';
-    p1InputChanged();
-  }
-
   async function onP1ModFilePicked(input) {
     if (!input.files.length) return;
     const file = input.files[0];
@@ -1932,13 +1968,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     } catch {
       showPersistentStatus('status-p1-rename', 'Copy failed — server unreachable', 'warning');
     }
-  }
-
-  function onP2InputFilePicked(input) {
-    if (!input.files.length) return;
-    setVal('p2_input_select', input.files[0].name);
-    input.value = '';
-    p2InputChanged();
   }
 
   async function onAiFilePicked(input) {
@@ -2159,6 +2188,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   loadModels();
+  loadInputImages();
   loadRecords();
 </script>
 </body>

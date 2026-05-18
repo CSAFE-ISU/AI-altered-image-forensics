@@ -214,6 +214,20 @@ def get_original_files():
     return jsonify(files)
 
 
+@app.route("/api/input_images")
+def get_input_images():
+    """Return original-renamed and modified images grouped by type."""
+    orig_dir = BASE / "real images" / "02-original-renamed"
+    mod_dir  = BASE / "real images" / "03-modified"
+
+    def list_files(d):
+        if not d.is_dir():
+            return []
+        return sorted(f.name for f in d.iterdir() if f.is_file() and not f.name.startswith("."))
+
+    return jsonify({"original": list_files(orig_dir), "modified": list_files(mod_dir)})
+
+
 @app.route("/api/downloaded_files")
 def get_downloaded_files():
     model = request.args.get("model", "").strip()
