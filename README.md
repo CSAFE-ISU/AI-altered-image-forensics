@@ -64,13 +64,12 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
    PORT=5001 python3 path/to/CSAFE-AI-altered-image-forensics/app.py
    ```
 
-   
 
    Open [http://localhost:5001](http://localhost:5001) in a browser.
 
-   > Port 5000 is blocked by macOS AirPlay Receiver; use 5001 or any other available port.
+   > NOTE: Port 5000 is blocked by macOS AirPlay Receiver; use 5001 or any other available port.
    
-   > Depending on how python is installed on your computer, you might need to call `python` instead of `python3` to launch the app. 
+   > NOTE: Depending on how python is installed on your computer, you might need to call `python` instead of `python3` to launch the app. 
 
 
 ## Using the Tracking Tool
