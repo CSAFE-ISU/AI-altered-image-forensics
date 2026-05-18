@@ -102,10 +102,10 @@ Any forensic analysis run on this image (see Page 3) will appear in the **Analys
 
 If a modified version (cropping, resizing, recompression, etc.) of the original image was created and used as the input for the altered image, upload the modified image:
 
-1. Click **+ New modification** in the sidebar.
-2. Apply the desired transformation externally (e.g. export at 80% JPEG quality in Preview). The modified image can be saved anywhere on your computer under any filename.
-2. Click **Browse…** next to **Select input image** and select the **source image**, the original or previously modified image from which the new modified image was created.
-3. Select the transformation type from **Modification type** (Cropped / Resized / Recompressed / Rotated / Other). The app auto-suggests a modified filename (e.g. `csafe-001-recomp.jpg`); edit the **Modified image filename** field if needed. On the next step, the app with save a copy of the image with this filename.
+1. Apply the desired transformation externally (e.g. export at 80% JPEG quality in Preview). The modified image can be saved anywhere on your computer under any filename.
+2. Click **+ New modification** in the sidebar.
+3. Click **Browse…** next to **Select input image** and select the **source image**, the renamed original or renamed previously modified image from which the new modified image was created.
+4. Select the transformation type from **Modification type** (Cropped / Resized / Recompressed / Rotated / Other). The app auto-suggests a modified filename (e.g. `csafe-001-recomp.jpg`); edit the **Modified image filename** field if needed. On the next step, the app with save a copy of the image with this filename.
 5. Click **Browse…** next to the **Modified image filename** field and select the modified image that you created. The app saves a renamed copy of the image in `real images/03-modified/`.
 6. Describe the transformation in **Modification details** (e.g. `exported in Preview at 80% JPEG quality`).
 7. Optionally, add additional context in **Notes**.
@@ -119,7 +119,7 @@ Record details about an AI altered image:
 
 1. Generate an altered image using an AI tool or software such as Photoshop. Download or save the image somewhere on your computer with the filename suggested by the AI model or software.
 1. Click **+ New alteration** in the sidebar.
-2. Click **Browse…** next to **Select input image** and select the *source image*, the original or modified image from which the new altered image was created.
+2. Click **Browse…** next to **Select input image** and select the *source image*, the renamed original or renamed modified image from which the new altered image was created.
 3. Fill in the model details:
    - **Model** — select from the list of software and AI models: Grok, Gemini, Adobe Firefly, Photoshop, ChatGPT, Flux, Stable Diffusion, Other.
    - **Version / variant** — if you can find information about the version or setting chosen, record it (e.g. `Grok-2`, `Gemini 2.0 Flash`, `Grok: I chose Quality instead of Speed`)
