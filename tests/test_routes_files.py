@@ -80,6 +80,78 @@ class TestComputeOriginalRenamed:
         assert body["filename"] == "csafe-001.jpg"
 
 
+# ── /api/copy_rename_image ────────────────────────────────────────────────────
+
+class TestCopyRenameImage:
+    def test_missing_params_returns_400(self, client):
+        resp = client.post("/api/copy_rename_image", json={"model": "grok"})
+        assert resp.status_code == 400
+
+    def test_model_not_found_returns_404(self, client):
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "nonexistent"},
+        )
+        assert resp.status_code == 404
+
+    def test_source_not_found_returns_404(self, client, tmp_base):
+        (tmp_base / "altered images" / "grok" / "downloaded").mkdir(parents=True)
+        (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "missing.png", "model": "grok"},
+        )
+        assert resp.status_code == 404
+
+    def test_valid_copy_creates_renamed_file(self, client, tmp_base):
+        downloaded = tmp_base / "altered images" / "grok" / "downloaded"
+        downloaded.mkdir(parents=True)
+        (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
+        (downloaded / "out.png").write_bytes(b"fake png")
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        renamed_dir = tmp_base / "altered images" / "grok" / "renamed"
+        assert (renamed_dir / body["filename"]).is_file()
+        assert (downloaded / "out.png").is_file()  # original still in downloaded
+
+    def test_sequence_increments_past_existing(self, client, tmp_base):
+        downloaded = tmp_base / "altered images" / "grok" / "downloaded"
+        renamed = tmp_base / "altered images" / "grok" / "renamed"
+        downloaded.mkdir(parents=True)
+        renamed.mkdir(parents=True)
+        (downloaded / "out.png").write_bytes(b"fake png")
+        (renamed / "csafe-001-b001.png").write_bytes(b"existing")
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        # b001 already existed, so the new file should be b002
+        assert body["filename"] == "csafe-001-b002.png"
+        assert (renamed / "csafe-001-b002.png").is_file()
+
+    def test_filename_follows_naming_convention(self, client, tmp_base):
+        downloaded = tmp_base / "altered images" / "grok" / "downloaded"
+        downloaded.mkdir(parents=True)
+        (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
+        (downloaded / "output.webp").write_bytes(b"fake webp")
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-002.jpg", "ai_filename": "output.webp", "model": "grok"},
+        )
+        assert resp.status_code == 200
+        filename = resp.get_json()["filename"]
+        assert filename.startswith("csafe-002-b")
+        assert filename.endswith(".webp")
+
+
 # ── /api/copy_rename_original ─────────────────────────────────────────────────
 
 class TestCopyRenameOriginal:
