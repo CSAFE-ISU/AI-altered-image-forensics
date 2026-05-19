@@ -1254,7 +1254,6 @@
     const p0 = state.records.filter(r => r.type === 'p0');
     const p1 = state.records.filter(r => r.type === 'p1');
     const p2 = state.records.filter(r => r.type === 'p2');
-    const p3 = state.records.filter(r => r.type === 'p3');
     const studies = new Set(p0.map(r => r.study_id).filter(Boolean)).size;
 
     // ── Summary cards ──
@@ -1271,7 +1270,6 @@
       [p0.length, 'Originals'],
       [p1.length, 'Modifications'],
       [p2.length, 'Alterations'],
-      [p3.length, 'Analyses'],
     ].forEach(([num, label]) => {
       const card = document.createElement('div');
       card.className = 'dash-card';
