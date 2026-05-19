@@ -3,7 +3,8 @@
     "allow": [
       "Bash(curl:*)",
       "Bash(curl -s http://localhost:5001/api/records)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)"
     ]
   }
 }
