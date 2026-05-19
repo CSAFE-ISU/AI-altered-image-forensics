@@ -87,13 +87,12 @@ There are three image types:
 Rename the original image with a unique study ID and record details about the image:
 
 1. Click **+ New original** in the sidebar.
-2. Click **Browse…** next to the **Original filename** field and select the image from anywhere on your computer. 
-   - Behind the scenes, the app saves a copy of the image in `real images/01-original/` automatically. 
-   - A unique study ID is auto-assigned (`csafe-001`, `csafe-002`, …) and the renamed filename is auto-suggested (e.g. `csafe-001.jpg`). 
-   - If an original image with the same filename already exists in `real images/01-original/`, a warning is shown with the matching study ID instead. If the new original image is in fact distinct from the image in `real images/01-original/`, change the name of the new original image manually and try step 2 again.
-3. Click **Copy and Rename**. This creates a renamed copy of the original image in `real images/02-original-renamed/`.
-4. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
-5. Click **Save record**.
+2. Click **Browse…** next to the **Original filename** field and select the image from anywhere on your computer.
+   - The app saves a copy of the image in `real images/01-original/` and automatically assigns a unique study ID (`csafe-001`, `csafe-002`, …).
+   - A renamed copy is created immediately in `real images/02-original-renamed/` (e.g. `csafe-001.jpg`).
+   - If an original image with the same filename already exists in the database, a warning is shown with the matching study ID instead.
+3. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
+4. Click **Save record**.
 
 Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
