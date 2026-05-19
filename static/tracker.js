@@ -1306,15 +1306,15 @@
         qualityCounts[q] = (qualityCounts[q] || 0) + 1;
       });
       const ordered = {};
-      ['★1','★2','★3','★4','★5'].forEach(k => { if (qualityCounts[k]) ordered[k] = qualityCounts[k]; });
+      ['★5','★4','★3','★2','★1'].forEach(k => { if (qualityCounts[k]) ordered[k] = qualityCounts[k]; });
       if (qualityCounts['Not rated']) ordered['Not rated'] = qualityCounts['Not rated'];
-      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered));
+      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true));
     }
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
 
-  function buildBarChart(title, counts) {
+  function buildBarChart(title, counts, preserveOrder = false) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
@@ -1324,7 +1324,9 @@
     const chart = document.createElement('div');
     chart.className = 'dash-bar-chart';
     const maxVal = Math.max(...Object.values(counts), 1);
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const sorted = preserveOrder
+      ? Object.entries(counts)
+      : Object.entries(counts).sort((a, b) => b[1] - a[1]);
     sorted.forEach(([label, count]) => {
       const row = document.createElement('div');
       row.className = 'dash-bar-row';
