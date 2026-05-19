@@ -50,17 +50,6 @@
       <!-- ══ PHASE 0 ══ -->
       <div id="form-p0" style="display:none;">
         <div class="section-card">
-          <div class="section-label">Study ID</div>
-          <div class="field">
-            <label>Study ID (auto-assigned)</label>
-            <input type="text" id="p0_study_id" readonly>
-          </div>
-          <div class="hint-box">
-            This ID ties all files in this study together:<br>
-            csafe-001.jpg &rarr; csafe-001-cropped.jpg &rarr; csafe-001-cropped-b001.jpg
-          </div>
-        </div>
-        <div class="section-card">
           <div class="section-label">Original image</div>
           <div class="field">
             <label class="help-label">
@@ -74,12 +63,18 @@
               <input type="text" id="p0_original_filename" placeholder="select via Browse →"
                 style="flex:1; min-width:0;" readonly class="auto-field">
               <button id="btn-browse-original" class="btn" onclick="document.getElementById('p0-file-input').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
-              <span class="tooltip-wrap">
-                <button id="btn-copy-rename-original" class="btn" onclick="copyAndRenameOriginal()" disabled style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
-                <span class="tooltip-bubble">Creates a renamed copy of the file in real images/02-original-renamed/ using the study ID as the new filename (e.g. csafe-001.jpg).</span>
-              </span>
             </div>
             <div id="status-copy-rename-original" style="margin-top:4px;"></div>
+          </div>
+          <div class="field">
+            <label class="help-label">
+              Study ID <span class="auto-tag">(auto)</span>
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-bubble">Auto-assigned ID that ties all files in this study together: csafe-001.jpg &rarr; csafe-001-cropped.jpg &rarr; csafe-001-cropped-b001.jpg</span>
+              </span>
+            </label>
+            <input type="text" id="p0_study_id" readonly class="auto-field" style="width:100%;">
           </div>
           <div class="field">
             <label>Renamed filename <span class="auto-tag">(auto)</span></label>

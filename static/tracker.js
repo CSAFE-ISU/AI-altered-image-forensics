@@ -1128,15 +1128,30 @@
     }
     showPersistentStatus('status-copy-rename-original', 'Copying…', 'warning');
     try {
-      const data = await uploadFile(file, '/api/upload_original');
-      if (data.ok) {
-        setVal('p0_original_filename', data.filename);
-        document.getElementById('status-copy-rename-original').className = 'status-msg';
-        refreshP0Preview();
-        populateP0ImageInfo();
-        updateP0ComputedRename();
+      const uploadData = await uploadFile(file, '/api/upload_original');
+      if (!uploadData.ok) {
+        showPersistentStatus('status-copy-rename-original', uploadData.error || 'Upload failed', 'warning');
+        return;
+      }
+      setVal('p0_original_filename', uploadData.filename);
+      refreshP0Preview();
+      populateP0ImageInfo();
+
+      const studyId = getVal('p0_study_id');
+      const res = await fetch('/api/copy_rename_original', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ original_filename: uploadData.filename, study_id: studyId }),
+      });
+      const copyData = await res.json();
+      if (copyData.ok || copyData.warning) {
+        setVal('p0_renamed_filename', copyData.filename);
+        const msg = copyData.warning || ('Copied → ' + copyData.filename);
+        showPersistentStatus('status-copy-rename-original', msg, copyData.warning ? 'warning' : 'success');
+        document.getElementById('btn-browse-original').disabled = true;
+        state.p0CopyPerformed = true;
       } else {
-        showPersistentStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
+        showPersistentStatus('status-copy-rename-original', copyData.error || 'Copy failed', 'warning');
       }
     } catch {
       showPersistentStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
@@ -1202,13 +1217,11 @@
   async function updateP0ComputedRename() {
     const originalFilename = getVal('p0_original_filename');
     const studyId = getVal('p0_study_id');
-    const btn = document.getElementById('btn-copy-rename-original');
     const renamedEl = document.getElementById('p0_renamed_filename');
     const statusEl = document.getElementById('status-copy-rename-original');
 
     if (!originalFilename || !studyId) {
       renamedEl.value = '';
-      if (btn) btn.disabled = true;
       statusEl.innerHTML = '';
       return;
     }
@@ -1220,56 +1233,16 @@
       if (data.filename) {
         renamedEl.value = data.filename;
         if (data.already_exists) {
-          if (btn) btn.disabled = true;
           state.p0CopyPerformed = true;
           document.getElementById('btn-browse-original').disabled = true;
         } else {
-          if (btn) btn.disabled = false;
-          statusEl.textContent = '';
-          statusEl.className = 'status-msg';
           state.p0CopyPerformed = false;
           document.getElementById('btn-browse-original').disabled = false;
+          statusEl.textContent = '';
+          statusEl.className = 'status-msg';
         }
       }
     } catch { /* silently ignore */ }
-  }
-
-  async function copyAndRenameOriginal() {
-    if (state.p0CopyPerformed) {
-      showStatus('status-copy-rename-original', 'Already copied as ' + getVal('p0_renamed_filename') + ' — change the filename or study ID to copy again', 'warning');
-      return;
-    }
-    const originalFilename = getVal('p0_original_filename');
-    const studyId = getVal('p0_study_id');
-    if (!originalFilename || !studyId) {
-      showStatus('status-copy-rename-original', 'Enter original filename and study ID first', 'warning');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/copy_rename_original', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ original_filename: originalFilename, study_id: studyId })
-      });
-      const data = await res.json();
-      if (data.warning) {
-        showPersistentStatus('status-copy-rename-original', data.warning, 'warning');
-        document.getElementById('btn-copy-rename-original').disabled = true;
-        document.getElementById('btn-browse-original').disabled = true;
-        state.p0CopyPerformed = true;
-      } else if (data.ok) {
-        setVal('p0_renamed_filename', data.filename);
-        showPersistentStatus('status-copy-rename-original', 'Copied → ' + data.filename, 'success');
-        document.getElementById('btn-copy-rename-original').disabled = true;
-        document.getElementById('btn-browse-original').disabled = true;
-        state.p0CopyPerformed = true;
-      } else {
-        showStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
-      }
-    } catch {
-      showStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
-    }
   }
 
   // ── Gallery ───────────────────────────────────────────────────────────────
