@@ -1,0 +1,1394 @@
+  const state = {
+    records:           [],
+    currentId:         null,
+    currentType:       null,
+    currentRating:     null,
+    copyPerformed:     false,
+    p0CopyPerformed:   false,
+    p1RenamePerformed: false,
+    expandedStudies:   new Set(),
+  };
+
+  function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
+  function unlockField(id) { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = false; } else { el.readOnly = false; } el.classList.remove('auto-field'); }
+
+  // ── Server I/O ────────────────────────────────────────────────────────────
+
+  async function loadRecords() {
+    try {
+      const res = await fetch('/api/records');
+      const body = await res.json();
+      if (!res.ok) {
+        showStatus('header-status', 'Could not load records: ' + (body.error || res.status), 'warning');
+        return;
+      }
+      state.records = Array.isArray(body) ? body : [];
+      state.records.forEach(r => delete r.metadata_diff);
+      renderSidebar();
+      updateInputImageLabels();
+      if (state.records.length) showStatus('header-status', state.records.length + ' records loaded', 'success');
+    } catch {
+      showStatus('header-status', 'Could not load records — server unreachable', 'warning');
+    }
+  }
+
+  async function persistRecord(rec) {
+    if (!rec) return true;
+    try {
+      const resp = await fetch('/api/records/' + encodeURIComponent(rec.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rec)
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showPersistentStatus('header-status', 'Save failed — ' + (body.error || 'server error') + '. Do not reload until you try again.', 'warning');
+        return false;
+      }
+      return true;
+    } catch {
+      showPersistentStatus('header-status', 'Save failed — server unreachable. Do not reload until resolved.', 'warning');
+      return false;
+    }
+  }
+
+  function persistCurrentRecord() {
+    return persistRecord(state.records.find(r => r.id === state.currentId));
+  }
+
+  async function persistRecords() {
+    try {
+      const resp = await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state.records)
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showPersistentStatus('header-status', 'Save failed — ' + (body.error || 'server error') + '. Do not reload until you try again.', 'warning');
+        return false;
+      }
+      return true;
+    } catch {
+      showPersistentStatus('header-status', 'Save failed — server unreachable. Do not reload until resolved.', 'warning');
+      return false;
+    }
+  }
+
+  function exportAll() {
+    if (!state.records.length) { showStatus('header-status', 'No records to export', 'warning'); return; }
+    const blob = new Blob([JSON.stringify(state.records, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ai_image_records_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    showStatus('header-status', state.records.length + ' records exported', 'success');
+  }
+
+  // ── ID generation ─────────────────────────────────────────────────────────
+
+  function nextCsafeId() {
+    const nums = state.records
+      .map(r => r.study_id || '')
+      .filter(f => /^csafe-\d+$/.test(f))
+      .map(f => parseInt(f.replace('csafe-', ''), 10));
+    const max = nums.length ? Math.max(...nums) : 0;
+    return 'csafe-' + String(max + 1).padStart(3, '0');
+  }
+
+  // ── Sidebar ───────────────────────────────────────────────────────────────
+
+  function renderSidebar() {
+    // Group records by study_id (exclude p3 — shown separately)
+    const studyMap = {};
+    const unsorted = [];
+    const analyses = [];
+    state.records.forEach(r => {
+      if (r.type === 'p3') { analyses.push(r); return; }
+      const sid = r.study_id || '';
+      if (sid) {
+        if (!studyMap[sid]) studyMap[sid] = [];
+        studyMap[sid].push(r);
+      } else {
+        unsorted.push(r);
+      }
+    });
+
+    // Sort study IDs numerically (csafe-001, csafe-002, …)
+    const studyIds = Object.keys(studyMap).sort((a, b) => {
+      const n = s => parseInt(s.replace(/\D+/g, ''), 10) || 0;
+      return n(a) - n(b);
+    });
+
+    const tree = document.getElementById('study-tree');
+    tree.innerHTML = '';
+
+    studyIds.forEach(sid => {
+      tree.appendChild(buildStudyNode(sid, studyMap[sid]));
+    });
+
+    if (unsorted.length) {
+      const node = document.createElement('div');
+      node.className = 'study-node';
+      const hdr = document.createElement('div');
+      hdr.className = 'study-header';
+      hdr.innerHTML = '<span class="study-toggle"></span>Unsorted';
+      node.appendChild(hdr);
+      const children = document.createElement('div');
+      children.className = 'study-children';
+      unsorted.forEach(r => children.appendChild(buildRecordItem(r)));
+      node.appendChild(children);
+      tree.appendChild(node);
+    }
+
+    // Analyses section (p3 records)
+    const analysesSection = document.getElementById('analyses-section');
+    const analysesTree    = document.getElementById('analyses-tree');
+    if (analyses.length) {
+      analysesSection.style.display = '';
+      analysesTree.innerHTML = '';
+      analyses.forEach(r => analysesTree.appendChild(buildRecordItem(r)));
+    } else {
+      analysesSection.style.display = 'none';
+    }
+
+    document.getElementById('record-count').textContent =
+      state.records.length ? state.records.length + ' record' + (state.records.length !== 1 ? 's' : '') : '';
+  }
+
+  function buildStudyNode(sid, recs) {
+    const isExpanded = state.expandedStudies.has(sid);
+    const hasActive = recs.some(r => r.id === state.currentId);
+
+    const node = document.createElement('div');
+    node.className = 'study-node';
+
+    const header = document.createElement('div');
+    header.className = 'study-header' + (hasActive ? ' has-active' : '');
+
+    const toggle = document.createElement('span');
+    toggle.className = 'study-toggle';
+    toggle.textContent = isExpanded ? '▾' : '▸';
+    header.appendChild(toggle);
+    header.appendChild(document.createTextNode(sid));
+
+    header.onclick = () => {
+      if (state.expandedStudies.has(sid)) state.expandedStudies.delete(sid);
+      else state.expandedStudies.add(sid);
+      renderSidebar();
+    };
+    node.appendChild(header);
+
+    const children = document.createElement('div');
+    children.className = 'study-children';
+    children.style.display = isExpanded ? 'block' : 'none';
+
+    // Sort: p0 → p1 → p2, then alphabetically within each type
+    const sorted = [...recs].sort((a, b) => {
+      const order = { p0: 0, p1: 1, p2: 2 };
+      const td = (order[a.type] ?? 3) - (order[b.type] ?? 3);
+      if (td !== 0) return td;
+      return getRecordName(a).localeCompare(getRecordName(b));
+    });
+    sorted.forEach(r => children.appendChild(buildRecordItem(r)));
+    node.appendChild(children);
+    return node;
+  }
+
+  function buildRecordItem(rec) {
+    const item = document.createElement('div');
+    item.className = 'record-item' + (rec.id === state.currentId ? ' active' : '');
+    item.onclick = () => selectRecord(rec.id);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'record-item-name';
+    nameEl.textContent = getRecordName(rec);
+    item.appendChild(nameEl);
+
+    const meta = getRecordMeta(rec);
+    if (meta) {
+      const metaEl = document.createElement('div');
+      metaEl.className = 'record-item-meta';
+      metaEl.textContent = meta;
+      item.appendChild(metaEl);
+    }
+    return item;
+  }
+
+  function getRecordName(rec) {
+    if (rec.type === 'p0') return (rec.study_id || 'csafe-???') + '.jpg';
+    if (rec.type === 'p1') return rec.mod_filename || 'Untitled modification';
+    if (rec.type === 'p2') return rec.altered_filename || 'Untitled alteration';
+    if (rec.type === 'p3') return rec.uploaded_filename || 'New analysis';
+    return 'Untitled';
+  }
+
+  function getRecordMeta(rec) {
+    if (rec.type === 'p0') return 'original';
+    if (rec.type === 'p1') return (rec.mod_type || 'modification').toLowerCase();
+    if (rec.type === 'p2') return (rec.model || 'alteration').toLowerCase();
+    if (rec.type === 'p3') return 'analysis';
+    return '';
+  }
+
+  // ── New / Select record ───────────────────────────────────────────────────
+
+  async function newRecord(type) {
+    const id = 'rec_' + Date.now();
+    // p0 gets a new study ID immediately; p1/p2 derive theirs from the input image on save
+    const study_id = type === 'p0' ? nextCsafeId() : '';
+    const rec = { id, type, study_id };
+    state.records.unshift(rec);
+    state.currentId = id;
+    state.currentType = type;
+    if (study_id) state.expandedStudies.add(study_id);
+    renderSidebar();
+    showFormArea(true);
+    await showFormFor(type, rec);
+    if (type === 'p0') { document.getElementById('p0_study_id').value = study_id; updateFormTitle(); }
+  }
+
+  function newAnalysis() {
+    const id = 'rec_' + Date.now();
+    const rec = { id, type: 'p3' };
+    state.records.push(rec);
+    state.currentId = id;
+    state.currentType = 'p3';
+    renderSidebar();
+    showFormArea(true);
+    showFormFor('p3', rec);
+    // Reset upload form
+    document.getElementById('p3-file-input').value = '';
+    document.getElementById('p3-file-info').style.display = 'none';
+    document.getElementById('p3-empty').style.display = 'none';
+    document.getElementById('an-p3-results').style.display = 'none';
+    document.getElementById('p3-notes-card').style.display = 'none';
+    document.getElementById('p3-form-actions').style.display = 'none';
+    document.getElementById('p3-status').className = 'status-msg';
+    document.getElementById('form-title').textContent = 'New analysis';
+  }
+
+  async function selectRecord(id) {
+    state.currentId = id;
+    const rec = state.records.find(r => r.id === id);
+    state.currentType = rec.type;
+    state.currentRating = rec.subjective_quality || null;
+    // Expand the study containing this record so it's visible
+    if (rec.study_id) state.expandedStudies.add(rec.study_id);
+    renderSidebar();
+    showFormArea(true);
+    await showFormFor(rec.type, rec);
+  }
+
+  function showFormArea(show) {
+    document.getElementById('form-area').style.display = show ? 'block' : 'none';
+    document.getElementById('no-record-msg').style.display = show ? 'none' : 'flex';
+  }
+
+  async function showFormFor(type, rec) {
+    ['p0','p1','p2','p3'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
+    const labels = { p0: 'Page 0 — Original image', p1: 'Page 1 — Modification', p2: 'Page 2 — AI alteration', p3: 'Page 3 — Analysis' };
+    document.getElementById('form-subtitle').textContent = labels[type] || '';
+    if (type === 'p0') await fillP0(rec);
+    if (type === 'p1') fillP1(rec);
+    if (type === 'p2') fillP2(rec);
+    if (type === 'p3') fillP3(rec);
+  }
+
+  // ── Fill forms ────────────────────────────────────────────────────────────
+
+  async function fillP0(rec) {
+    setVal('p0_study_id', rec.study_id);
+    setVal('p0_original_filename', rec.original_filename);
+    setVal('p0_filesize', rec.filesize);
+    setVal('p0_dims', rec.dims);
+    setVal('p0_notes', rec.notes);
+    updateFormTitle();
+    refreshP0Preview();
+    state.p0CopyPerformed = false;
+    document.getElementById('btn-browse-original').disabled = false;
+    await updateP0ComputedRename();
+    fillAnalysisSection('p0', rec);
+  }
+
+  function fillP1(rec) {
+    setVal('p1_input_select', rec.input_image || '');
+    setVal('p1_mod_type', rec.mod_type);
+    setVal('p1_mod_details', rec.mod_details);
+    setVal('p1_mod_filesize', rec.mod_filesize);
+    setVal('p1_mod_dims', rec.mod_dims);
+    setVal('p1_mod_filename', rec.mod_filename);
+    setVal('p1_notes', rec.notes);
+    const btn = document.getElementById('p1-rename-btn');
+    if (rec.mod_filename) {
+      state.p1RenamePerformed = true;
+      if (btn) btn.disabled = true;
+      lockField('p1_mod_filename');
+      lockField('p1_mod_type');
+    } else {
+      state.p1RenamePerformed = false;
+      if (btn) btn.disabled = true;
+      unlockField('p1_mod_filename');
+      unlockField('p1_mod_type');
+    }
+    updateFormTitle();
+    refreshP1Preview();
+    fillAnalysisSection('p1', rec);
+  }
+
+  async function fillP2(rec) {
+    setVal('p2_input_select', rec.input_image || '');
+    setModelSelectValue(rec.model);
+    setVal('p2_version', rec.model_version);
+    setVal('p2_prompt', rec.prompt);
+    setVal('p2_prompt_type', rec.prompt_strategy);
+    setVal('p2_object', rec.object);
+    setRegionPicker(rec.region_altered);
+    setVal('p2_mask', rec.mask_used);
+    setVal('p2_altered_filename', rec.altered_filename);
+    setVal('p2_format', rec.output_format);
+    setVal('p2_out_dims', rec.output_dimensions);
+    setVal('p2_datetime', rec.datetime_generated);
+    setVal('p2_notes', rec.notes);
+
+    state.currentRating = rec.subjective_quality || null;
+    document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', state.currentRating && i < state.currentRating));
+
+    updateFormTitle();
+    refreshP2Preview();
+
+    setVal('p2_ai_filename', rec.ai_assigned_filename || '');
+
+    // Disable copy button if a renamed file is already recorded for this entry
+    const btn = document.getElementById('copy-rename-btn');
+    if (rec.altered_filename) {
+      state.copyPerformed = true;
+      btn.disabled = true;
+      lockField('p2_altered_filename');
+      document.getElementById('btn-browse-p2-ai').disabled = true;
+    } else {
+      state.copyPerformed = false;
+      btn.disabled = false;
+      clearCopyRenameStatus();
+      unlockField('p2_altered_filename');
+      document.getElementById('btn-browse-p2-ai').disabled = false;
+    }
+
+    fillAnalysisSection('p2', rec);
+  }
+
+  // ── Analysis helpers ──────────────────────────────────────────────────────
+
+  function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
+    if (!detailsEl || !tableEl) return;
+    if (!c2paDetails) { detailsEl.style.display = 'none'; return; }
+    const d = c2paDetails;
+    const rows = [];
+    if (d.claim_generator)             rows.push(['Claim generator', d.claim_generator, null]);
+    if (d.software_agent)              rows.push(['Software agent', d.software_agent, null]);
+    if (d.c2pa_version)                rows.push(['C2PA version', d.c2pa_version, null]);
+    if (d.actions?.length)             rows.push(['Actions', d.actions.join(', '), null]);
+    if (d.digital_source_type)         rows.push(['Digital source type', d.digital_source_type, null]);
+    if (d.manifest_id)                 rows.push(['Manifest ID', d.manifest_id, null]);
+    if (d.validation_failures?.length) {
+      rows.push(['Validation failures',
+        d.validation_failure_explanations?.join('; ') || d.validation_failures.join('; '),
+        'c2pa-warn']);
+    } else if (rows.length) {
+      rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+    }
+    tableEl.textContent = '';
+    rows.forEach(([label, value, cls]) => {
+      const tr = document.createElement('tr');
+      const tdL = document.createElement('td'); tdL.textContent = label;
+      const tdV = document.createElement('td'); tdV.textContent = value;
+      if (cls) tdV.className = cls;
+      tr.append(tdL, tdV);
+      tableEl.appendChild(tr);
+    });
+    detailsEl.style.display = '';
+  }
+
+  function _renderElaPreview(previewId, imgId, b64) {
+    const preview = document.getElementById(previewId);
+    const img     = document.getElementById(imgId);
+    if (!preview || !img) return;
+    if (b64) {
+      img.src = 'data:image/png;base64,' + b64;
+      preview.style.display = '';
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  function fillAnalysisSection(prefix, rec) {
+    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes;
+    const section  = document.getElementById('an-' + prefix + '-section');
+    const empty    = document.getElementById('an-' + prefix + '-empty');
+    const results  = document.getElementById('an-' + prefix + '-results');
+    if (!section) return;
+    if (!hasData) {
+      if (empty) empty.style.display = '';
+      if (results) results.style.display = 'none';
+      section.open = false;
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (results) results.style.display = '';
+    section.open = true;
+
+    setVal('an-' + prefix + '-exif', rec.exif_anomalies);
+    setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
+    setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
+
+    // Artifact tags
+    const listEl = document.getElementById('an-' + prefix + '-artifact-list');
+    if (listEl) {
+      listEl.innerHTML = '';
+      (rec.artifacts || []).forEach(a => {
+        const tag = document.createElement('span');
+        tag.className = 'artifact-tag';
+        tag.textContent = a;
+        listEl.appendChild(tag);
+      });
+    }
+
+    _buildC2paTable(
+      document.getElementById('an-' + prefix + '-c2pa-table'),
+      document.getElementById('an-' + prefix + '-c2pa-details'),
+      rec.c2pa_details
+    );
+
+    _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
+  }
+
+  function fillP3(rec) {
+    document.getElementById('form-title').textContent = rec.uploaded_filename || 'Analysis';
+    if (rec.uploaded_filename) {
+      setVal('p3-filename-display', rec.uploaded_filename);
+      setVal('p3-filesize-display', rec.filesize || '');
+      setVal('p3-dims-display', rec.dims || '');
+      setVal('p3-linked-display', rec.linked_record || 'Standalone');
+      document.getElementById('p3-file-info').style.display = '';
+      document.getElementById('an-p3-results').style.display = '';
+      document.getElementById('p3-notes-card').style.display = '';
+      document.getElementById('p3-form-actions').style.display = '';
+      document.getElementById('p3-empty').style.display = 'none';
+
+      setVal('an-p3-exif', rec.exif_anomalies);
+      setVal('an-p3-c2pa', rec.c2pa_status);
+      setVal('an-p3-artifact-notes', rec.artifact_notes);
+      setVal('p3-analysis-notes', rec.analysis_notes);
+
+      const listEl = document.getElementById('an-p3-artifact-list');
+      if (listEl) {
+        listEl.innerHTML = '';
+        (rec.artifacts || []).forEach(a => {
+          const tag = document.createElement('span');
+          tag.className = 'artifact-tag';
+          tag.textContent = a;
+          listEl.appendChild(tag);
+        });
+      }
+
+      _buildC2paTable(
+        document.getElementById('an-p3-c2pa-table'),
+        document.getElementById('an-p3-c2pa-details'),
+        rec.c2pa_details
+      );
+
+      _renderElaPreview('an-p3-ela-preview', 'an-p3-ela-img', rec.ela_image_b64);
+    } else {
+      document.getElementById('p3-file-info').style.display = 'none';
+      document.getElementById('an-p3-results').style.display = 'none';
+      document.getElementById('p3-notes-card').style.display = 'none';
+      document.getElementById('p3-form-actions').style.display = 'none';
+      document.getElementById('p3-empty').style.display = 'none';
+    }
+  }
+
+  async function uploadAndAnalyze() {
+    const fileInput = document.getElementById('p3-file-input');
+    if (!fileInput.files.length) {
+      showStatus('p3-status', 'Select a file first', 'warning');
+      return;
+    }
+    const file = fileInput.files[0];
+    const btn = document.getElementById('p3-upload-btn');
+    btn.disabled = true;
+    showStatus('p3-status', 'Uploading…', '');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resp = await fetch('/api/upload_and_analyze', { method: 'POST', body: formData });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus('p3-status', result.error || 'Upload failed', 'warning');
+        return;
+      }
+
+      // Try to match filename against existing records
+      const fn = result.filename;
+      const matched = state.records.find(r =>
+        r.original_filename === fn || r.renamed_filename === fn ||
+        r.mod_filename === fn || r.altered_filename === fn ||
+        r.ai_assigned_filename === fn || r.uploaded_filename === fn
+      );
+
+      if (matched) {
+        // Attach analysis to existing record and navigate to it
+        Object.assign(matched, {
+          exif_anomalies: result.exif_anomalies,
+          c2pa_status:    result.c2pa_status,
+          c2pa_details:   result.c2pa_details,
+          artifacts:      result.artifacts,
+          artifact_notes: result.artifact_notes,
+          ela_image_b64:  result.ela_image_b64
+        });
+        // Remove the blank p3 placeholder we created in newAnalysis()
+        const placeholderId = state.currentId;
+        state.records = state.records.filter(r => r.id !== placeholderId);
+        await fetch('/api/records/' + encodeURIComponent(placeholderId), { method: 'DELETE' });
+        await persistRecord(matched);
+        selectRecord(matched.id);
+        showStatus('header-status', 'Analysis linked to ' + getRecordName(matched), 'success');
+      } else {
+        // Save as standalone p3 record
+        const rec = state.records.find(r => r.id === state.currentId);
+        Object.assign(rec, {
+          uploaded_filename: result.filename,
+          filesize:          result.filesize,
+          dims:              result.dims,
+          uploaded_at:       new Date().toISOString(),
+          exif_anomalies:    result.exif_anomalies,
+          c2pa_status:       result.c2pa_status,
+          c2pa_details:      result.c2pa_details,
+          artifacts:         result.artifacts,
+          artifact_notes:    result.artifact_notes,
+          ela_image_b64:     result.ela_image_b64,
+          analysis_notes:    '',
+          linked_record:     ''
+        });
+        renderSidebar();
+        fillP3(rec);
+        await persistCurrentRecord();
+        showStatus('p3-status', 'Analysis complete', 'success');
+      }
+    } catch (err) {
+      showStatus('p3-status', 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Analyze ───────────────────────────────────────────────────────────────
+
+  async function runAnalysis(type) {
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (!rec) return;
+
+    const filenameMap = { p0: rec.renamed_filename, p1: rec.mod_filename, p2: rec.altered_filename };
+    const filename = filenameMap[type];
+    const statusId = 'status-analyze-' + type;
+
+    if (!filename) {
+      showStatus(statusId, 'Save the record first to generate a filename', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-analyze-' + type);
+    btn.disabled = true;
+    showPersistentStatus(statusId, 'Analyzing…', '');
+
+    try {
+      const resp = await fetch('/api/analyze_file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus(statusId, result.error || 'Analysis failed', 'warning');
+        return;
+      }
+      Object.assign(rec, {
+        exif_anomalies: result.exif_anomalies,
+        c2pa_status:    result.c2pa_status,
+        c2pa_details:   result.c2pa_details,
+        artifacts:      result.artifacts,
+        artifact_notes: result.artifact_notes,
+        ela_image_b64:  result.ela_image_b64,
+      });
+      fillAnalysisSection(type, rec);
+      document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const saved = await persistCurrentRecord();
+      if (saved !== false) showStatus(statusId, 'Analysis complete', 'success');
+    } catch (err) {
+      showStatus(statusId, 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Input change handlers ─────────────────────────────────────────────────
+
+  function p1InputChanged() {
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (rec) rec.input_image = document.getElementById('p1_input_select').value;
+    suggestModFilename();
+    refreshP1Preview();
+  }
+
+  function suggestModFilename() {
+    if (state.p1RenamePerformed) return;
+    const input = document.getElementById('p1_input_select').value;
+    const modType = document.getElementById('p1_mod_type').value.toLowerCase();
+    const btn = document.getElementById('p1-rename-btn');
+    if (!input || !modType) { if (btn) btn.disabled = true; return; }
+    const dotIdx = input.lastIndexOf('.');
+    const base = dotIdx > -1 ? input.slice(0, dotIdx) : input;
+    const ext = dotIdx > -1 ? input.slice(dotIdx) : '.jpg';
+    const suffixes = { cropped: '-cropped', resized: '-small', recompressed: '-recomp', rotated: '-rot', other: '-mod' };
+    const suffix = suffixes[modType] || '-mod';
+    document.getElementById('p1_mod_filename').value = base + suffix + ext;
+    if (btn) btn.disabled = false;
+    updateFormTitle();
+    refreshP1Preview();
+  }
+
+  function p2InputChanged() {
+    const val = document.getElementById('p2_input_select').value;
+    if (!val) return;
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (rec) rec.input_image = val;
+    updateFormTitle();
+    refreshP2Preview();
+    updateComputedRename();
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
+  async function saveRecord() {
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (!rec) return;
+
+    if (rec.type === 'p0') {
+      Object.assign(rec, {
+        study_id: getVal('p0_study_id'),
+        original_filename: getVal('p0_original_filename'),
+        renamed_filename: getVal('p0_renamed_filename'),
+        filesize: getVal('p0_filesize'),
+        dims: getVal('p0_dims'),
+        notes: getVal('p0_notes')
+      });
+      showStatus('status-p0', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p1') {
+      const inputVal = document.getElementById('p1_input_select').value;
+      Object.assign(rec, {
+        input_image: inputVal,
+        study_id: deriveStudyId(inputVal),
+        mod_type: getVal('p1_mod_type'),
+        mod_details: getVal('p1_mod_details'),
+        mod_filesize: getVal('p1_mod_filesize'),
+        mod_dims: getVal('p1_mod_dims'),
+        mod_filename: getVal('p1_mod_filename'),
+        notes: getVal('p1_notes')
+      });
+      showStatus('status-p1', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p2') {
+      const inputVal = document.getElementById('p2_input_select').value;
+      Object.assign(rec, {
+        input_image: inputVal,
+        study_id: deriveStudyId(inputVal),
+        model: document.getElementById('p2_model').value === '__other__' ? getVal('p2_model_custom') : getVal('p2_model'),
+        model_version: getVal('p2_version'),
+        prompt: getVal('p2_prompt'),
+        prompt_strategy: getVal('p2_prompt_type'),
+        object: getVal('p2_object'),
+        region_altered: getVal('p2_region'),
+        mask_used: getVal('p2_mask'),
+        ai_assigned_filename: getVal('p2_ai_filename'),
+        altered_filename: getVal('p2_altered_filename'),
+        output_format: getVal('p2_format'),
+        output_dimensions: getVal('p2_out_dims'),
+        datetime_generated: getVal('p2_datetime'),
+        subjective_quality: state.currentRating,
+        notes: getVal('p2_notes')
+      });
+      showStatus('status-p2a', 'Saved', 'success');
+    }
+
+    if (rec.type === 'p3') {
+      Object.assign(rec, { analysis_notes: getVal('p3-analysis-notes') });
+      showStatus('status-p3', 'Saved', 'success');
+    }
+
+    renderSidebar();
+    await persistCurrentRecord();
+  }
+
+  function deriveStudyId(filename) {
+    if (!filename) return '';
+    const match = filename.match(/^(csafe-\d+)/i);
+    return match ? match[1] : '';
+  }
+
+  // ── Delete / Clear ────────────────────────────────────────────────────────
+
+  async function deleteRecord() {
+    if (!state.currentId || !confirm('Delete this record? This cannot be undone.')) return;
+    const idToDelete = state.currentId;
+    state.records = state.records.filter(r => r.id !== idToDelete);
+    state.currentId = null; state.currentType = null;
+    renderSidebar(); showFormArea(false);
+    try {
+      await fetch('/api/records/' + encodeURIComponent(idToDelete), { method: 'DELETE' });
+    } catch { /* silently ignore — record is already removed from local state */ }
+  }
+
+  function clearCurrentForm() {
+    if (!confirm('Clear all fields? Unsaved changes will be lost.')) return;
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (!rec) return;
+    const { id, type, study_id } = rec;
+    state.records = state.records.map(r => r.id === id ? { id, type, study_id } : r);
+    showFormFor(type, { id, type, study_id });
+  }
+
+  // ── Rating ────────────────────────────────────────────────────────────────
+
+  function setRating(val) {
+    state.currentRating = val;
+    document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', i < val));
+  }
+
+  // ── Artifacts ─────────────────────────────────────────────────────────────
+
+  function toggleArtifact(label) {
+    setTimeout(() => label.classList.toggle('checked', label.querySelector('input').checked), 0);
+  }
+
+  // ── Image previews ────────────────────────────────────────────────────────
+
+  function setImgSlot(imgId, captionSpanId, missId, filename) {
+    const img = document.getElementById(imgId);
+    const cap = document.getElementById(captionSpanId);
+    const miss = document.getElementById(missId);
+    if (!filename) {
+      img.style.display = 'none';
+      miss.style.display = 'none';
+      cap.textContent = '';
+      return;
+    }
+    cap.textContent = ' — ' + filename;
+    img.style.display = 'block';
+    miss.style.display = 'none';
+    img.src = '/images/' + encodeURIComponent(filename);
+    img.onload = () => { img.style.display = 'block'; miss.style.display = 'none'; };
+    img.onerror = () => { img.style.display = 'none'; miss.style.display = 'block'; };
+  }
+
+  function refreshP0Preview() {
+    const fn = getVal('p0_original_filename');
+    const card = document.getElementById('prev-p0');
+    card.style.display = fn ? 'block' : 'none';
+    setImgSlot('img-p0', 'cap-p0', 'miss-p0', fn);
+  }
+
+  function refreshP1Preview() {
+    const inputFn = document.getElementById('p1_input_select').value;
+    const outputFn = getVal('p1_mod_filename');
+    const card = document.getElementById('prev-p1');
+    card.style.display = (inputFn || outputFn) ? 'block' : 'none';
+    setImgSlot('img-p1-input',  'cap-p1-input',  'miss-p1-input',  inputFn);
+    setImgSlot('img-p1-output', 'cap-p1-output', 'miss-p1-output', outputFn);
+  }
+
+  function refreshP2Preview() {
+    const inputFn = document.getElementById('p2_input_select').value;
+    const outputFn = getVal('p2_altered_filename');
+    const card = document.getElementById('prev-p2');
+    card.style.display = (inputFn || outputFn) ? 'block' : 'none';
+    setImgSlot('img-p2-input',  'cap-p2-input',  'miss-p2-input',  inputFn);
+    setImgSlot('img-p2-output', 'cap-p2-output', 'miss-p2-output', outputFn);
+    updateRegionPickerImage(outputFn);
+  }
+
+  function selectRegion(cell) {
+    cell.classList.toggle('selected');
+    const selected = [...document.querySelectorAll('.region-cell.selected')]
+      .map(c => c.dataset.region);
+    document.getElementById('p2_region').value = selected.join(',');
+    autoSave();
+  }
+
+  function setRegionPicker(value) {
+    const values = (value || '').split(',').map(s => s.trim()).filter(Boolean);
+    document.querySelectorAll('.region-cell').forEach(c =>
+      c.classList.toggle('selected', values.includes(c.dataset.region))
+    );
+    document.getElementById('p2_region').value = value || '';
+  }
+
+  function updateRegionPickerImage(filename) {
+    const img = document.getElementById('region-picker-img');
+    const placeholder = document.getElementById('region-picker-placeholder');
+    if (!img || !placeholder) return;
+    if (filename) {
+      img.src = '/images/' + encodeURIComponent(filename);
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+      img.onerror = () => {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.textContent = 'Image not found';
+      };
+    } else {
+      img.style.display = 'none';
+      img.src = '';
+      placeholder.style.display = 'flex';
+      placeholder.textContent = 'Select altered image above to enable region picker';
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  function getVal(id) { return document.getElementById(id)?.value?.trim() || ''; }
+  function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+  function updateFormTitle() {
+    let title = 'Untitled record';
+    if (state.currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
+    if (state.currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
+    if (state.currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
+    if (state.currentType === 'p3') { const rec = state.records.find(r => r.id === state.currentId); title = rec?.uploaded_filename || 'New analysis'; }
+    document.getElementById('form-title').textContent = title;
+  }
+
+  function autoSave() { persistCurrentRecord(); }
+
+  function showStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg; el.className = 'status-msg ' + type;
+    setTimeout(() => { el.className = 'status-msg'; }, 3000);
+  }
+
+  function handleModelSelect(sel) {
+    const custom = document.getElementById('p2_model_custom');
+    custom.style.display = sel.value === '__other__' ? 'block' : 'none';
+    if (sel.value !== '__other__') custom.value = '';
+    setVal('p2_ai_filename', '');
+    updateComputedRename();
+  }
+
+  // ── Dynamic model + file lists ────────────────────────────────────────────
+
+  async function loadInputImages() {
+    try {
+      const res = await fetch('/api/input_images');
+      const { original = [], modified = [] } = await res.json();
+      ['p1_input_select', 'p2_input_select'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">— select —</option>';
+        if (original.length) {
+          const grp = document.createElement('optgroup');
+          grp.label = 'Original images';
+          original.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f; opt.textContent = f;
+            grp.appendChild(opt);
+          });
+          sel.appendChild(grp);
+        }
+        if (modified.length) {
+          const grp = document.createElement('optgroup');
+          grp.label = 'Modified images';
+          modified.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f; opt.textContent = f;
+            grp.appendChild(opt);
+          });
+          sel.appendChild(grp);
+        }
+      });
+    } catch { /* keep existing options */ }
+  }
+
+  function updateInputImageLabels() {
+    const map = {};
+    state.records.forEach(r => {
+      if (r.type === 'p0' && r.renamed_filename && r.original_filename) {
+        map[r.renamed_filename] = r.original_filename;
+      }
+    });
+    ['p1_input_select', 'p2_input_select'].forEach(id => {
+      const sel = document.getElementById(id);
+      for (const opt of sel.options) {
+        if (!opt.value) continue;
+        const orig = map[opt.value];
+        opt.textContent = orig ? `${opt.value} (${orig})` : opt.value;
+      }
+    });
+  }
+
+  async function loadModels() {
+    try {
+      const res = await fetch('/api/models');
+      const models = await res.json();
+      const sel = document.getElementById('p2_model');
+      const otherOpt = sel.querySelector('option[value="__other__"]');
+      sel.innerHTML = '';
+      const blank = document.createElement('option');
+      blank.value = ''; blank.textContent = '— select —';
+      sel.appendChild(blank);
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m; opt.textContent = m;
+        sel.appendChild(opt);
+      });
+      sel.appendChild(otherOpt);
+    } catch { /* keep existing options */ }
+  }
+
+  function setModelSelectValue(model) {
+    const sel = document.getElementById('p2_model');
+    const custom = document.getElementById('p2_model_custom');
+    if (!model) {
+      sel.value = ''; custom.style.display = 'none'; custom.value = ''; return;
+    }
+    const modelLower = model.toLowerCase();
+    // Exact match first, then case-insensitive
+    for (const opt of sel.options) {
+      if (opt.value === model) { sel.value = model; custom.style.display = 'none'; custom.value = ''; return; }
+    }
+    for (const opt of sel.options) {
+      if (opt.value !== '__other__' && opt.value.toLowerCase() === modelLower) {
+        sel.value = opt.value; custom.style.display = 'none'; custom.value = ''; return;
+      }
+    }
+    // Fall back to custom
+    sel.value = '__other__'; custom.style.display = 'block'; custom.value = model;
+  }
+
+  // ── Copy and Rename ───────────────────────────────────────────────────────
+
+  function getP2Model() {
+    const sel = document.getElementById('p2_model');
+    if (sel.value === '__other__') return document.getElementById('p2_model_custom').value.trim();
+    return sel.value;
+  }
+
+  function clearCopyRenameStatus() {
+    const el = document.getElementById('status-copy-rename');
+    if (el) el.className = 'status-msg';
+  }
+
+  function showPersistentStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'status-msg ' + type;
+  }
+
+  async function updateComputedRename() {
+    const inputImage = document.getElementById('p2_input_select').value;
+    const aiFilename = getVal('p2_ai_filename');
+    const model = getP2Model();
+    if (!inputImage || !aiFilename || !model) return;
+
+    try {
+      const res = await fetch(
+        '/api/compute_renamed?input_image=' + encodeURIComponent(inputImage) +
+        '&ai_filename=' + encodeURIComponent(aiFilename) +
+        '&model=' + encodeURIComponent(model)
+      );
+      const data = await res.json();
+      if (data.filename) {
+        setVal('p2_altered_filename', data.filename);
+        updateFormTitle();
+        refreshP2Preview();
+        if (!data.already_exists) {
+          clearCopyRenameStatus();
+        }
+      }
+    } catch {
+      // silently ignore — fields stay as-is
+    }
+  }
+
+  async function p2AiFilenameChanged() {
+    state.copyPerformed = false;
+    document.getElementById('copy-rename-btn').disabled = false;
+    document.getElementById('btn-browse-p2-ai').disabled = false;
+    await updateComputedRename();
+    await populateImageInfo();
+  }
+
+  async function populateP0ImageInfo() {
+    const filename = getVal('p0_original_filename');
+    if (!filename) return;
+    try {
+      const res = await fetch('/api/original_image_info?filename=' + encodeURIComponent(filename));
+      const data = await res.json();
+      if (data.filesize) setVal('p0_filesize', data.filesize);
+      if (data.dimensions) setVal('p0_dims', data.dimensions);
+    } catch { /* silently ignore */ }
+  }
+
+  async function populateP1ImageInfo() {
+    const filename = getVal('p1_mod_filename');
+    if (!filename) return;
+    try {
+      const res = await fetch('/api/original_image_info?filename=' + encodeURIComponent(filename));
+      const data = await res.json();
+      if (data.filesize) setVal('p1_mod_filesize', data.filesize);
+      if (data.dimensions) setVal('p1_mod_dims', data.dimensions);
+    } catch { /* silently ignore */ }
+  }
+
+  async function populateImageInfo() {
+    const model = getP2Model();
+    const filename = getVal('p2_ai_filename');
+    if (!model || !filename) return;
+    try {
+      const res = await fetch(
+        '/api/image_info?model=' + encodeURIComponent(model) +
+        '&filename=' + encodeURIComponent(filename)
+      );
+      const data = await res.json();
+      if (data.format) setVal('p2_format', data.format);
+      if (data.dimensions) setVal('p2_out_dims', data.dimensions);
+    } catch { /* silently ignore */ }
+  }
+
+  async function copyAndRenameImage() {
+    if (state.copyPerformed) {
+      showStatus('status-copy-rename', 'Already copied as ' + getVal('p2_altered_filename') + ' — select a new AI file to copy again', 'warning');
+      return;
+    }
+    const inputImage = document.getElementById('p2_input_select').value;
+    const aiFilename = getVal('p2_ai_filename');
+    const model = getP2Model();
+    if (!inputImage || !aiFilename || !model) {
+      showStatus('status-copy-rename', 'Select an input image, model, and AI filename first', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/copy_rename_image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input_image: inputImage, ai_filename: aiFilename, model })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showStatus('status-copy-rename', data.warning, 'warning');
+      } else if (data.ok) {
+        setVal('p2_altered_filename', data.filename);
+        updateFormTitle();
+        refreshP2Preview();
+        clearCopyRenameStatus();
+        showStatus('status-copy-rename', 'Copied → ' + data.filename, 'success');
+        state.copyPerformed = true;
+        document.getElementById('copy-rename-btn').disabled = true;
+        lockField('p2_altered_filename');
+        document.getElementById('btn-browse-p2-ai').disabled = true;
+      } else {
+        showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  async function uploadFile(file, endpoint, extraFields) {
+    const form = new FormData();
+    form.append('file', file);
+    if (extraFields) for (const [k, v] of Object.entries(extraFields)) form.append(k, v);
+    const res = await fetch(endpoint, { method: 'POST', body: form });
+    return await res.json();
+  }
+
+  async function onOriginalFilePicked(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    input.value = '';
+    const dup = state.records.find(r => r.type === 'p0' && r.original_filename === file.name);
+    if (dup) {
+      showPersistentStatus('status-copy-rename-original',
+        `This original image already exists in the database (study ID: ${dup.study_id}).`, 'warning');
+      return;
+    }
+    showPersistentStatus('status-copy-rename-original', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_original');
+      if (data.ok) {
+        setVal('p0_original_filename', data.filename);
+        document.getElementById('status-copy-rename-original').className = 'status-msg';
+        refreshP0Preview();
+        populateP0ImageInfo();
+        updateP0ComputedRename();
+      } else {
+        showPersistentStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  async function onP1ModFilePicked(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    input.value = '';
+    const destFilename = getVal('p1_mod_filename');
+    if (!destFilename) {
+      showStatus('status-p1-rename', 'Set the modification type first to generate a filename', 'warning');
+      return;
+    }
+    showPersistentStatus('status-p1-rename', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_modified', { dest_filename: destFilename });
+      if (data.warning) {
+        showPersistentStatus('status-p1-rename', data.warning, 'warning');
+      } else if (data.ok) {
+        state.p1RenamePerformed = true;
+        document.getElementById('p1-rename-btn').disabled = true;
+        lockField('p1_mod_filename');
+        lockField('p1_mod_type');
+        showPersistentStatus('status-p1-rename', 'Copied → ' + data.filename, 'success');
+        refreshP1Preview();
+        await populateP1ImageInfo();
+      } else {
+        showPersistentStatus('status-p1-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-p1-rename', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  async function onAiFilePicked(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    input.value = '';
+    const model = getP2Model();
+    if (!model) {
+      showStatus('status-copy-rename', 'Select a model before browsing for the AI file', 'warning');
+      return;
+    }
+    showPersistentStatus('status-copy-rename', 'Copying…', 'warning');
+    try {
+      const data = await uploadFile(file, '/api/upload_downloaded', { model });
+      if (data.ok) {
+        setVal('p2_ai_filename', data.filename);
+        document.getElementById('status-copy-rename').className = 'status-msg';
+        p2AiFilenameChanged();
+      } else {
+        showPersistentStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  // ── Original image copy / rename ─────────────────────────────────────────
+
+  async function updateP0ComputedRename() {
+    const originalFilename = getVal('p0_original_filename');
+    const studyId = getVal('p0_study_id');
+    const btn = document.getElementById('btn-copy-rename-original');
+    const renamedEl = document.getElementById('p0_renamed_filename');
+    const statusEl = document.getElementById('status-copy-rename-original');
+
+    if (!originalFilename || !studyId) {
+      renamedEl.value = '';
+      if (btn) btn.disabled = true;
+      statusEl.innerHTML = '';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/compute_original_renamed?' +
+        new URLSearchParams({ original_filename: originalFilename, study_id: studyId }));
+      const data = await res.json();
+      if (data.filename) {
+        renamedEl.value = data.filename;
+        if (data.already_exists) {
+          if (btn) btn.disabled = true;
+          state.p0CopyPerformed = true;
+          document.getElementById('btn-browse-original').disabled = true;
+        } else {
+          if (btn) btn.disabled = false;
+          statusEl.textContent = '';
+          statusEl.className = 'status-msg';
+          state.p0CopyPerformed = false;
+          document.getElementById('btn-browse-original').disabled = false;
+        }
+      }
+    } catch { /* silently ignore */ }
+  }
+
+  async function copyAndRenameOriginal() {
+    if (state.p0CopyPerformed) {
+      showStatus('status-copy-rename-original', 'Already copied as ' + getVal('p0_renamed_filename') + ' — change the filename or study ID to copy again', 'warning');
+      return;
+    }
+    const originalFilename = getVal('p0_original_filename');
+    const studyId = getVal('p0_study_id');
+    if (!originalFilename || !studyId) {
+      showStatus('status-copy-rename-original', 'Enter original filename and study ID first', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/copy_rename_original', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ original_filename: originalFilename, study_id: studyId })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showPersistentStatus('status-copy-rename-original', data.warning, 'warning');
+        document.getElementById('btn-copy-rename-original').disabled = true;
+        document.getElementById('btn-browse-original').disabled = true;
+        state.p0CopyPerformed = true;
+      } else if (data.ok) {
+        setVal('p0_renamed_filename', data.filename);
+        showPersistentStatus('status-copy-rename-original', 'Copied → ' + data.filename, 'success');
+        document.getElementById('btn-copy-rename-original').disabled = true;
+        document.getElementById('btn-browse-original').disabled = true;
+        state.p0CopyPerformed = true;
+      } else {
+        showStatus('status-copy-rename-original', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showStatus('status-copy-rename-original', 'Copy failed — server unreachable', 'warning');
+    }
+  }
+
+  // ── Gallery ───────────────────────────────────────────────────────────────
+
+  function buildGalleryCard(rec) {
+    const filename = getRecordName(rec);
+    const meta = getRecordMeta(rec);
+    const src = '/images/' + encodeURIComponent(filename);
+
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    card.onclick = () => openLightbox(src, filename, meta);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'gallery-thumb-wrap';
+
+    const img = document.createElement('img');
+    img.className = 'gallery-thumb';
+    img.alt = filename;
+    img.src = src;
+    img.onerror = () => {
+      img.remove();
+      const miss = document.createElement('div');
+      miss.className = 'gallery-no-img';
+      miss.textContent = 'Image not found';
+      wrap.appendChild(miss);
+      card.onclick = null;
+      card.style.cursor = 'default';
+    };
+    wrap.appendChild(img);
+
+    const label = document.createElement('div');
+    label.className = 'gallery-label';
+    label.textContent = filename;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'gallery-card-meta';
+    metaEl.textContent = meta;
+
+    card.appendChild(wrap);
+    card.appendChild(label);
+    card.appendChild(metaEl);
+    return card;
+  }
+
+  function buildGalleryRow(label, recs) {
+    if (!recs.length) return null;
+    const row = document.createElement('div');
+    row.className = 'gallery-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'gallery-row-label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+    const sorted = [...recs].sort((a, b) => getRecordName(a).localeCompare(getRecordName(b)));
+    sorted.forEach(rec => grid.appendChild(buildGalleryCard(rec)));
+    row.appendChild(grid);
+    return row;
+  }
+
+  function openGallery() {
+    const content = document.getElementById('gallery-content');
+    content.innerHTML = '';
+
+    const studyMap = {};
+    state.records.forEach(r => {
+      const sid = r.study_id || '';
+      if (!sid) return;
+      if (!studyMap[sid]) studyMap[sid] = { p0: [], p1: [], p2: [] };
+      (studyMap[sid][r.type] = studyMap[sid][r.type] || []).push(r);
+    });
+
+    const studyIds = Object.keys(studyMap).sort((a, b) => {
+      const n = s => parseInt(s.replace(/\D+/g, ''), 10) || 0;
+      return n(a) - n(b);
+    });
+
+    studyIds.forEach(sid => {
+      const section = document.createElement('div');
+      section.className = 'gallery-study';
+
+      const title = document.createElement('div');
+      title.className = 'gallery-study-title';
+      title.textContent = sid;
+      section.appendChild(title);
+
+      const { p0 = [], p1 = [], p2 = [] } = studyMap[sid];
+      [
+        buildGalleryRow('Original', p0),
+        buildGalleryRow('Modifications', p1),
+        buildGalleryRow('Alterations', p2),
+      ].forEach(row => { if (row) section.appendChild(row); });
+
+      content.appendChild(section);
+    });
+
+    document.getElementById('gallery-overlay').style.display = 'flex';
+  }
+
+  function closeGallery() {
+    document.getElementById('gallery-overlay').style.display = 'none';
+  }
+
+  function openLightbox(src, filename, meta) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox-caption').textContent = filename + (meta ? ' — ' + meta : '');
+    document.getElementById('lightbox').style.display = 'flex';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+    document.getElementById('lightbox-img').src = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeLightbox(); closeGallery(); }
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  loadModels();
+  loadInputImages();
+  loadRecords();

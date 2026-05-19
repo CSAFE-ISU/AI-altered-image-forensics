@@ -17,13 +17,21 @@ Images are searched recursively in 'real images/' and 'altered images/'.
 import base64
 import io
 import json
+import logging
 import os
 import pathlib
 import re
 import shutil
 import subprocess
 
+import numpy as np
+from PIL import Image, ImageChops, ImageEnhance, ImageFilter
+from werkzeug.utils import secure_filename
+
 from dotenv import load_dotenv
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 from flask import Flask, abort, jsonify, request, send_file
 
 load_dotenv()
@@ -47,7 +55,12 @@ IMAGE_ROOTS = [
 
 UPLOAD_DIR = BASE / "analyzed images"
 
-app = Flask(__name__, static_folder=None)
+app = Flask(__name__, static_folder=str(BASE / "static"))
+
+@app.errorhandler(404)
+def not_found(e):    return jsonify(error=str(e)), 404
+@app.errorhandler(500)
+def server_error(e): return jsonify(error="Internal server error"), 500
 
 
 # ── Image search ──────────────────────────────────────────────────────────────
@@ -187,6 +200,14 @@ def get_models():
     return jsonify(models)
 
 
+def _format_filesize(size_bytes: int) -> str:
+    if size_bytes >= 1_000_000:
+        return f"{size_bytes / 1_000_000:.1f} MB"
+    if size_bytes >= 1_000:
+        return f"{size_bytes / 1_000:.1f} KB"
+    return f"{size_bytes} B"
+
+
 @app.route("/api/original_image_info")
 def original_image_info():
     filename = request.args.get("filename", "").strip()
@@ -196,14 +217,7 @@ def original_image_info():
     if not path:
         return jsonify({"error": "File not found"}), 404
     try:
-        from PIL import Image
-        size_bytes = path.stat().st_size
-        if size_bytes >= 1_000_000:
-            size_str = f"{size_bytes / 1_000_000:.1f} MB"
-        elif size_bytes >= 1_000:
-            size_str = f"{size_bytes / 1_000:.1f} KB"
-        else:
-            size_str = f"{size_bytes} B"
+        size_str = _format_filesize(path.stat().st_size)
         with Image.open(path) as img:
             w, h = img.size
         return jsonify({"filesize": size_str, "dimensions": f"{w} \u00d7 {h}"})
@@ -224,7 +238,6 @@ def image_info():
     if not path.is_file():
         return jsonify({"error": "File not found"}), 404
     try:
-        from PIL import Image
         with Image.open(path) as img:
             w, h = img.size
             fmt_map = {"JPEG": "JPEG", "PNG": "PNG", "WEBP": "WebP"}
@@ -423,12 +436,13 @@ def upload_original():
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
-    if not f.filename:
-        return jsonify({"error": "Empty filename"}), 400
+    filename = secure_filename(f.filename)
+    if not filename:
+        return jsonify({"error": "Invalid filename"}), 400
     ORIG_SRC_DIR.mkdir(parents=True, exist_ok=True)
-    dest = ORIG_SRC_DIR / f.filename
+    dest = ORIG_SRC_DIR / filename
     f.save(str(dest))
-    return jsonify({"ok": True, "filename": f.filename})
+    return jsonify({"ok": True, "filename": filename})
 
 
 @app.route("/api/upload_modified", methods=["POST"])
@@ -436,7 +450,10 @@ def upload_modified():
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
-    dest_filename = (request.form.get("dest_filename") or f.filename).strip()
+    f_filename = secure_filename(f.filename)
+    dest_filename = (request.form.get("dest_filename") or f_filename).strip()
+    if not dest_filename:
+        return jsonify({"error": "Invalid filename"}), 400
     MOD_DIR.mkdir(parents=True, exist_ok=True)
     dest = MOD_DIR / dest_filename
     if dest.exists():
@@ -450,15 +467,18 @@ def upload_downloaded():
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
+    filename = secure_filename(f.filename)
+    if not filename:
+        return jsonify({"error": "Invalid filename"}), 400
     model = (request.form.get("model") or "").strip()
     if not model:
         return jsonify({"error": "No model specified"}), 400
     model_dir = find_model_folder(model) or (BASE / "altered images" / model)
     downloaded = model_dir / "downloaded"
     downloaded.mkdir(parents=True, exist_ok=True)
-    dest = downloaded / f.filename
+    dest = downloaded / filename
     f.save(str(dest))
-    return jsonify({"ok": True, "filename": f.filename})
+    return jsonify({"ok": True, "filename": filename})
 
 
 @app.route("/api/rename_modified", methods=["POST"])
@@ -505,9 +525,6 @@ _AI_SOFTWARE_STRINGS = [
     "imagen", "grok", "gemini", "chatgpt", "openai", "ideogram", "runway",
     "leonardo", "adobe generative", "generative fill",
 ]
-
-_EXPECTED_CAMERA_FIELDS = ["Make", "Model", "DateTimeOriginal", "ExifIFD:DateTimeOriginal"]
-
 
 def _run_exiftool(path: pathlib.Path) -> dict:
     """Run exiftool on path and return a flat tag dict. Returns {} if not installed."""
@@ -599,7 +616,6 @@ def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
 
     # 3. Fallback: check XMP data via Pillow for c2pa namespace.
     try:
-        from PIL import Image
         with Image.open(path) as img:
             xmp = img.info.get("xmp", b"")
             if isinstance(xmp, bytes):
@@ -670,9 +686,6 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
     ELA_THRESHOLD = 15
 
     try:
-        from PIL import Image, ImageChops, ImageEnhance
-        import numpy as np
-
         with Image.open(path) as img:
             img_rgb = img.convert("RGB")
 
@@ -705,15 +718,11 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
     THRESHOLD = 1.5  # std of block noise estimates
 
     try:
-        import numpy as np
-        from PIL import Image
-
         with Image.open(path) as img:
             gray = np.array(img.convert("L"), dtype=float)
 
         h, w = gray.shape
         # Simple high-pass: subtract 3×3 mean.
-        from PIL import ImageFilter
         with Image.open(path) as img:
             blurred = np.array(img.convert("L").filter(ImageFilter.BoxBlur(3)), dtype=float)
         hp = gray - blurred
@@ -741,9 +750,6 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
     RATIO_THRESHOLD = 1.3
 
     try:
-        from PIL import Image
-        import numpy as np
-
         with Image.open(path) as img:
             if (img.format or "").upper() not in ("JPEG", "JPG"):
                 return False, ""
@@ -780,6 +786,34 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
         return False, ""
 
 
+def _run_analysis_pipeline(path: pathlib.Path) -> dict:
+    tags = _run_exiftool(path)
+    exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
+    c2pa_status    = _check_c2pa(path, tags)
+    c2pa_details   = _extract_c2pa_details(tags)
+    ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
+    noise_flagged, noise_note           = _check_noise_inconsistency(path)
+    blocking_flagged, blocking_note     = _check_compression_blocking(path)
+    artifacts, notes = [], []
+    if ela_flagged:
+        artifacts.append("ELA anomaly")
+        notes.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+    if noise_flagged:
+        artifacts.append("Noise inconsistency")
+        notes.append(noise_note)
+    if blocking_flagged:
+        artifacts.append("Compression blocking")
+        notes.append(blocking_note)
+    return {
+        "exif_anomalies": exif_anomalies,
+        "c2pa_status":    c2pa_status,
+        "c2pa_details":   c2pa_details,
+        "artifacts":      artifacts,
+        "artifact_notes": "\n".join(notes),
+        "ela_image_b64":  ela_b64,
+    }
+
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze_image():
     data = request.get_json(force=True)
@@ -789,7 +823,6 @@ def analyze_image():
     if not (altered_filename and model):
         return jsonify({"error": "Missing required parameters"}), 400
 
-    # Locate the altered image.
     model_dir = find_model_folder(model)
     if not model_dir:
         return jsonify({"error": f"Model folder not found: {model}"}), 404
@@ -797,38 +830,11 @@ def analyze_image():
     if not altered_path.is_file():
         return jsonify({"error": f"Altered image not found: {altered_filename}"}), 404
 
-    # Run all analyses.
-    altered_tags = _run_exiftool(altered_path)
-
-    exif_anomalies = _analyze_exif(altered_tags) if altered_tags else "(exiftool not available)"
-    c2pa_status = _check_c2pa(altered_path, altered_tags)
-    c2pa_details = _extract_c2pa_details(altered_tags)
-
-    ela_flagged, ela_max_diff, ela_b64 = _run_ela(altered_path)
-    noise_flagged, noise_note = _check_noise_inconsistency(altered_path)
-    blocking_flagged, blocking_note = _check_compression_blocking(altered_path)
-
-    # Build artifacts list and notes.
-    artifacts = []
-    artifact_note_parts = []
-    if ela_flagged:
-        artifacts.append("ELA anomaly")
-        artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
-    if noise_flagged:
-        artifacts.append("Noise inconsistency")
-        artifact_note_parts.append(noise_note)
-    if blocking_flagged:
-        artifacts.append("Compression blocking")
-        artifact_note_parts.append(blocking_note)
-
-    return jsonify({
-        "exif_anomalies": exif_anomalies,
-        "c2pa_status": c2pa_status,
-        "c2pa_details": c2pa_details,
-        "artifacts": artifacts,
-        "artifact_notes": "\n".join(artifact_note_parts),
-        "ela_image_b64": ela_b64,
-    })
+    try:
+        return jsonify(_run_analysis_pipeline(altered_path))
+    except Exception as e:
+        logger.exception("analyze_image failed for %s", altered_filename)
+        return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
 @app.route("/api/analyze_file", methods=["POST"])
@@ -845,36 +851,9 @@ def analyze_file():
         return jsonify({"error": f"File not found: {filename}"}), 404
 
     try:
-        tags = _run_exiftool(path)
-
-        exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
-        c2pa_status = _check_c2pa(path, tags)
-        c2pa_details = _extract_c2pa_details(tags)
-
-        ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
-        noise_flagged, noise_note = _check_noise_inconsistency(path)
-        blocking_flagged, blocking_note = _check_compression_blocking(path)
-
-        artifacts, artifact_note_parts = [], []
-        if ela_flagged:
-            artifacts.append("ELA anomaly")
-            artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
-        if noise_flagged:
-            artifacts.append("Noise inconsistency")
-            artifact_note_parts.append(noise_note)
-        if blocking_flagged:
-            artifacts.append("Compression blocking")
-            artifact_note_parts.append(blocking_note)
-
-        return jsonify({
-            "exif_anomalies": exif_anomalies,
-            "c2pa_status":    c2pa_status,
-            "c2pa_details":   c2pa_details,
-            "artifacts":      artifacts,
-            "artifact_notes": "\n".join(artifact_note_parts),
-            "ela_image_b64":  ela_b64,
-        })
+        return jsonify(_run_analysis_pipeline(path))
     except Exception as e:
+        logger.exception("analyze_file failed for %s", filename)
         return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
@@ -888,7 +867,6 @@ def upload_and_analyze():
     if not file.filename:
         return jsonify({"error": "No filename"}), 400
 
-    from werkzeug.utils import secure_filename
     filename = secure_filename(file.filename)
     if not filename:
         return jsonify({"error": "Invalid filename"}), 400
@@ -897,54 +875,20 @@ def upload_and_analyze():
     path = UPLOAD_DIR / filename
     file.save(str(path))
 
-    # File info
     try:
-        from PIL import Image
-        size_bytes = path.stat().st_size
-        if size_bytes >= 1_000_000:
-            size_str = f"{size_bytes / 1_000_000:.1f} MB"
-        elif size_bytes >= 1_000:
-            size_str = f"{size_bytes / 1_000:.1f} KB"
-        else:
-            size_str = f"{size_bytes} B"
+        size_str = _format_filesize(path.stat().st_size)
         with Image.open(path) as img:
             w, h = img.size
         dims = f"{w} \u00d7 {h}"
     except Exception:
         size_str, dims = "", ""
 
-    # Analysis pipeline (no input image to diff against on standalone upload)
-    tags = _run_exiftool(path)
-    exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
-    c2pa_status = _check_c2pa(path, tags)
-    c2pa_details = _extract_c2pa_details(tags)
-
-    ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
-    noise_flagged, noise_note = _check_noise_inconsistency(path)
-    blocking_flagged, blocking_note = _check_compression_blocking(path)
-
-    artifacts, artifact_note_parts = [], []
-    if ela_flagged:
-        artifacts.append("ELA anomaly")
-        artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
-    if noise_flagged:
-        artifacts.append("Noise inconsistency")
-        artifact_note_parts.append(noise_note)
-    if blocking_flagged:
-        artifacts.append("Compression blocking")
-        artifact_note_parts.append(blocking_note)
-
-    return jsonify({
-        "filename": filename,
-        "filesize": size_str,
-        "dims": dims,
-        "exif_anomalies": exif_anomalies,
-        "c2pa_status": c2pa_status,
-        "c2pa_details": c2pa_details,
-        "artifacts": artifacts,
-        "artifact_notes": "\n".join(artifact_note_parts),
-        "ela_image_b64": ela_b64,
-    })
+    try:
+        result = _run_analysis_pipeline(path)
+        return jsonify({"filename": filename, "filesize": size_str, "dims": dims, **result})
+    except Exception as e:
+        logger.exception("upload_and_analyze failed for %s", filename)
+        return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
