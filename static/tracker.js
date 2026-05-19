@@ -1245,6 +1245,114 @@
     } catch { /* silently ignore */ }
   }
 
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+
+  function openDashboard() {
+    const content = document.getElementById('dashboard-content');
+    content.innerHTML = '';
+
+    const p0 = state.records.filter(r => r.type === 'p0');
+    const p1 = state.records.filter(r => r.type === 'p1');
+    const p2 = state.records.filter(r => r.type === 'p2');
+    const p3 = state.records.filter(r => r.type === 'p3');
+    const studies = new Set(p0.map(r => r.study_id).filter(Boolean)).size;
+
+    // ── Summary cards ──
+    const summarySection = document.createElement('div');
+    const summaryTitle = document.createElement('div');
+    summaryTitle.className = 'dash-section-title';
+    summaryTitle.textContent = 'Summary';
+    summarySection.appendChild(summaryTitle);
+
+    const cards = document.createElement('div');
+    cards.className = 'dash-cards';
+    [
+      [studies,   'Studies'],
+      [p0.length, 'Originals'],
+      [p1.length, 'Modifications'],
+      [p2.length, 'Alterations'],
+      [p3.length, 'Analyses'],
+    ].forEach(([num, label]) => {
+      const card = document.createElement('div');
+      card.className = 'dash-card';
+      const n = document.createElement('div');
+      n.className = 'dash-card-num';
+      n.textContent = num;
+      const l = document.createElement('div');
+      l.className = 'dash-card-label';
+      l.textContent = label;
+      card.appendChild(n);
+      card.appendChild(l);
+      cards.appendChild(card);
+    });
+    summarySection.appendChild(cards);
+    content.appendChild(summarySection);
+
+    // ── Alterations by model ──
+    if (p2.length) {
+      const modelCounts = {};
+      p2.forEach(r => {
+        const m = (r.model || 'Unknown').trim() || 'Unknown';
+        modelCounts[m] = (modelCounts[m] || 0) + 1;
+      });
+      content.appendChild(buildBarChart('Alterations by model', modelCounts));
+    }
+
+    // ── Subjective quality distribution ──
+    if (p2.length) {
+      const qualityCounts = {};
+      p2.forEach(r => {
+        const q = r.subjective_quality ? '★' + r.subjective_quality : 'Not rated';
+        qualityCounts[q] = (qualityCounts[q] || 0) + 1;
+      });
+      const ordered = {};
+      ['★1','★2','★3','★4','★5'].forEach(k => { if (qualityCounts[k]) ordered[k] = qualityCounts[k]; });
+      if (qualityCounts['Not rated']) ordered['Not rated'] = qualityCounts['Not rated'];
+      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered));
+    }
+
+    document.getElementById('dashboard-overlay').style.display = 'flex';
+  }
+
+  function buildBarChart(title, counts) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const chart = document.createElement('div');
+    chart.className = 'dash-bar-chart';
+    const maxVal = Math.max(...Object.values(counts), 1);
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    sorted.forEach(([label, count]) => {
+      const row = document.createElement('div');
+      row.className = 'dash-bar-row';
+      const lEl = document.createElement('span');
+      lEl.className = 'dash-bar-label';
+      lEl.textContent = label;
+      const track = document.createElement('div');
+      track.className = 'dash-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'dash-bar-fill';
+      fill.style.width = Math.round(count / maxVal * 100) + '%';
+      track.appendChild(fill);
+      const cEl = document.createElement('span');
+      cEl.className = 'dash-bar-count';
+      cEl.textContent = count;
+      row.appendChild(lEl);
+      row.appendChild(track);
+      row.appendChild(cEl);
+      chart.appendChild(row);
+    });
+    section.appendChild(chart);
+    return section;
+  }
+
+  function closeDashboard() {
+    document.getElementById('dashboard-overlay').style.display = 'none';
+  }
+
   // ── Gallery ───────────────────────────────────────────────────────────────
 
   function buildGalleryCard(rec) {
@@ -1359,7 +1467,7 @@
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeLightbox(); closeGallery(); }
+    if (e.key === 'Escape') { closeLightbox(); closeGallery(); closeDashboard(); }
   });
 
   // ── Boot ──────────────────────────────────────────────────────────────────

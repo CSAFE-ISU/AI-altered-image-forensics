@@ -14,6 +14,7 @@
   <div class="header-actions">
     <span id="record-count" class="record-count"></span>
     <span id="header-status" class="status-msg"></span>
+    <button class="header-btn" onclick="openDashboard()">Dashboard</button>
     <button class="header-btn" onclick="openGallery()">Gallery</button>
     <button class="header-btn" onclick="exportAll()">Export JSON</button>
   </div>
@@ -508,6 +509,15 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
     </div>
   </main>
+</div>
+
+<!-- Dashboard overlay -->
+<div id="dashboard-overlay">
+  <div class="gallery-bar">
+    <span class="gallery-bar-title">Dashboard</span>
+    <button class="header-btn" onclick="closeDashboard()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
+  </div>
+  <div id="dashboard-content"></div>
 </div>
 
 <!-- Gallery overlay -->
