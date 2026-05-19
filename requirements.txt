@@ -3,3 +3,6 @@ pillow
 numpy
 supabase
 python-dotenv
+pytest
+pytest-flask
+pytest-mock
