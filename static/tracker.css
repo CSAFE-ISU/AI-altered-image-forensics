@@ -219,7 +219,8 @@
   }
   .dash-card-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .dash-bar-chart { display: flex; flex-direction: column; gap: 8px; }
-  .dash-bar-row { display: flex; align-items: center; gap: 10px; }
+  .dash-bar-row { display: flex; align-items: center; gap: 10px; border-radius: var(--radius); padding: 2px 4px; margin: 0 -4px; }
+  .dash-bar-row[style*="pointer"]:hover { background: var(--surface2); }
   .dash-bar-label {
     font-family: var(--mono); font-size: 11px; color: var(--text);
     min-width: 140px; text-align: right; flex-shrink: 0;

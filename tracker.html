@@ -523,7 +523,8 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 <!-- Gallery overlay -->
 <div id="gallery-overlay">
   <div class="gallery-bar">
-    <span class="gallery-bar-title">Study Gallery</span>
+    <span id="gallery-bar-title" class="gallery-bar-title">Study Gallery</span>
+    <button id="gallery-show-all-btn" class="header-btn" onclick="openGallery()" style="display:none; background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">Show all</button>
     <button class="header-btn" onclick="closeGallery()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
   </div>
   <div id="gallery-content"></div>

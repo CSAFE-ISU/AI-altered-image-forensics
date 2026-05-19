@@ -1286,30 +1286,37 @@
     // ── Alterations by model ──
     if (p2.length) {
       const modelCounts = {};
+      const modelIds = {};
       p2.forEach(r => {
         const m = (r.model || 'Unknown').trim() || 'Unknown';
         modelCounts[m] = (modelCounts[m] || 0) + 1;
+        (modelIds[m] = modelIds[m] || []).push(r.id);
       });
-      content.appendChild(buildBarChart('Alterations by model', modelCounts));
+      content.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
     }
 
     // ── Subjective quality distribution ──
     if (p2.length) {
       const qualityCounts = {};
+      const qualityIds = {};
       p2.forEach(r => {
         const q = r.subjective_quality ? '★' + r.subjective_quality : 'Not rated';
         qualityCounts[q] = (qualityCounts[q] || 0) + 1;
+        (qualityIds[q] = qualityIds[q] || []).push(r.id);
       });
       const ordered = {};
-      ['★5','★4','★3','★2','★1'].forEach(k => { if (qualityCounts[k]) ordered[k] = qualityCounts[k]; });
-      if (qualityCounts['Not rated']) ordered['Not rated'] = qualityCounts['Not rated'];
-      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true));
+      const orderedIds = {};
+      ['★5','★4','★3','★2','★1'].forEach(k => {
+        if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
+      });
+      if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
+      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
     }
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
 
-  function buildBarChart(title, counts, preserveOrder = false) {
+  function buildBarChart(title, counts, preserveOrder = false, labelToIds = null) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
@@ -1325,6 +1332,15 @@
     sorted.forEach(([label, count]) => {
       const row = document.createElement('div');
       row.className = 'dash-bar-row';
+      if (labelToIds) {
+        row.style.cursor = 'pointer';
+        row.title = 'Click to view in gallery';
+        row.addEventListener('click', () => {
+          const ids = new Set(labelToIds[label] || []);
+          closeDashboard();
+          openGallery(ids, label);
+        });
+      }
       const lEl = document.createElement('span');
       lEl.className = 'dash-bar-label';
       lEl.textContent = label;
@@ -1409,12 +1425,23 @@
     return row;
   }
 
-  function openGallery() {
+  function openGallery(filterIds = null, filterLabel = '') {
     const content = document.getElementById('gallery-content');
     content.innerHTML = '';
 
+    const titleEl = document.getElementById('gallery-bar-title');
+    const showAllBtn = document.getElementById('gallery-show-all-btn');
+    if (filterIds) {
+      titleEl.textContent = filterLabel ? `Study Gallery — ${filterLabel}` : 'Study Gallery (filtered)';
+      showAllBtn.style.display = '';
+    } else {
+      titleEl.textContent = 'Study Gallery';
+      showAllBtn.style.display = 'none';
+    }
+
     const studyMap = {};
     state.records.forEach(r => {
+      if (filterIds && !filterIds.has(r.id)) return;
       const sid = r.study_id || '';
       if (!sid) return;
       if (!studyMap[sid]) studyMap[sid] = { p0: [], p1: [], p2: [] };
