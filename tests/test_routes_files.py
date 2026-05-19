@@ -80,6 +80,57 @@ class TestComputeOriginalRenamed:
         assert body["filename"] == "csafe-001.jpg"
 
 
+# ── /api/copy_rename_original ─────────────────────────────────────────────────
+
+class TestCopyRenameOriginal:
+    def test_missing_params_returns_400(self, client):
+        resp = client.post("/api/copy_rename_original", json={"original_filename": "IMG.jpg"})
+        assert resp.status_code == 400
+
+    def test_source_not_found_returns_404(self, client):
+        resp = client.post(
+            "/api/copy_rename_original",
+            json={"original_filename": "missing.jpg", "study_id": "csafe-001"},
+        )
+        assert resp.status_code == 404
+
+    def test_valid_copy_creates_renamed_file(self, client, tmp_base):
+        src = tmp_base / "real images" / "01-original" / "IMG_001.jpg"
+        src.write_bytes(b"fake jpeg")
+        resp = client.post(
+            "/api/copy_rename_original",
+            json={"original_filename": "IMG_001.jpg", "study_id": "csafe-001"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is True
+        assert body["filename"] == "csafe-001.jpg"
+        assert (tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg").is_file()
+        assert src.is_file()  # original still present (copy, not move)
+
+    def test_dest_already_exists_returns_warning(self, client, tmp_base):
+        (tmp_base / "real images" / "01-original" / "IMG_001.jpg").write_bytes(b"fake jpeg")
+        (tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg").write_bytes(b"existing")
+        resp = client.post(
+            "/api/copy_rename_original",
+            json={"original_filename": "IMG_001.jpg", "study_id": "csafe-001"},
+        )
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["ok"] is False
+        assert "warning" in body
+        assert body["filename"] == "csafe-001.jpg"
+
+    def test_preserves_extension(self, client, tmp_base):
+        (tmp_base / "real images" / "01-original" / "photo.png").write_bytes(b"fake png")
+        resp = client.post(
+            "/api/copy_rename_original",
+            json={"original_filename": "photo.png", "study_id": "csafe-002"},
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["filename"] == "csafe-002.png"
+
+
 # ── /api/upload_original ──────────────────────────────────────────────────────
 
 class TestUploadOriginal:
