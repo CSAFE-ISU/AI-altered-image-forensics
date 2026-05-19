@@ -84,8 +84,14 @@ def index():
 @app.route("/api/records", methods=["GET"])
 def get_records():
     if _supabase:
-        result = _supabase.table("records").select("data").execute()
-        return jsonify([row["data"] for row in result.data])
+        try:
+            result = _supabase.table("records").select("data").execute()
+            records = [row["data"] for row in result.data]
+            for r in records:
+                r.pop("ela_image_b64", None)
+            return jsonify(records)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 503
     if DATA_FILE.exists():
         return jsonify(json.loads(DATA_FILE.read_text(encoding="utf-8")))
     return jsonify([])
@@ -97,17 +103,42 @@ def set_records():
     if not isinstance(data, list):
         return jsonify({"error": "expected a JSON array"}), 400
     if _supabase:
-        if data:
-            ids = [r["id"] for r in data if "id" in r]
-            for r in data:
-                if "id" in r:
-                    _supabase.table("records").upsert({"id": r["id"], "data": r}).execute()
-            _supabase.table("records").delete().not_.in_("id", ids).execute()
-        else:
-            _supabase.table("records").delete().neq("id", "").execute()
+        try:
+            if data:
+                ids = [r["id"] for r in data if "id" in r]
+                rows = [{"id": r["id"], "data": r} for r in data if "id" in r]
+                if rows:
+                    _supabase.table("records").upsert(rows).execute()
+                _supabase.table("records").delete().not_.in_("id", ids).execute()
+            else:
+                _supabase.table("records").delete().neq("id", "").execute()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 503
         return jsonify({"ok": True, "count": len(data)})
     DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return jsonify({"ok": True, "count": len(data)})
+
+
+@app.route("/api/records/<record_id>", methods=["POST"])
+def set_record(record_id: str):
+    rec = request.get_json(force=True)
+    if not isinstance(rec, dict):
+        return jsonify({"error": "expected a JSON object"}), 400
+    if _supabase:
+        try:
+            storable = {k: v for k, v in rec.items() if k != "ela_image_b64"}
+            _supabase.table("records").upsert({"id": record_id, "data": storable}).execute()
+        except Exception as e:
+            return jsonify({"error": str(e)}), 503
+        return jsonify({"ok": True, "id": record_id})
+    if DATA_FILE.exists():
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        data = [r for r in data if r.get("id") != record_id]
+    else:
+        data = []
+    data.append(rec)
+    DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return jsonify({"ok": True, "id": record_id})
 
 
 @app.route("/api/records/<record_id>", methods=["DELETE"])
@@ -532,40 +563,6 @@ def _analyze_exif(tags: dict) -> str:
     return "\n".join(f"• {n}" for n in notes)
 
 
-def _diff_metadata(input_tags: dict, altered_tags: dict) -> str:
-    """Return a human-readable diff of metadata between input and altered images."""
-    lines = []
-
-    input_filtered = {k: v for k, v in input_tags.items() if k not in _SKIP_FIELDS}
-    altered_filtered = {k: v for k, v in altered_tags.items() if k not in _SKIP_FIELDS}
-
-    all_keys = sorted(set(input_filtered) | set(altered_filtered))
-    added, removed, changed = [], [], []
-
-    for k in all_keys:
-        in_val = input_filtered.get(k)
-        alt_val = altered_filtered.get(k)
-        if in_val is None:
-            added.append(f"  {k}: → '{alt_val}'")
-        elif alt_val is None:
-            removed.append(f"  {k}: '{in_val}' → (absent)")
-        elif str(in_val) != str(alt_val):
-            changed.append(f"  {k}: '{in_val}' → '{alt_val}'")
-
-    if added:
-        lines.append("Added:")
-        lines.extend(added)
-    if removed:
-        lines.append("Removed:")
-        lines.extend(removed)
-    if changed:
-        lines.append("Changed:")
-        lines.extend(changed)
-
-    if not lines:
-        return "No metadata differences found."
-    return "\n".join(lines)
-
 
 def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
     """Check for C2PA / Content Credentials. Returns one of the three dropdown values.
@@ -629,6 +626,8 @@ def _extract_c2pa_details(tags: dict) -> dict | None:
 
     # Digital source type: extract last path segment from IPTC URI.
     dst_raw = _get("ActionsDigitalSourceType") or ""
+    if isinstance(dst_raw, list):
+        dst_raw = dst_raw[0] if dst_raw else ""
     digital_source_type = dst_raw.rstrip("/").rsplit("/", 1)[-1] if dst_raw else None
 
     # Actions: normalise to list and strip "c2pa." prefix for readability.
@@ -786,7 +785,6 @@ def analyze_image():
     data = request.get_json(force=True)
     altered_filename = (data.get("altered_filename") or "").strip()
     model = (data.get("model") or "").strip()
-    input_image = (data.get("input_image") or "").strip()
 
     if not (altered_filename and model):
         return jsonify({"error": "Missing required parameters"}), 400
@@ -799,15 +797,10 @@ def analyze_image():
     if not altered_path.is_file():
         return jsonify({"error": f"Altered image not found: {altered_filename}"}), 404
 
-    # Locate the input (original) image if provided.
-    input_path = find_image(input_image) if input_image else None
-
     # Run all analyses.
     altered_tags = _run_exiftool(altered_path)
-    input_tags = _run_exiftool(input_path) if input_path else {}
 
     exif_anomalies = _analyze_exif(altered_tags) if altered_tags else "(exiftool not available)"
-    metadata_diff = _diff_metadata(input_tags, altered_tags) if (input_tags and altered_tags) else "(input image metadata unavailable)"
     c2pa_status = _check_c2pa(altered_path, altered_tags)
     c2pa_details = _extract_c2pa_details(altered_tags)
 
@@ -832,11 +825,57 @@ def analyze_image():
         "exif_anomalies": exif_anomalies,
         "c2pa_status": c2pa_status,
         "c2pa_details": c2pa_details,
-        "metadata_diff": metadata_diff,
         "artifacts": artifacts,
         "artifact_notes": "\n".join(artifact_note_parts),
         "ela_image_b64": ela_b64,
     })
+
+
+@app.route("/api/analyze_file", methods=["POST"])
+def analyze_file():
+    """Analyze an already-uploaded file located anywhere in IMAGE_ROOTS."""
+    data = request.get_json(force=True)
+    filename = (data.get("filename") or "").strip()
+
+    if not filename:
+        return jsonify({"error": "Missing filename"}), 400
+
+    path = find_image(filename)
+    if not path:
+        return jsonify({"error": f"File not found: {filename}"}), 404
+
+    try:
+        tags = _run_exiftool(path)
+
+        exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
+        c2pa_status = _check_c2pa(path, tags)
+        c2pa_details = _extract_c2pa_details(tags)
+
+        ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
+        noise_flagged, noise_note = _check_noise_inconsistency(path)
+        blocking_flagged, blocking_note = _check_compression_blocking(path)
+
+        artifacts, artifact_note_parts = [], []
+        if ela_flagged:
+            artifacts.append("ELA anomaly")
+            artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+        if noise_flagged:
+            artifacts.append("Noise inconsistency")
+            artifact_note_parts.append(noise_note)
+        if blocking_flagged:
+            artifacts.append("Compression blocking")
+            artifact_note_parts.append(blocking_note)
+
+        return jsonify({
+            "exif_anomalies": exif_anomalies,
+            "c2pa_status":    c2pa_status,
+            "c2pa_details":   c2pa_details,
+            "artifacts":      artifacts,
+            "artifact_notes": "\n".join(artifact_note_parts),
+            "ela_image_b64":  ela_b64,
+        })
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
 # ── Upload and analyze ────────────────────────────────────────────────────────
