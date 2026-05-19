@@ -299,6 +299,7 @@
 
   async function fillP0(rec) {
     setVal('p0_study_id', rec.study_id);
+    lockField('p0_study_id');
     setVal('p0_original_filename', rec.original_filename);
     setVal('p0_filesize', rec.filesize);
     setVal('p0_dims', rec.dims);
