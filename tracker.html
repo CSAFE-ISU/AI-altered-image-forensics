@@ -420,14 +420,17 @@
 
         <details id="an-p0-section" class="analysis-section">
           <summary class="analysis-summary">Analysis results</summary>
-          <p class="analysis-empty" id="an-p0-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div style="margin:0.5rem 0;">
+            <button class="btn" id="btn-analyze-p0" onclick="runAnalysis('p0')">Analyze</button>
+            <span class="status-msg" id="status-analyze-p0"></span>
+          </div>
+          <p class="analysis-empty" id="an-p0-empty" style="margin-top:0.25rem">No analysis results yet.</p>
           <div id="an-p0-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p0-exif" readonly class="auto-field"></textarea></div>
               <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p0-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -522,14 +525,17 @@
 
         <details id="an-p1-section" class="analysis-section">
           <summary class="analysis-summary">Analysis results</summary>
-          <p class="analysis-empty" id="an-p1-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div style="margin:0.5rem 0;">
+            <button class="btn" id="btn-analyze-p1" onclick="runAnalysis('p1')">Analyze</button>
+            <span class="status-msg" id="status-analyze-p1"></span>
+          </div>
+          <p class="analysis-empty" id="an-p1-empty" style="margin-top:0.25rem">No analysis results yet.</p>
           <div id="an-p1-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p1-exif" readonly class="auto-field"></textarea></div>
               <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p1-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -724,14 +730,17 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
         <details id="an-p2-section" class="analysis-section">
           <summary class="analysis-summary">Analysis results</summary>
-          <p class="analysis-empty" id="an-p2-empty">Run analyses by clicking <strong>New Analysis</strong> in the sidebar.</p>
+          <div style="margin:0.5rem 0;">
+            <button class="btn" id="btn-analyze-p2" onclick="runAnalysis('p2')">Analyze</button>
+            <span class="status-msg" id="status-analyze-p2"></span>
+          </div>
+          <p class="analysis-empty" id="an-p2-empty" style="margin-top:0.25rem">No analysis results yet.</p>
           <div id="an-p2-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p2-exif" readonly class="auto-field"></textarea></div>
               <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <div class="field"><label>Metadata diff vs. input image <span class="auto-tag">(auto)</span></label><textarea id="an-p2-metadiff" readonly class="auto-field"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -785,7 +794,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
             <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p3-exif" readonly class="auto-field"></textarea></div>
             <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-c2pa" readonly class="auto-field" style="width:100%"></div>
             <details id="an-p3-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p3-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <div class="field"><label>Metadata diff</label><textarea id="an-p3-metadiff" readonly class="auto-field"></textarea></div>
           </div>
           <div class="section-card">
             <div class="section-label">Visual / pixel-level artifacts</div>
@@ -854,25 +862,61 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
   async function loadRecords() {
     try {
       const res = await fetch('/api/records');
-      records = await res.json();
-      if (!Array.isArray(records)) records = [];
+      const body = await res.json();
+      if (!res.ok) {
+        showStatus('header-status', 'Could not load records: ' + (body.error || res.status), 'warning');
+        return;
+      }
+      records = Array.isArray(body) ? body : [];
+      records.forEach(r => delete r.metadata_diff);
       renderSidebar();
       updateInputImageLabels();
       if (records.length) showStatus('header-status', records.length + ' records loaded', 'success');
     } catch {
-      showStatus('header-status', 'Could not load records', 'warning');
+      showStatus('header-status', 'Could not load records — server unreachable', 'warning');
     }
+  }
+
+  async function persistRecord(rec) {
+    if (!rec) return true;
+    try {
+      const resp = await fetch('/api/records/' + encodeURIComponent(rec.id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rec)
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showPersistentStatus('header-status', 'Save failed — ' + (body.error || 'server error') + '. Do not reload until you try again.', 'warning');
+        return false;
+      }
+      return true;
+    } catch {
+      showPersistentStatus('header-status', 'Save failed — server unreachable. Do not reload until resolved.', 'warning');
+      return false;
+    }
+  }
+
+  function persistCurrentRecord() {
+    return persistRecord(records.find(r => r.id === currentId));
   }
 
   async function persistRecords() {
     try {
-      await fetch('/api/records', {
+      const resp = await fetch('/api/records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(records)
       });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        showPersistentStatus('header-status', 'Save failed — ' + (body.error || 'server error') + '. Do not reload until you try again.', 'warning');
+        return false;
+      }
+      return true;
     } catch {
-      showStatus('header-status', 'Auto-save failed', 'warning');
+      showPersistentStatus('header-status', 'Save failed — server unreachable. Do not reload until resolved.', 'warning');
+      return false;
     }
   }
 
@@ -1181,7 +1225,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
     setVal('an-' + prefix + '-exif', rec.exif_anomalies);
     setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
-    setVal('an-' + prefix + '-metadiff', rec.metadata_diff);
     setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
 
     // Artifact tags
@@ -1251,7 +1294,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 
       setVal('an-p3-exif', rec.exif_anomalies);
       setVal('an-p3-c2pa', rec.c2pa_status);
-      setVal('an-p3-metadiff', rec.metadata_diff);
       setVal('an-p3-artifact-notes', rec.artifact_notes);
       setVal('p3-analysis-notes', rec.analysis_notes);
 
@@ -1346,14 +1388,15 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           exif_anomalies: result.exif_anomalies,
           c2pa_status:    result.c2pa_status,
           c2pa_details:   result.c2pa_details,
-          metadata_diff:  result.metadata_diff || '',
           artifacts:      result.artifacts,
           artifact_notes: result.artifact_notes,
           ela_image_b64:  result.ela_image_b64
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
-        records = records.filter(r => r.id !== currentId);
-        await persistRecords();
+        const placeholderId = currentId;
+        records = records.filter(r => r.id !== placeholderId);
+        await fetch('/api/records/' + encodeURIComponent(placeholderId), { method: 'DELETE' });
+        await persistRecord(matched);
         selectRecord(matched.id);
         showStatus('header-status', 'Analysis linked to ' + getRecordName(matched), 'success');
       } else {
@@ -1367,7 +1410,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           exif_anomalies:    result.exif_anomalies,
           c2pa_status:       result.c2pa_status,
           c2pa_details:      result.c2pa_details,
-          metadata_diff:     result.metadata_diff || '',
           artifacts:         result.artifacts,
           artifact_notes:    result.artifact_notes,
           ela_image_b64:     result.ela_image_b64,
@@ -1376,11 +1418,60 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         });
         renderSidebar();
         fillP3(rec);
-        await persistRecords();
+        await persistCurrentRecord();
         showStatus('p3-status', 'Analysis complete', 'success');
       }
     } catch (err) {
       showStatus('p3-status', 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Analyze ───────────────────────────────────────────────────────────────
+
+  async function runAnalysis(type) {
+    const rec = records.find(r => r.id === currentId);
+    if (!rec) return;
+
+    const filenameMap = { p0: rec.renamed_filename, p1: rec.mod_filename, p2: rec.altered_filename };
+    const filename = filenameMap[type];
+    const statusId = 'status-analyze-' + type;
+
+    if (!filename) {
+      showStatus(statusId, 'Save the record first to generate a filename', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-analyze-' + type);
+    btn.disabled = true;
+    showPersistentStatus(statusId, 'Analyzing…', '');
+
+    try {
+      const resp = await fetch('/api/analyze_file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus(statusId, result.error || 'Analysis failed', 'warning');
+        return;
+      }
+      Object.assign(rec, {
+        exif_anomalies: result.exif_anomalies,
+        c2pa_status:    result.c2pa_status,
+        c2pa_details:   result.c2pa_details,
+        artifacts:      result.artifacts,
+        artifact_notes: result.artifact_notes,
+        ela_image_b64:  result.ela_image_b64,
+      });
+      fillAnalysisSection(type, rec);
+      document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const saved = await persistCurrentRecord();
+      if (saved !== false) showStatus(statusId, 'Analysis complete', 'success');
+    } catch (err) {
+      showStatus(statusId, 'Error: ' + err.message, 'warning');
     } finally {
       btn.disabled = false;
     }
@@ -1484,7 +1575,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     }
 
     renderSidebar();
-    await persistRecords();
+    await persistCurrentRecord();
   }
 
   function deriveStudyId(filename) {
@@ -1668,7 +1759,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
     document.getElementById('form-title').textContent = title;
   }
 
-  function autoSave() { persistRecords(); }
+  function autoSave() { persistCurrentRecord(); }
 
   function showStatus(id, msg, type) {
     const el = document.getElementById(id);
