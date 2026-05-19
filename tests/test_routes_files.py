@@ -210,6 +210,13 @@ class TestUploadOriginal:
         resp = client.post("/api/upload_original")
         assert resp.status_code == 400
 
+    def test_invalid_filename_returns_400(self, client):
+        data = {"file": (io.BytesIO(b"data"), "")}
+        resp = client.post(
+            "/api/upload_original", data=data, content_type="multipart/form-data"
+        )
+        assert resp.status_code == 400
+
     def test_valid_upload_saves_file(self, client, tmp_base):
         data = {"file": (io.BytesIO(b"fake image data"), "photo.jpg")}
         resp = client.post(
@@ -226,6 +233,13 @@ class TestUploadOriginal:
 class TestUploadModified:
     def test_no_file_returns_400(self, client):
         resp = client.post("/api/upload_modified")
+        assert resp.status_code == 400
+
+    def test_invalid_filename_returns_400(self, client):
+        data = {"file": (io.BytesIO(b"data"), ""), "dest_filename": ""}
+        resp = client.post(
+            "/api/upload_modified", data=data, content_type="multipart/form-data"
+        )
         assert resp.status_code == 400
 
     def test_valid_upload_saves_file(self, client, tmp_base):
@@ -258,6 +272,21 @@ class TestUploadModified:
 # ── /api/upload_downloaded ───────────────────────────────────────────────────
 
 class TestUploadDownloaded:
+    def test_no_file_returns_400(self, client):
+        resp = client.post("/api/upload_downloaded")
+        assert resp.status_code == 400
+
+    def test_invalid_filename_returns_400(self, client, mocker):
+        mocker.patch("app.secure_filename", return_value="")
+        data = {
+            "file": (io.BytesIO(b"data"), "output.png"),
+            "model": "grok",
+        }
+        resp = client.post(
+            "/api/upload_downloaded", data=data, content_type="multipart/form-data"
+        )
+        assert resp.status_code == 400
+
     def test_no_model_returns_400(self, client):
         data = {"file": (io.BytesIO(b"ai output"), "output.png")}
         resp = client.post(

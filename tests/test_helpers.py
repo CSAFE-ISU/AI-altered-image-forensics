@@ -71,6 +71,12 @@ class TestAnalyzeExif:
         result = _analyze_exif(tags)
         assert "AI software tag" in result
 
+    def test_skips_skip_fields_key(self):
+        tags = dict(FULL_CAMERA_TAGS)
+        tags["SourceFile"] = "/path/to/dall-e/output.jpg"
+        result = _analyze_exif(tags)
+        assert "AI software tag" not in result
+
     def test_skips_directory_key(self):
         tags = dict(FULL_CAMERA_TAGS)
         tags["File:Directory"] = "/path/to/dall-e/images"
@@ -165,6 +171,14 @@ class TestExtractC2paDetails:
     def test_no_validation_failures_is_none(self):
         result = _extract_c2pa_details(JUMBF_TAGS)
         assert result["validation_failures"] is None
+
+    def test_validation_failures_as_strings_coerced_to_list(self):
+        tags = dict(JUMBF_TAGS)
+        tags["CBOR:ValidationResultsActiveManifestFailureCode"] = "assertion.dataHash.mismatch"
+        tags["CBOR:ValidationResultsActiveManifestFailureExplanation"] = "Hash mismatch"
+        result = _extract_c2pa_details(tags)
+        assert result["validation_failures"] == ["assertion.dataHash.mismatch"]
+        assert result["validation_failure_explanations"] == ["Hash mismatch"]
 
     def test_manifest_id_extracted(self):
         tags = dict(JUMBF_TAGS)
