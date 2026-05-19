@@ -626,6 +626,8 @@ def _extract_c2pa_details(tags: dict) -> dict | None:
 
     # Digital source type: extract last path segment from IPTC URI.
     dst_raw = _get("ActionsDigitalSourceType") or ""
+    if isinstance(dst_raw, list):
+        dst_raw = dst_raw[0] if dst_raw else ""
     digital_source_type = dst_raw.rstrip("/").rsplit("/", 1)[-1] if dst_raw else None
 
     # Actions: normalise to list and strip "c2pa." prefix for readability.
@@ -842,35 +844,38 @@ def analyze_file():
     if not path:
         return jsonify({"error": f"File not found: {filename}"}), 404
 
-    tags = _run_exiftool(path)
+    try:
+        tags = _run_exiftool(path)
 
-    exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
-    c2pa_status = _check_c2pa(path, tags)
-    c2pa_details = _extract_c2pa_details(tags)
+        exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
+        c2pa_status = _check_c2pa(path, tags)
+        c2pa_details = _extract_c2pa_details(tags)
 
-    ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
-    noise_flagged, noise_note = _check_noise_inconsistency(path)
-    blocking_flagged, blocking_note = _check_compression_blocking(path)
+        ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
+        noise_flagged, noise_note = _check_noise_inconsistency(path)
+        blocking_flagged, blocking_note = _check_compression_blocking(path)
 
-    artifacts, artifact_note_parts = [], []
-    if ela_flagged:
-        artifacts.append("ELA anomaly")
-        artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
-    if noise_flagged:
-        artifacts.append("Noise inconsistency")
-        artifact_note_parts.append(noise_note)
-    if blocking_flagged:
-        artifacts.append("Compression blocking")
-        artifact_note_parts.append(blocking_note)
+        artifacts, artifact_note_parts = [], []
+        if ela_flagged:
+            artifacts.append("ELA anomaly")
+            artifact_note_parts.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+        if noise_flagged:
+            artifacts.append("Noise inconsistency")
+            artifact_note_parts.append(noise_note)
+        if blocking_flagged:
+            artifacts.append("Compression blocking")
+            artifact_note_parts.append(blocking_note)
 
-    return jsonify({
-        "exif_anomalies": exif_anomalies,
-        "c2pa_status":    c2pa_status,
-        "c2pa_details":   c2pa_details,
-        "artifacts":      artifacts,
-        "artifact_notes": "\n".join(artifact_note_parts),
-        "ela_image_b64":  ela_b64,
-    })
+        return jsonify({
+            "exif_anomalies": exif_anomalies,
+            "c2pa_status":    c2pa_status,
+            "c2pa_details":   c2pa_details,
+            "artifacts":      artifacts,
+            "artifact_notes": "\n".join(artifact_note_parts),
+            "ela_image_b64":  ela_b64,
+        })
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
 # ── Upload and analyze ────────────────────────────────────────────────────────
