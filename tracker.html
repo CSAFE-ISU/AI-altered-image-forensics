@@ -152,8 +152,30 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p0-exif" readonly class="auto-field"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-c2pa" readonly class="auto-field" style="width:100%"></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">C2PA / Content Credentials</div>
+              <div class="field"><label>Auto-detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="section-label" style="margin-top:1.25rem;">c2pa Viewer — <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
+              <div class="field">
+                <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p0')"> Yes</label>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-no" value="no" onchange="toggleViewerDetails('p0')"> No</label>
+                </div>
+              </div>
+              <div id="an-p0-viewer-details" style="display:none;">
+                <div class="field"><label>Certificate status</label><select id="an-p0-viewer-cert-status" style="width:100%;"><option value="">— select —</option><option>Trusted</option><option>Untrusted signer</option><option>Unknown</option></select></div>
+                <div class="field"><label>C2PA manifest (raw JSON)</label><textarea id="an-p0-viewer-json" placeholder="Paste raw JSON from c2paviewer.com here..." style="font-family:var(--mono); font-size:11px;" onpaste="setTimeout(()=>parseC2paViewerJson('p0'),0)"></textarea></div>
+                <div class="two-col">
+                  <div class="field"><label>Signed by</label><input type="text" id="an-p0-viewer-signed-by" style="width:100%;"></div>
+                  <div class="field"><label>Issued</label><input type="date" id="an-p0-viewer-issued" style="width:100%;"></div>
+                </div>
+                <div class="field"><label>Algorithm</label><input type="text" id="an-p0-viewer-algorithm" style="width:100%;"></div>
+                <div class="field"><label>Software</label><input type="text" id="an-p0-viewer-software" style="width:100%;"></div>
+              </div>
+              <div class="field"><label>Notes</label><textarea id="an-p0-viewer-notes"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -262,8 +284,30 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p1-exif" readonly class="auto-field"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-c2pa" readonly class="auto-field" style="width:100%"></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">C2PA / Content Credentials</div>
+              <div class="field"><label>Auto-detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="section-label" style="margin-top:1.25rem;">c2pa Viewer — <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
+              <div class="field">
+                <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p1')"> Yes</label>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-no" value="no" onchange="toggleViewerDetails('p1')"> No</label>
+                </div>
+              </div>
+              <div id="an-p1-viewer-details" style="display:none;">
+                <div class="field"><label>Certificate status</label><select id="an-p1-viewer-cert-status" style="width:100%;"><option value="">— select —</option><option>Trusted</option><option>Untrusted signer</option><option>Unknown</option></select></div>
+                <div class="field"><label>C2PA manifest (raw JSON)</label><textarea id="an-p1-viewer-json" placeholder="Paste raw JSON from c2paviewer.com here..." style="font-family:var(--mono); font-size:11px;" onpaste="setTimeout(()=>parseC2paViewerJson('p1'),0)"></textarea></div>
+                <div class="two-col">
+                  <div class="field"><label>Signed by</label><input type="text" id="an-p1-viewer-signed-by" style="width:100%;"></div>
+                  <div class="field"><label>Issued</label><input type="date" id="an-p1-viewer-issued" style="width:100%;"></div>
+                </div>
+                <div class="field"><label>Algorithm</label><input type="text" id="an-p1-viewer-algorithm" style="width:100%;"></div>
+                <div class="field"><label>Software</label><input type="text" id="an-p1-viewer-software" style="width:100%;"></div>
+              </div>
+              <div class="field"><label>Notes</label><textarea id="an-p1-viewer-notes"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -477,8 +521,30 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p2-exif" readonly class="auto-field"></textarea></div>
-              <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-c2pa" readonly class="auto-field" style="width:100%"></div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">C2PA / Content Credentials</div>
+              <div class="field"><label>Auto-detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-c2pa" readonly class="auto-field" style="width:100%"></div>
               <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="section-label" style="margin-top:1.25rem;">c2pa Viewer — <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
+              <div class="field">
+                <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p2')"> Yes</label>
+                  <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-no" value="no" onchange="toggleViewerDetails('p2')"> No</label>
+                </div>
+              </div>
+              <div id="an-p2-viewer-details" style="display:none;">
+                <div class="field"><label>Certificate status</label><select id="an-p2-viewer-cert-status" style="width:100%;"><option value="">— select —</option><option>Trusted</option><option>Untrusted signer</option><option>Unknown</option></select></div>
+                <div class="field"><label>C2PA manifest (raw JSON)</label><textarea id="an-p2-viewer-json" placeholder="Paste raw JSON from c2paviewer.com here..." style="font-family:var(--mono); font-size:11px;" onpaste="setTimeout(()=>parseC2paViewerJson('p2'),0)"></textarea></div>
+                <div class="two-col">
+                  <div class="field"><label>Signed by</label><input type="text" id="an-p2-viewer-signed-by" style="width:100%;"></div>
+                  <div class="field"><label>Issued</label><input type="date" id="an-p2-viewer-issued" style="width:100%;"></div>
+                </div>
+                <div class="field"><label>Algorithm</label><input type="text" id="an-p2-viewer-algorithm" style="width:100%;"></div>
+                <div class="field"><label>Software</label><input type="text" id="an-p2-viewer-software" style="width:100%;"></div>
+              </div>
+              <div class="field"><label>Notes</label><textarea id="an-p2-viewer-notes"></textarea></div>
             </div>
             <div class="section-card">
               <div class="section-label">Visual / pixel-level artifacts</div>
@@ -530,8 +596,30 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           <div class="section-card">
             <div class="section-label">Metadata forensics</div>
             <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p3-exif" readonly class="auto-field"></textarea></div>
-            <div class="field"><label>C2PA / Content Credentials <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-c2pa" readonly class="auto-field" style="width:100%"></div>
+          </div>
+          <div class="section-card">
+            <div class="section-label">C2PA / Content Credentials</div>
+            <div class="field"><label>Auto-detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-c2pa" readonly class="auto-field" style="width:100%"></div>
             <details id="an-p3-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA details</summary><table id="an-p3-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <div class="section-label" style="margin-top:1.25rem;">c2pa Viewer — <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
+            <div class="field">
+              <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p3-viewer-found" id="an-p3-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p3')"> Yes</label>
+                <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p3-viewer-found" id="an-p3-viewer-found-no" value="no" onchange="toggleViewerDetails('p3')"> No</label>
+              </div>
+            </div>
+            <div id="an-p3-viewer-details" style="display:none;">
+              <div class="field"><label>Certificate status</label><select id="an-p3-viewer-cert-status" style="width:100%;"><option value="">— select —</option><option>Trusted</option><option>Untrusted signer</option><option>Unknown</option></select></div>
+              <div class="field"><label>C2PA manifest (raw JSON)</label><textarea id="an-p3-viewer-json" placeholder="Paste raw JSON from c2paviewer.com here..." style="font-family:var(--mono); font-size:11px;" onpaste="setTimeout(()=>parseC2paViewerJson('p3'),0)"></textarea></div>
+              <div class="two-col">
+                <div class="field"><label>Signed by</label><input type="text" id="an-p3-viewer-signed-by" style="width:100%;"></div>
+                <div class="field"><label>Issued</label><input type="date" id="an-p3-viewer-issued" style="width:100%;"></div>
+              </div>
+              <div class="field"><label>Algorithm</label><input type="text" id="an-p3-viewer-algorithm" style="width:100%;"></div>
+              <div class="field"><label>Software</label><input type="text" id="an-p3-viewer-software" style="width:100%;"></div>
+            </div>
+            <div class="field"><label>Notes</label><textarea id="an-p3-viewer-notes"></textarea></div>
           </div>
           <div class="section-card">
             <div class="section-label">Visual / pixel-level artifacts</div>
