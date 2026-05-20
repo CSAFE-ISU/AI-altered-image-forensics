@@ -4,6 +4,7 @@
     currentType:       null,
     currentRating:     null,
     copyPerformed:     false,
+    pendingAiFile:     null,
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
@@ -446,25 +447,21 @@
     state.currentRating = rec.subjective_quality || null;
     document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', state.currentRating && i < state.currentRating));
 
-    updateFormTitle();
-    refreshP2Preview();
-
+    state.pendingAiFile = null;
     setVal('p2_ai_filename', rec.ai_assigned_filename || '');
 
-    // Disable copy button if a renamed file is already recorded for this entry
-    const btn = document.getElementById('copy-rename-btn');
     if (rec.altered_filename) {
       state.copyPerformed = true;
-      btn.disabled = true;
       lockField('p2_altered_filename');
       document.getElementById('btn-browse-p2-ai').disabled = true;
     } else {
       state.copyPerformed = false;
-      btn.disabled = false;
       clearCopyRenameStatus();
-      unlockField('p2_altered_filename');
       document.getElementById('btn-browse-p2-ai').disabled = false;
     }
+
+    updateFormTitle();
+    refreshP2Preview();
 
     fillAnalysisSection('p2', rec);
     highlightBlankFields('p2');
@@ -758,6 +755,7 @@
     updateFormTitle();
     refreshP2Preview();
     updateComputedRename();
+    maybeAutoSaveAndRename();
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -980,8 +978,15 @@
     const custom = document.getElementById('p2_model_custom');
     custom.style.display = sel.value === '__other__' ? 'block' : 'none';
     if (sel.value !== '__other__') custom.value = '';
-    setVal('p2_ai_filename', '');
+    // If the file was already uploaded (pendingAiFile cleared), the destination folder
+    // was model-specific — must re-browse. If still pending, keep the file reference.
+    if (!state.pendingAiFile) {
+      setVal('p2_ai_filename', '');
+    }
+    setVal('p2_altered_filename', '');
+    state.copyPerformed = false;
     updateComputedRename();
+    maybeAutoSaveAndRename();
   }
 
   // ── Dynamic model + file lists ────────────────────────────────────────────
@@ -1094,6 +1099,7 @@
   }
 
   async function updateComputedRename() {
+    if (state.copyPerformed) return;
     const inputImage = document.getElementById('p2_input_select').value;
     const aiFilename = getVal('p2_ai_filename');
     const model = getP2Model();
@@ -1110,21 +1116,64 @@
         setVal('p2_altered_filename', data.filename);
         updateFormTitle();
         refreshP2Preview();
-        if (!data.already_exists) {
-          clearCopyRenameStatus();
-        }
       }
     } catch {
       // silently ignore — fields stay as-is
     }
   }
 
-  async function p2AiFilenameChanged() {
-    state.copyPerformed = false;
-    document.getElementById('copy-rename-btn').disabled = false;
-    document.getElementById('btn-browse-p2-ai').disabled = false;
-    await updateComputedRename();
-    await populateImageInfo();
+  async function maybeAutoSaveAndRename() {
+    if (state.copyPerformed) return;
+    const inputImage = document.getElementById('p2_input_select').value;
+    const model = getP2Model();
+    if (!inputImage || !model || !getVal('p2_ai_filename')) return;
+
+    showPersistentStatus('status-copy-rename', 'Saving…', 'warning');
+    try {
+      if (state.pendingAiFile) {
+        const uploadData = await uploadFile(state.pendingAiFile, '/api/upload_downloaded', { model });
+        if (!uploadData.ok) {
+          showPersistentStatus('status-copy-rename', uploadData.error || 'Upload failed', 'warning');
+          return;
+        }
+        state.pendingAiFile = null;
+        // Server may sanitize the filename (e.g. remove spaces); use the returned name
+        setVal('p2_ai_filename', uploadData.filename);
+        await populateImageInfo();
+      }
+
+      // Re-read after potential update from upload above
+      const aiFilename = getVal('p2_ai_filename');
+      const res = await fetch('/api/copy_rename_image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input_image: inputImage, ai_filename: aiFilename, model })
+      });
+      const data = await res.json();
+      if (data.warning) {
+        showStatus('status-copy-rename', data.warning, 'warning');
+        if (data.filename) {
+          setVal('p2_altered_filename', data.filename);
+          updateFormTitle();
+          refreshP2Preview();
+          state.copyPerformed = true;
+          lockField('p2_altered_filename');
+          document.getElementById('btn-browse-p2-ai').disabled = true;
+        }
+      } else if (data.ok) {
+        setVal('p2_altered_filename', data.filename);
+        updateFormTitle();
+        refreshP2Preview();
+        showStatus('status-copy-rename', 'Saved → ' + data.filename, 'success');
+        state.copyPerformed = true;
+        lockField('p2_altered_filename');
+        document.getElementById('btn-browse-p2-ai').disabled = true;
+      } else {
+        showPersistentStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
+      }
+    } catch {
+      showPersistentStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
+    }
   }
 
   async function populateP0ImageInfo() {
@@ -1164,45 +1213,6 @@
     } catch { /* silently ignore */ }
   }
 
-  async function copyAndRenameImage() {
-    if (state.copyPerformed) {
-      showStatus('status-copy-rename', 'Already copied as ' + getVal('p2_altered_filename') + ' — select a new AI file to copy again', 'warning');
-      return;
-    }
-    const inputImage = document.getElementById('p2_input_select').value;
-    const aiFilename = getVal('p2_ai_filename');
-    const model = getP2Model();
-    if (!inputImage || !aiFilename || !model) {
-      showStatus('status-copy-rename', 'Select an input image, model, and AI filename first', 'warning');
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/copy_rename_image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input_image: inputImage, ai_filename: aiFilename, model })
-      });
-      const data = await res.json();
-      if (data.warning) {
-        showStatus('status-copy-rename', data.warning, 'warning');
-      } else if (data.ok) {
-        setVal('p2_altered_filename', data.filename);
-        updateFormTitle();
-        refreshP2Preview();
-        clearCopyRenameStatus();
-        showStatus('status-copy-rename', 'Copied → ' + data.filename, 'success');
-        state.copyPerformed = true;
-        document.getElementById('copy-rename-btn').disabled = true;
-        lockField('p2_altered_filename');
-        document.getElementById('btn-browse-p2-ai').disabled = true;
-      } else {
-        showStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
-      }
-    } catch {
-      showStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
-    }
-  }
 
   async function uploadFile(file, endpoint, extraFields) {
     const form = new FormData();
@@ -1291,25 +1301,15 @@
     if (!input.files.length) return;
     const file = input.files[0];
     input.value = '';
-    const model = getP2Model();
-    if (!model) {
-      showStatus('status-copy-rename', 'Select a model before browsing for the AI file', 'warning');
-      return;
-    }
-    showPersistentStatus('status-copy-rename', 'Copying…', 'warning');
-    try {
-      const data = await uploadFile(file, '/api/upload_downloaded', { model });
-      if (data.ok) {
-        setVal('p2_ai_filename', data.filename);
-        highlightBlankFields('p2');
-        document.getElementById('status-copy-rename').className = 'status-msg';
-        p2AiFilenameChanged();
-      } else {
-        showPersistentStatus('status-copy-rename', data.error || 'Copy failed', 'warning');
-      }
-    } catch {
-      showPersistentStatus('status-copy-rename', 'Copy failed — server unreachable', 'warning');
-    }
+    // Store the file and update display; upload happens in maybeAutoSaveAndRename
+    state.pendingAiFile = file;
+    state.copyPerformed = false;
+    setVal('p2_ai_filename', file.name);
+    setVal('p2_altered_filename', '');
+    document.getElementById('btn-browse-p2-ai').disabled = false;
+    highlightBlankFields('p2');
+    await updateComputedRename();
+    await maybeAutoSaveAndRename();
   }
 
   // ── Original image copy / rename ─────────────────────────────────────────

@@ -285,16 +285,27 @@
       <!-- ══ PHASE 2 ══ -->
       <div id="form-p2" style="display:none;">
           <div class="section-card">
-            <div class="section-label">Input image</div>
+            <div class="section-label">Altered image</div>
             <div class="field">
               <label>Select input image</label>
               <select id="p2_input_select" onchange="p2InputChanged()">
                 <option value="">— select —</option>
               </select>
             </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">AI model</div>
+            <div class="field">
+              <label class="help-label">
+                Filename as assigned by AI model
+                <span class="tooltip-wrap">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-bubble">The filename the AI tool gave the image when you downloaded it (e.g. grok-image-8e38d268.png).</span>
+                </span>
+              </label>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <input type="text" id="p2_ai_filename" placeholder="select via Browse →"
+                  style="flex:1; min-width:0;" readonly class="auto-field">
+                <button id="btn-browse-p2-ai" class="btn" onclick="document.getElementById('p2-ai-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
+              </div>
+            </div>
             <div class="two-col">
               <div class="field">
                 <label>Model</label>
@@ -302,39 +313,18 @@
                   <option value="">— select —</option>
                   <option value="__other__">Other (type below)</option>
                 </select>
-                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="setVal('p2_ai_filename', ''); updateComputedRename();">
+                <input type="text" id="p2_model_custom" placeholder="Enter model name" style="display:none; margin-top:6px;" oninput="updateComputedRename(); maybeAutoSaveAndRename();">
               </div>
               <div class="field">
                 <label>Version / variant</label>
                 <input type="text" id="p2_version" placeholder="e.g. Grok-2, Gemini 2.0 Flash">
               </div>
             </div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">Altered image</div>
             <div class="field">
-              <label class="help-label">
-                Filename as assigned by AI model
-                <span class="tooltip-wrap">
-                  <span class="tooltip-icon">?</span>
-                  <span class="tooltip-bubble">The filename the AI tool gave the image when you downloaded it (e.g. grok-image-8e38d268.png). Select the model first, then choose from the dropdown.</span>
-                </span>
-              </label>
-              <div style="display:flex; gap:8px; align-items:center;">
-                <input type="text" id="p2_ai_filename" placeholder="select via Browse →"
-                  style="flex:1; min-width:0;" readonly class="auto-field">
-                <button id="btn-browse-p2-ai" class="btn" onclick="document.getElementById('p2-ai-file').click()" style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
-                <span class="tooltip-wrap">
-                  <button class="btn" id="copy-rename-btn" onclick="copyAndRenameImage()" style="white-space:nowrap; flex-shrink:0;">Copy and Rename</button>
-                  <span class="tooltip-bubble">Creates a renamed copy of the file in altered images/&lt;model&gt;/renamed/ using the study-based filename (e.g. csafe-001-b001.png).</span>
-                </span>
-              </div>
+              <label>Your assigned filename for altered image <span class="auto-tag">(auto)</span></label>
+              <input type="text" id="p2_altered_filename" placeholder="auto-populated"
+                readonly class="auto-field" style="width:100%;">
               <span class="status-msg" id="status-copy-rename" style="margin-top:4px; display:inline-block;"></span>
-            </div>
-            <div class="field">
-              <label>Your assigned filename for altered image <span class="auto-tag">(auto-suggested, editable)</span></label>
-              <input type="text" id="p2_altered_filename" placeholder="e.g. csafe-001-b001.jpg"
-                oninput="updateFormTitle(); refreshP2Preview()">
             </div>
             <div class="two-col">
               <div class="field">
