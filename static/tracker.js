@@ -469,6 +469,83 @@
 
   // ── Analysis helpers ──────────────────────────────────────────────────────
 
+  function parseC2paViewerJson(prefix) {
+    const jsonStr = getVal('an-' + prefix + '-viewer-json').trim();
+    if (!jsonStr) return;
+    let data;
+    try { data = JSON.parse(jsonStr); } catch { return; }
+
+    // Locate the active manifest entry
+    let manifest = data;
+    if (data.manifests) {
+      const key = data.active_manifest || Object.keys(data.manifests)[0];
+      manifest = data.manifests[key] || manifest;
+    }
+
+    const sig = manifest.signature_info || {};
+
+    // Signed by
+    const signedBy = sig.issuer || manifest.issuer || data.issuer || '';
+    if (signedBy) setVal('an-' + prefix + '-viewer-signed-by', signedBy);
+
+    // Issued — ISO timestamp → YYYY-MM-DD for <input type="date">
+    const rawTime = sig.time || sig.date || manifest.time || '';
+    if (rawTime) setVal('an-' + prefix + '-viewer-issued', rawTime.substring(0, 10));
+
+    // Algorithm
+    const alg = sig.alg || sig.algorithm || manifest.alg || '';
+    if (alg) setVal('an-' + prefix + '-viewer-algorithm', alg);
+
+    // Software — prefer claim_generator_info array, fall back to claim_generator string
+    const cgInfo = manifest.claim_generator_info;
+    let software = '';
+    if (Array.isArray(cgInfo) && cgInfo.length) {
+      const entry = cgInfo[0];
+      software = [entry.name, entry.version].filter(Boolean).join(' ');
+    }
+    if (!software) software = manifest.claim_generator || data.claim_generator || '';
+    if (software) setVal('an-' + prefix + '-viewer-software', software.trim());
+  }
+
+  function toggleViewerDetails(prefix) {
+    const yes = document.getElementById('an-' + prefix + '-viewer-found-yes');
+    const wrap = document.getElementById('an-' + prefix + '-viewer-details');
+    if (wrap) wrap.style.display = yes?.checked ? '' : 'none';
+  }
+
+  function fillViewerSection(prefix, rec) {
+    const found = rec.c2pa_viewer_found;
+    const yes = document.getElementById('an-' + prefix + '-viewer-found-yes');
+    const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
+    if (yes) yes.checked = found === true;
+    if (no)  no.checked  = found === false;
+    const wrap = document.getElementById('an-' + prefix + '-viewer-details');
+    if (wrap) wrap.style.display = found ? '' : 'none';
+    setVal('an-' + prefix + '-viewer-signed-by',   rec.c2pa_viewer_signed_by   || '');
+    setVal('an-' + prefix + '-viewer-issued',       rec.c2pa_viewer_issued      || '');
+    setVal('an-' + prefix + '-viewer-algorithm',    rec.c2pa_viewer_algorithm   || '');
+    setVal('an-' + prefix + '-viewer-cert-status',  rec.c2pa_viewer_cert_status || '');
+    setVal('an-' + prefix + '-viewer-software',     rec.c2pa_viewer_software    || '');
+    setVal('an-' + prefix + '-viewer-json',         rec.c2pa_viewer_json        || '');
+    setVal('an-' + prefix + '-viewer-notes',        rec.c2pa_viewer_notes       || '');
+  }
+
+  function getViewerFields(prefix) {
+    const yes = document.getElementById('an-' + prefix + '-viewer-found-yes');
+    const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
+    const found = yes?.checked ? true : no?.checked ? false : null;
+    return {
+      c2pa_viewer_found:       found,
+      c2pa_viewer_signed_by:   getVal('an-' + prefix + '-viewer-signed-by'),
+      c2pa_viewer_issued:      getVal('an-' + prefix + '-viewer-issued'),
+      c2pa_viewer_algorithm:   getVal('an-' + prefix + '-viewer-algorithm'),
+      c2pa_viewer_cert_status: getVal('an-' + prefix + '-viewer-cert-status'),
+      c2pa_viewer_software:    getVal('an-' + prefix + '-viewer-software'),
+      c2pa_viewer_json:        getVal('an-' + prefix + '-viewer-json'),
+      c2pa_viewer_notes:       getVal('an-' + prefix + '-viewer-notes'),
+    };
+  }
+
   function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
     if (!detailsEl || !tableEl) return;
     if (!c2paDetails) { detailsEl.style.display = 'none'; return; }
@@ -512,19 +589,23 @@
   }
 
   function fillAnalysisSection(prefix, rec) {
-    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes;
+    const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
+    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
     if (!section) return;
+    const analyzeBtn = document.getElementById('btn-analyze-' + prefix);
     if (!hasData) {
       if (empty) empty.style.display = '';
       if (results) results.style.display = 'none';
+      if (analyzeBtn) analyzeBtn.style.display = '';
       section.open = false;
       return;
     }
     if (empty) empty.style.display = 'none';
     if (results) results.style.display = '';
+    if (analyzeBtn) analyzeBtn.style.display = 'none';
     section.open = true;
 
     setVal('an-' + prefix + '-exif', rec.exif_anomalies);
@@ -549,6 +630,7 @@
       rec.c2pa_details
     );
 
+    fillViewerSection(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
@@ -587,6 +669,7 @@
         rec.c2pa_details
       );
 
+      fillViewerSection('p3', rec);
       _renderElaPreview('an-p3-ela-preview', 'an-p3-ela-img', rec.ela_image_b64);
     } else {
       document.getElementById('p3-file-info').style.display = 'none';
@@ -713,7 +796,10 @@
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       const saved = await persistCurrentRecord();
-      if (saved !== false) showStatus(statusId, 'Analysis complete', 'success');
+      if (saved !== false) {
+        showStatus(statusId, 'Analysis complete', 'success');
+        document.getElementById('btn-analyze-' + type).style.display = 'none';
+      }
     } catch (err) {
       showStatus(statusId, 'Error: ' + err.message, 'warning');
     } finally {
@@ -771,7 +857,8 @@
         renamed_filename: getVal('p0_renamed_filename'),
         filesize: getVal('p0_filesize'),
         dims: getVal('p0_dims'),
-        notes: getVal('p0_notes')
+        notes: getVal('p0_notes'),
+        ...getViewerFields('p0')
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -786,7 +873,8 @@
         mod_filesize: getVal('p1_mod_filesize'),
         mod_dims: getVal('p1_mod_dims'),
         mod_filename: getVal('p1_mod_filename'),
-        notes: getVal('p1_notes')
+        notes: getVal('p1_notes'),
+        ...getViewerFields('p1')
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -811,13 +899,14 @@
         subjective_quality: state.currentRating,
         visible_watermark: document.getElementById('p2_watermark_yes').checked,
         watermark_description: getVal('p2_watermark_desc'),
-        notes: getVal('p2_notes')
+        notes: getVal('p2_notes'),
+        ...getViewerFields('p2')
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
 
     if (rec.type === 'p3') {
-      Object.assign(rec, { analysis_notes: getVal('p3-analysis-notes') });
+      Object.assign(rec, { analysis_notes: getVal('p3-analysis-notes'), ...getViewerFields('p3') });
       showStatus('status-p3', 'Saved', 'success');
     }
 

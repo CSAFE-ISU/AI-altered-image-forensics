@@ -628,13 +628,58 @@ def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
     return "No"
 
 
-def _extract_c2pa_details(tags: dict) -> dict | None:
+def _extract_c2pa_details_from_c2patool(path: pathlib.Path) -> dict | None:
+    """Parse c2patool JSON output into the same dict shape as _extract_c2pa_details."""
+    try:
+        result = subprocess.run(
+            ["c2patool", str(path)],
+            capture_output=True, text=True, timeout=15,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        data = json.loads(result.stdout)
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return None
+
+    active_key = data.get("active_manifest")
+    manifests  = data.get("manifests", {})
+    manifest   = manifests.get(active_key) or (next(iter(manifests.values()), None) if manifests else None)
+    if not manifest:
+        return None
+
+    sig      = manifest.get("signature_info") or {}
+    cg_info  = manifest.get("claim_generator_info") or []
+    cg_name  = cg_info[0].get("name") if cg_info else manifest.get("claim_generator")
+
+    raw_actions = []
+    for assertion in manifest.get("assertions") or []:
+        if assertion.get("label", "").startswith("c2pa.actions"):
+            for a in (assertion.get("data") or {}).get("actions") or []:
+                act = a.get("action", "")
+                raw_actions.append(act.replace("c2pa.", ""))
+
+    return {
+        "claim_generator":     cg_name,
+        "software_agent":      sig.get("issuer"),
+        "c2pa_version":        None,
+        "actions":             raw_actions or None,
+        "digital_source_type": None,
+        "validation_failures": None,
+        "validation_failure_explanations": None,
+        "manifest_id":         active_key,
+    }
+
+
+def _extract_c2pa_details(tags: dict, path: pathlib.Path | None = None) -> dict | None:
     """Extract human-readable C2PA provenance fields from exiftool tags.
 
+    Falls back to c2patool JSON output when JUMBF tags are absent.
     Returns a dict with the most forensically relevant fields, or None if no
     C2PA data is present.
     """
     if not any("JUMBF" in k and "c2pa" in str(v).lower() for k, v in tags.items()):
+        if path is not None:
+            return _extract_c2pa_details_from_c2patool(path)
         return None
 
     def _get(key):
@@ -790,7 +835,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     tags = _run_exiftool(path)
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
     c2pa_status    = _check_c2pa(path, tags)
-    c2pa_details   = _extract_c2pa_details(tags)
+    c2pa_details   = _extract_c2pa_details(tags, path)
     ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
     noise_flagged, noise_note           = _check_noise_inconsistency(path)
     blocking_flagged, blocking_note     = _check_compression_blocking(path)
