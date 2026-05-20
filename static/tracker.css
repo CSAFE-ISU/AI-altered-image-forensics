@@ -239,6 +239,10 @@
   }
   #dashboard-content svg circle { transition: opacity 0.15s; }
   #dashboard-content svg circle:hover { opacity: 1 !important; }
+  .dash-table { border-collapse: collapse; font-size: 12px; width: 100%; }
+  .dash-table th { font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 6px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+  .dash-table td { padding: 6px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .dash-table tbody tr:hover { background: var(--surface); }
 
   /* ── Gallery overlay ── */
   #gallery-overlay {

@@ -338,7 +338,7 @@
           </div>
 
           <div class="section-card">
-            <div class="section-label">Quality</div>
+            <div class="section-label">Observations</div>
             <div class="field">
               <label>Subjective quality (1 = poor blend, 5 = convincing)</label>
               <div class="rating-group">
@@ -367,6 +367,26 @@
                 </div>
               </div>
               <input type="hidden" id="p2_region" value="">
+            </div>
+            <div class="field">
+              <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+                <span style="white-space:nowrap; font-size:0.9rem;">Visible watermark</span>
+                <label style="display:flex; align-items:center; gap:0.4rem;">
+                  <input type="radio" name="p2_watermark" id="p2_watermark_yes" value="yes" onchange="document.getElementById('p2_watermark_desc_wrap').style.display=''"> Yes
+                </label>
+                <label style="display:flex; align-items:center; gap:0.4rem;">
+                  <input type="radio" name="p2_watermark" id="p2_watermark_no" value="no" onchange="document.getElementById('p2_watermark_desc_wrap').style.display='none'"> No
+                </label>
+                <span id="p2_watermark_desc_wrap" style="display:none; flex:1; min-width:200px;">
+                  <select id="p2_watermark_desc" style="width:100%;">
+                    <option value="">— select —</option>
+                    <option>DeeVid AI (logo + text)</option>
+                    <option>Gemini (logo only)</option>
+                    <option>stablediffusionweb.com (text only)</option>
+                    <option>Other</option>
+                  </select>
+                </span>
+              </div>
             </div>
             <div class="field">
               <label>Notes</label>

@@ -351,6 +351,11 @@
     setVal('p2_out_dims', rec.output_dimensions);
     setVal('p2_datetime', rec.datetime_generated);
     setVal('p2_notes', rec.notes);
+    const wmYes = !!rec.visible_watermark;
+    document.getElementById('p2_watermark_yes').checked = wmYes;
+    document.getElementById('p2_watermark_no').checked = !wmYes;
+    document.getElementById('p2_watermark_desc_wrap').style.display = wmYes ? '' : 'none';
+    setVal('p2_watermark_desc', rec.watermark_description);
 
     state.currentRating = rec.subjective_quality || null;
     document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', state.currentRating && i < state.currentRating));
@@ -719,6 +724,8 @@
         output_dimensions: getVal('p2_out_dims'),
         datetime_generated: getVal('p2_datetime'),
         subjective_quality: state.currentRating,
+        visible_watermark: document.getElementById('p2_watermark_yes').checked,
+        watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes')
       });
       showStatus('status-p2a', 'Saved', 'success');
@@ -1315,6 +1322,61 @@
 
     // ── Quality by model scatter plot ──
     if (p2.length) content.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+
+    // ── Models with visible watermarks ──
+    const watermarked = p2.filter(r => r.visible_watermark);
+    if (p2.length) {
+      const allModels = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
+      const wmModels = new Set(watermarked.map(r => (r.model || 'Unknown').trim() || 'Unknown'));
+      const noWmModels = allModels.filter(m => !wmModels.has(m));
+
+      const wmSection = document.createElement('div');
+      const wmTitle = document.createElement('div');
+      wmTitle.className = 'dash-section-title';
+      wmTitle.textContent = 'Models with Visible Watermarks';
+      wmSection.appendChild(wmTitle);
+
+      const summary = document.createElement('p');
+      summary.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0 0 1rem;';
+      summary.textContent = `${wmModels.size} out of ${allModels.length} models have visible watermarks`;
+      wmSection.appendChild(summary);
+
+      if (watermarked.length) {
+        const table = document.createElement('table');
+        table.className = 'dash-table';
+        const thead = table.createTHead();
+        const hrow = thead.insertRow();
+        ['Model', 'Watermark description'].forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          hrow.appendChild(th);
+        });
+        const tbody = table.createTBody();
+        const seen = new Set();
+        [...watermarked].sort((a, b) => (a.model || '').localeCompare(b.model || '')).forEach(r => {
+          const key = (r.model || '') + '|' + (r.watermark_description || '');
+          if (seen.has(key)) return;
+          seen.add(key);
+          const tr = tbody.insertRow();
+          tr.insertCell().textContent = r.model || '—';
+          tr.insertCell().textContent = r.watermark_description || '—';
+        });
+        wmSection.appendChild(table);
+      }
+
+      if (noWmModels.length) {
+        const noWmTitle = document.createElement('p');
+        noWmTitle.style.cssText = 'font-size:12px; color:var(--text-muted); margin:1rem 0 0.4rem;';
+        noWmTitle.textContent = 'Models without visible watermarks:';
+        wmSection.appendChild(noWmTitle);
+        const noWmList = document.createElement('p');
+        noWmList.style.cssText = 'font-family:var(--mono); font-size:12px; color:var(--text); margin:0;';
+        noWmList.textContent = noWmModels.join(', ');
+        wmSection.appendChild(noWmList);
+      }
+
+      content.appendChild(wmSection);
+    }
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
