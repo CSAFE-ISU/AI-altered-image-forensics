@@ -28,6 +28,39 @@
       <button class="new-record-btn" onclick="newRecord('p2')">+ New alteration</button>
       <button class="new-record-btn" onclick="newAnalysis()">+ New analysis</button>
     </div>
+    <div id="sidebar-filters">
+      <div class="filter-row">
+        <label class="filter-label">Type</label>
+        <select id="filter-type" onchange="setFilter('type', this.value)">
+          <option value="">All</option>
+          <option value="p0">Original</option>
+          <option value="p1">Modification</option>
+          <option value="p2">Alteration</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label class="filter-label">Model</label>
+        <select id="filter-model" onchange="setFilter('model', this.value)">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label class="filter-label">Blank fields</label>
+        <select id="filter-blank" onchange="setFilter('blankOnly', this.value)">
+          <option value="">All</option>
+          <option value="yes">Has blank field(s)</option>
+          <option value="no">No blank fields</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label class="filter-label">Analysis</label>
+        <select id="filter-analysis" onchange="setFilter('analysis', this.value)">
+          <option value="">All</option>
+          <option value="yes">Has analysis</option>
+          <option value="no">No analysis</option>
+        </select>
+      </div>
+    </div>
     <div id="study-tree"></div>
     <div id="analyses-section" style="display:none">
       <div class="sidebar-section-label">Analyses</div>
@@ -341,7 +374,7 @@
             <div class="section-label">Observations</div>
             <div class="field">
               <label>Subjective quality (1 = poor blend, 5 = convincing)</label>
-              <div class="rating-group">
+              <div class="rating-group" id="p2-rating-group">
                 <button class="rating-btn" onclick="setRating(1)">1</button>
                 <button class="rating-btn" onclick="setRating(2)">2</button>
                 <button class="rating-btn" onclick="setRating(3)">3</button>

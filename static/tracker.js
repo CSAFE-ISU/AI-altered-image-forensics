@@ -7,6 +7,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
+    filters:           { type: '', model: '', blankOnly: '', analysis: '' },
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -98,12 +99,90 @@
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
 
+  function setFilter(key, value) {
+    state.filters[key] = value;
+    renderSidebar();
+  }
+
+  function hasBlankFields(r) {
+    if (r.type === 'p0') return !r.original_filename;
+    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details;
+    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used;
+    return false;
+  }
+
+  function highlightBlankFields(type) {
+    const form = document.getElementById('form-' + type);
+    if (!form) return;
+    form.querySelectorAll('.field-blank').forEach(el => el.classList.remove('field-blank'));
+
+    const flag = id => {
+      const el = document.getElementById(id);
+      if (el && !el.value.trim()) el.classList.add('field-blank');
+    };
+
+    if (type === 'p0') {
+      flag('p0_original_filename');
+    }
+    if (type === 'p1') {
+      flag('p1_input_select');
+      flag('p1_mod_type');
+      flag('p1_mod_details');
+    }
+    if (type === 'p2') {
+      flag('p2_input_select');
+      const modelSel = document.getElementById('p2_model');
+      const isOther = modelSel && modelSel.value === '__other__';
+      if (modelSel && !modelSel.value) modelSel.classList.add('field-blank');
+      if (isOther) {
+        const custom = document.getElementById('p2_model_custom');
+        if (custom && !custom.value.trim()) custom.classList.add('field-blank');
+      }
+      flag('p2_ai_filename');
+      flag('p2_prompt');
+      flag('p2_prompt_type');
+      flag('p2_object');
+      flag('p2_mask');
+      const ratingGroup = document.getElementById('p2-rating-group');
+      if (ratingGroup) ratingGroup.classList.toggle('field-blank', !state.currentRating);
+      const regionWrap = document.getElementById('region-picker-wrap');
+      if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
+    }
+  }
+
+  function applyFilters(records) {
+    const { type, model, blankOnly, analysis } = state.filters;
+    return records.filter(r => {
+      if (type && r.type !== type) return false;
+      if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
+      if (blankOnly === 'yes' && !hasBlankFields(r)) return false;
+      if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
+      if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
+      if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
+      return true;
+    });
+  }
+
   function renderSidebar() {
-    // Group records by study_id (exclude p3 — shown separately)
+    // Refresh model dropdown options from all p2 records
+    const modelSel = document.getElementById('filter-model');
+    const savedModel = state.filters.model;
+    const allModels = [...new Set(state.records.filter(r => r.type === 'p2').map(r => (r.model || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    modelSel.innerHTML = '<option value="">All</option>';
+    allModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m;
+      if (m === savedModel) opt.selected = true;
+      modelSel.appendChild(opt);
+    });
+
+    const visible = applyFilters(state.records);
+
+    // Group visible records by study_id (exclude p3 — shown separately)
     const studyMap = {};
     const unsorted = [];
     const analyses = [];
-    state.records.forEach(r => {
+    visible.forEach(r => {
       if (r.type === 'p3') { analyses.push(r); return; }
       const sid = r.study_id || '';
       if (sid) {
@@ -152,8 +231,11 @@
       analysesSection.style.display = 'none';
     }
 
+    const total = state.records.length;
+    const shown = visible.length;
+    const isFiltered = total !== shown;
     document.getElementById('record-count').textContent =
-      state.records.length ? state.records.length + ' record' + (state.records.length !== 1 ? 's' : '') : '';
+      total ? (isFiltered ? `${shown} of ${total} records` : `${total} record${total !== 1 ? 's' : ''}`) : '';
   }
 
   function buildStudyNode(sid, recs) {
@@ -310,6 +392,7 @@
     document.getElementById('btn-browse-original').disabled = false;
     await updateP0ComputedRename();
     fillAnalysisSection('p0', rec);
+    highlightBlankFields('p0');
   }
 
   function fillP1(rec) {
@@ -335,6 +418,7 @@
     updateFormTitle();
     refreshP1Preview();
     fillAnalysisSection('p1', rec);
+    highlightBlankFields('p1');
   }
 
   async function fillP2(rec) {
@@ -381,6 +465,7 @@
     }
 
     fillAnalysisSection('p2', rec);
+    highlightBlankFields('p2');
   }
 
   // ── Analysis helpers ──────────────────────────────────────────────────────
@@ -773,6 +858,7 @@
   function setRating(val) {
     state.currentRating = val;
     document.querySelectorAll('.rating-btn').forEach((b, i) => b.classList.toggle('selected', i < val));
+    highlightBlankFields('p2');
   }
 
   // ── Artifacts ─────────────────────────────────────────────────────────────
@@ -832,6 +918,7 @@
     const selected = [...document.querySelectorAll('.region-cell.selected')]
       .map(c => c.dataset.region);
     document.getElementById('p2_region').value = selected.join(',');
+    highlightBlankFields('p2');
     autoSave();
   }
 
@@ -1141,6 +1228,7 @@
         return;
       }
       setVal('p0_original_filename', uploadData.filename);
+      highlightBlankFields('p0');
       refreshP0Preview();
       populateP0ImageInfo();
 
@@ -1209,6 +1297,7 @@
       const data = await uploadFile(file, '/api/upload_downloaded', { model });
       if (data.ok) {
         setVal('p2_ai_filename', data.filename);
+        highlightBlankFields('p2');
         document.getElementById('status-copy-rename').className = 'status-msg';
         p2AiFilenameChanged();
       } else {
@@ -1665,6 +1754,9 @@
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeLightbox(); closeGallery(); closeDashboard(); }
   });
+
+  document.getElementById('form-area').addEventListener('input',  () => { if (state.currentType) highlightBlankFields(state.currentType); });
+  document.getElementById('form-area').addEventListener('change', () => { if (state.currentType) highlightBlankFields(state.currentType); });
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   loadModels();

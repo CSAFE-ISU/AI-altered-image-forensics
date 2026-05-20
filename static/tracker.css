@@ -115,6 +115,9 @@
   }
   .instruction-box strong { color: var(--accent); font-weight: 600; }
 
+  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--warning) !important; background: var(--warning-bg) !important; }
+  .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--warning); border-radius: var(--radius); }
+
   .rating-group { display: flex; gap: 6px; }
   .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
   .rating-btn:hover { border-color: var(--accent-border); color: var(--accent); }
@@ -180,6 +183,16 @@
     border-bottom: 1px solid var(--border);
   }
   .sidebar-actions .new-record-btn { margin: 0; width: 100%; }
+
+  #sidebar-filters {
+    padding: 0.5rem 1.25rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .filter-row { display: flex; align-items: center; gap: 6px; }
+  .filter-label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 40px; flex-shrink: 0; }
+  .filter-check-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); cursor: pointer; min-width: unset; }
+  #sidebar-filters select { font-size: 11px; flex: 1; padding: 2px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
 
   .study-node { margin-bottom: 1px; }
   .study-header {
