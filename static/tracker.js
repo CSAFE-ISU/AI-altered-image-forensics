@@ -1245,6 +1245,237 @@
     } catch { /* silently ignore */ }
   }
 
+  // ── Dashboard ─────────────────────────────────────────────────────────────
+
+  function openDashboard() {
+    const content = document.getElementById('dashboard-content');
+    content.innerHTML = '';
+
+    const p0 = state.records.filter(r => r.type === 'p0');
+    const p1 = state.records.filter(r => r.type === 'p1');
+    const p2 = state.records.filter(r => r.type === 'p2');
+    // ── Summary cards ──
+    const summarySection = document.createElement('div');
+    const summaryTitle = document.createElement('div');
+    summaryTitle.className = 'dash-section-title';
+    summaryTitle.textContent = 'Summary';
+    summarySection.appendChild(summaryTitle);
+
+    const cards = document.createElement('div');
+    cards.className = 'dash-cards';
+    [
+      [p0.length, 'Originals'],
+      [p1.length, 'Modifications'],
+      [p2.length, 'Alterations'],
+    ].forEach(([num, label]) => {
+      const card = document.createElement('div');
+      card.className = 'dash-card';
+      const n = document.createElement('div');
+      n.className = 'dash-card-num';
+      n.textContent = num;
+      const l = document.createElement('div');
+      l.className = 'dash-card-label';
+      l.textContent = label;
+      card.appendChild(n);
+      card.appendChild(l);
+      cards.appendChild(card);
+    });
+    summarySection.appendChild(cards);
+    content.appendChild(summarySection);
+
+    // ── Alterations by model ──
+    if (p2.length) {
+      const modelCounts = {};
+      const modelIds = {};
+      p2.forEach(r => {
+        const m = (r.model || 'Unknown').trim() || 'Unknown';
+        modelCounts[m] = (modelCounts[m] || 0) + 1;
+        (modelIds[m] = modelIds[m] || []).push(r.id);
+      });
+      content.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
+    }
+
+    // ── Subjective quality distribution ──
+    if (p2.length) {
+      const qualityCounts = {};
+      const qualityIds = {};
+      p2.forEach(r => {
+        const q = r.subjective_quality ? '★' + r.subjective_quality : 'Not rated';
+        qualityCounts[q] = (qualityCounts[q] || 0) + 1;
+        (qualityIds[q] = qualityIds[q] || []).push(r.id);
+      });
+      const ordered = {};
+      const orderedIds = {};
+      ['★5','★4','★3','★2','★1'].forEach(k => {
+        if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
+      });
+      if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
+      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
+    }
+
+    // ── Quality by model scatter plot ──
+    if (p2.length) content.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+
+    document.getElementById('dashboard-overlay').style.display = 'flex';
+  }
+
+  function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const chart = document.createElement('div');
+    chart.className = 'dash-bar-chart';
+    const maxVal_ = maxVal !== null ? maxVal : Math.max(...Object.values(counts), 1);
+    const sorted = preserveOrder
+      ? Object.entries(counts)
+      : Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    sorted.forEach(([label, count]) => {
+      const row = document.createElement('div');
+      row.className = 'dash-bar-row';
+      if (labelToIds) {
+        row.style.cursor = 'pointer';
+        row.title = 'Click to view in gallery';
+        row.addEventListener('click', () => {
+          const ids = new Set(labelToIds[label] || []);
+          closeDashboard();
+          openGallery(ids, label);
+        });
+      }
+      const lEl = document.createElement('span');
+      lEl.className = 'dash-bar-label';
+      lEl.textContent = label;
+      const track = document.createElement('div');
+      track.className = 'dash-bar-track';
+      const fill = document.createElement('div');
+      fill.className = 'dash-bar-fill';
+      fill.style.width = Math.round(count / maxVal_ * 100) + '%';
+      track.appendChild(fill);
+      const cEl = document.createElement('span');
+      cEl.className = 'dash-bar-count';
+      cEl.textContent = formatValue ? formatValue(count) : count;
+      row.appendChild(lEl);
+      row.appendChild(track);
+      row.appendChild(cEl);
+      chart.appendChild(row);
+    });
+    section.appendChild(chart);
+    return section;
+  }
+
+  function buildScatterPlot(title, records) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const rated = records.filter(r => r.subjective_quality);
+    if (!rated.length) return section;
+
+    // Group by model, sort models by avg quality descending
+    const modelData = {};
+    rated.forEach(r => {
+      const m = (r.model || 'Unknown').trim() || 'Unknown';
+      (modelData[m] = modelData[m] || []).push(r);
+    });
+    const avgQ = arr => arr.reduce((s, r) => s + Number(r.subjective_quality), 0) / arr.length;
+    const models = Object.keys(modelData).sort((a, b) => a.localeCompare(b));
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const ML = 130, MR = 30, MT = 16, MB = 36;
+    const rowH = 48;
+    const plotW = 460;
+    const totalW = ML + plotW + MR;
+    const totalH = MT + models.length * rowH + MB;
+    const xScale = q => ML + (q - 1) / 4 * plotW;
+
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    svg.setAttribute('width', '100%');
+    svg.style.maxWidth = totalW + 'px';
+    svg.style.display = 'block';
+
+    // Alternating row backgrounds
+    models.forEach((m, i) => {
+      if (i % 2 === 0) {
+        const rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', ML); rect.setAttribute('y', MT + i * rowH);
+        rect.setAttribute('width', plotW); rect.setAttribute('height', rowH);
+        rect.setAttribute('fill', 'var(--surface)');
+        svg.appendChild(rect);
+      }
+    });
+
+    // Vertical grid lines + X axis labels
+    for (let q = 1; q <= 5; q++) {
+      const x = xScale(q);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', x); line.setAttribute('x2', x);
+      line.setAttribute('y1', MT); line.setAttribute('y2', MT + models.length * rowH);
+      line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+
+      const lbl = document.createElementNS(NS, 'text');
+      lbl.setAttribute('x', x); lbl.setAttribute('y', totalH - 8);
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', 'var(--text-muted)');
+      lbl.setAttribute('font-family', 'var(--mono)');
+      lbl.textContent = '★' + q;
+      svg.appendChild(lbl);
+    }
+
+    // Model labels (Y axis)
+    models.forEach((m, i) => {
+      const lbl = document.createElementNS(NS, 'text');
+      lbl.setAttribute('x', ML - 10);
+      lbl.setAttribute('y', MT + i * rowH + rowH / 2 + 4);
+      lbl.setAttribute('text-anchor', 'end');
+      lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', 'var(--text)');
+      lbl.setAttribute('font-family', 'var(--mono)');
+      lbl.textContent = m;
+      svg.appendChild(lbl);
+    });
+
+    // Data points with Y jitter
+    rated.forEach(r => {
+      const m = (r.model || 'Unknown').trim() || 'Unknown';
+      const q = Number(r.subjective_quality);
+      const i = models.indexOf(m);
+      if (i === -1) return;
+
+      const cx = xScale(q);
+      const cy = MT + i * rowH + rowH / 2 + (Math.random() - 0.5) * rowH * 0.25;
+
+      const circle = document.createElementNS(NS, 'circle');
+      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', 'var(--accent)');
+      circle.setAttribute('opacity', '0.65');
+      circle.style.cursor = 'pointer';
+
+      const tip = document.createElementNS(NS, 'title');
+      tip.textContent = getRecordName(r);
+      circle.appendChild(tip);
+
+      circle.addEventListener('click', () => {
+        closeDashboard();
+        openLightbox('/images/' + encodeURIComponent(getRecordName(r)), getRecordName(r), getRecordMeta(r));
+      });
+
+      svg.appendChild(circle);
+    });
+
+    section.appendChild(svg);
+    return section;
+  }
+
+  function closeDashboard() {
+    document.getElementById('dashboard-overlay').style.display = 'none';
+  }
+
   // ── Gallery ───────────────────────────────────────────────────────────────
 
   function buildGalleryCard(rec) {
@@ -1304,12 +1535,23 @@
     return row;
   }
 
-  function openGallery() {
+  function openGallery(filterIds = null, filterLabel = '') {
     const content = document.getElementById('gallery-content');
     content.innerHTML = '';
 
+    const titleEl = document.getElementById('gallery-bar-title');
+    const showAllBtn = document.getElementById('gallery-show-all-btn');
+    if (filterIds) {
+      titleEl.textContent = filterLabel ? `Study Gallery — ${filterLabel}` : 'Study Gallery (filtered)';
+      showAllBtn.style.display = '';
+    } else {
+      titleEl.textContent = 'Study Gallery';
+      showAllBtn.style.display = 'none';
+    }
+
     const studyMap = {};
     state.records.forEach(r => {
+      if (filterIds && !filterIds.has(r.id)) return;
       const sid = r.study_id || '';
       if (!sid) return;
       if (!studyMap[sid]) studyMap[sid] = { p0: [], p1: [], p2: [] };
@@ -1359,7 +1601,7 @@
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeLightbox(); closeGallery(); }
+    if (e.key === 'Escape') { closeLightbox(); closeGallery(); closeDashboard(); }
   });
 
   // ── Boot ──────────────────────────────────────────────────────────────────
