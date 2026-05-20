@@ -106,7 +106,7 @@
 
   function hasBlankFields(r) {
     if (r.type === 'p0') return !r.original_filename;
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details;
+    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename;
     if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used;
     return false;
   }
@@ -128,6 +128,7 @@
       flag('p1_input_select');
       flag('p1_mod_type');
       flag('p1_mod_details');
+      flag('p1_mod_filename');
     }
     if (type === 'p2') {
       flag('p2_input_select');
@@ -402,6 +403,7 @@
     setVal('p1_mod_filesize', rec.mod_filesize);
     setVal('p1_mod_dims', rec.mod_dims);
     setVal('p1_mod_filename', rec.mod_filename);
+    setVal('p1_current_filename', '');
     setVal('p1_notes', rec.notes);
     const btn = document.getElementById('p1-rename-btn');
     if (rec.mod_filename) {
@@ -1270,8 +1272,10 @@
       } else if (data.ok) {
         state.p1RenamePerformed = true;
         document.getElementById('p1-rename-btn').disabled = true;
+        setVal('p1_current_filename', file.name);
         lockField('p1_mod_filename');
         lockField('p1_mod_type');
+        highlightBlankFields('p1');
         showPersistentStatus('status-p1-rename', 'Copied → ' + data.filename, 'success');
         refreshP1Preview();
         await populateP1ImageInfo();

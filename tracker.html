@@ -197,13 +197,18 @@
             </select>
           </div>
           <div class="field">
-            <label>Modified image filename <span class="auto-tag">(auto-suggested, editable)</span></label>
+            <label>Current filename</label>
             <div style="display:flex; gap:8px; align-items:center;">
-              <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg" style="flex:1; min-width:0;"
-                oninput="updateFormTitle(); refreshP1Preview();">
+              <input type="text" id="p1_current_filename" placeholder="select via Browse &rarr;"
+                style="flex:1; min-width:0;" readonly class="auto-field">
               <button id="p1-rename-btn" class="btn" onclick="document.getElementById('p1-mod-file').click()" disabled style="white-space:nowrap; flex-shrink:0;">Browse&hellip;</button>
             </div>
             <span class="status-msg" id="status-p1-rename" style="margin-top:4px; display:inline-block;"></span>
+          </div>
+          <div class="field">
+            <label>Your assigned filename for modified image <span class="auto-tag">(auto-suggested, editable)</span></label>
+            <input type="text" id="p1_mod_filename" placeholder="e.g. csafe-001-cropped.jpg" style="width:100%;"
+              oninput="updateFormTitle(); refreshP1Preview();">
           </div>
           <div class="two-col">
             <div class="field">
