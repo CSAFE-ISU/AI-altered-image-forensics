@@ -1313,10 +1313,13 @@
       content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
     }
 
+    // ── Quality by model scatter plot ──
+    if (p2.length) content.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
 
-  function buildBarChart(title, counts, preserveOrder = false, labelToIds = null) {
+  function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
@@ -1325,7 +1328,7 @@
 
     const chart = document.createElement('div');
     chart.className = 'dash-bar-chart';
-    const maxVal = Math.max(...Object.values(counts), 1);
+    const maxVal_ = maxVal !== null ? maxVal : Math.max(...Object.values(counts), 1);
     const sorted = preserveOrder
       ? Object.entries(counts)
       : Object.entries(counts).sort((a, b) => b[1] - a[1]);
@@ -1348,17 +1351,124 @@
       track.className = 'dash-bar-track';
       const fill = document.createElement('div');
       fill.className = 'dash-bar-fill';
-      fill.style.width = Math.round(count / maxVal * 100) + '%';
+      fill.style.width = Math.round(count / maxVal_ * 100) + '%';
       track.appendChild(fill);
       const cEl = document.createElement('span');
       cEl.className = 'dash-bar-count';
-      cEl.textContent = count;
+      cEl.textContent = formatValue ? formatValue(count) : count;
       row.appendChild(lEl);
       row.appendChild(track);
       row.appendChild(cEl);
       chart.appendChild(row);
     });
     section.appendChild(chart);
+    return section;
+  }
+
+  function buildScatterPlot(title, records) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const rated = records.filter(r => r.subjective_quality);
+    if (!rated.length) return section;
+
+    // Group by model, sort models by avg quality descending
+    const modelData = {};
+    rated.forEach(r => {
+      const m = (r.model || 'Unknown').trim() || 'Unknown';
+      (modelData[m] = modelData[m] || []).push(r);
+    });
+    const avgQ = arr => arr.reduce((s, r) => s + Number(r.subjective_quality), 0) / arr.length;
+    const models = Object.keys(modelData).sort((a, b) => a.localeCompare(b));
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const ML = 130, MR = 30, MT = 16, MB = 36;
+    const rowH = 48;
+    const plotW = 460;
+    const totalW = ML + plotW + MR;
+    const totalH = MT + models.length * rowH + MB;
+    const xScale = q => ML + (q - 1) / 4 * plotW;
+
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    svg.setAttribute('width', '100%');
+    svg.style.maxWidth = totalW + 'px';
+    svg.style.display = 'block';
+
+    // Alternating row backgrounds
+    models.forEach((m, i) => {
+      if (i % 2 === 0) {
+        const rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', ML); rect.setAttribute('y', MT + i * rowH);
+        rect.setAttribute('width', plotW); rect.setAttribute('height', rowH);
+        rect.setAttribute('fill', 'var(--surface)');
+        svg.appendChild(rect);
+      }
+    });
+
+    // Vertical grid lines + X axis labels
+    for (let q = 1; q <= 5; q++) {
+      const x = xScale(q);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', x); line.setAttribute('x2', x);
+      line.setAttribute('y1', MT); line.setAttribute('y2', MT + models.length * rowH);
+      line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '1');
+      svg.appendChild(line);
+
+      const lbl = document.createElementNS(NS, 'text');
+      lbl.setAttribute('x', x); lbl.setAttribute('y', totalH - 8);
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', 'var(--text-muted)');
+      lbl.setAttribute('font-family', 'var(--mono)');
+      lbl.textContent = '★' + q;
+      svg.appendChild(lbl);
+    }
+
+    // Model labels (Y axis)
+    models.forEach((m, i) => {
+      const lbl = document.createElementNS(NS, 'text');
+      lbl.setAttribute('x', ML - 10);
+      lbl.setAttribute('y', MT + i * rowH + rowH / 2 + 4);
+      lbl.setAttribute('text-anchor', 'end');
+      lbl.setAttribute('font-size', '11'); lbl.setAttribute('fill', 'var(--text)');
+      lbl.setAttribute('font-family', 'var(--mono)');
+      lbl.textContent = m;
+      svg.appendChild(lbl);
+    });
+
+    // Data points with Y jitter
+    rated.forEach(r => {
+      const m = (r.model || 'Unknown').trim() || 'Unknown';
+      const q = Number(r.subjective_quality);
+      const i = models.indexOf(m);
+      if (i === -1) return;
+
+      const cx = xScale(q);
+      const cy = MT + i * rowH + rowH / 2 + (Math.random() - 0.5) * rowH * 0.25;
+
+      const circle = document.createElementNS(NS, 'circle');
+      circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('fill', 'var(--accent)');
+      circle.setAttribute('opacity', '0.65');
+      circle.style.cursor = 'pointer';
+
+      const tip = document.createElementNS(NS, 'title');
+      tip.textContent = getRecordName(r);
+      circle.appendChild(tip);
+
+      circle.addEventListener('click', () => {
+        closeDashboard();
+        openLightbox('/images/' + encodeURIComponent(getRecordName(r)), getRecordName(r), getRecordMeta(r));
+      });
+
+      svg.appendChild(circle);
+    });
+
+    section.appendChild(svg);
     return section;
   }
 
