@@ -833,15 +833,126 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
         return False, ""
 
 
+def _detect_c2pa_from_tags(tags: dict) -> dict | None:
+    """Extract C2PA data from exiftool CBOR/JUMBF tags."""
+    has_jumbf = tags.get('JUMBF:JUMDLabel') == 'c2pa'
+    has_cbor  = any(k.startswith('CBOR:') for k in tags)
+    if not has_jumbf and not has_cbor:
+        return None
+
+    result: dict = {'status': 'found'}
+
+    claim_gen = tags.get('CBOR:Claim_Generator_InfoName')
+    if claim_gen:
+        result['claim_generator'] = str(claim_gen)
+
+    agent = tags.get('CBOR:ActionsSoftwareAgent') or tags.get('CBOR:ActionsSoftwareAgentName')
+    if agent:
+        result['software_agent'] = str(agent)
+
+    c2pa_ver = tags.get('CBOR:Claim_Generator_InfoOrgContentauthC2Pa_Rs')
+    if c2pa_ver:
+        result['c2pa_version'] = str(c2pa_ver)
+
+    raw_actions = tags.get('CBOR:ActionsAction')
+    if raw_actions is not None:
+        result['actions'] = [str(a) for a in (raw_actions if isinstance(raw_actions, list) else [raw_actions])]
+
+    raw_dst = tags.get('CBOR:ActionsDigitalSourceType')
+    if raw_dst is not None:
+        dst = raw_dst[0] if isinstance(raw_dst, list) else raw_dst
+        result['digital_source_type'] = str(dst).rstrip('/').split('/')[-1]
+
+    instance_id = tags.get('CBOR:InstanceID')
+    if instance_id:
+        result['manifest_id'] = str(instance_id)
+
+    raw_failures = tags.get('CBOR:ValidationResultsActiveManifestFailureCode')
+    if raw_failures is not None:
+        result['validation_failures'] = [str(f) for f in (raw_failures if isinstance(raw_failures, list) else [raw_failures])]
+        raw_expl = tags.get('CBOR:ValidationResultsActiveManifestFailureExplanation')
+        if raw_expl is not None:
+            result['validation_failure_explanations'] = [str(e) for e in (raw_expl if isinstance(raw_expl, list) else [raw_expl])]
+
+    return result
+
+
+def _detect_indicators(tags: dict) -> dict:
+    """Detect forensic indicators of AI generation from exiftool tags."""
+    _CAMERA_KEYS = {
+        'Make':             'IFD0:Make',
+        'Model':            'IFD0:Model',
+        'Software':         'IFD0:Software',
+        'DateTimeOriginal': 'ExifIFD:DateTimeOriginal',
+        'CreateDate':       'ExifIFD:CreateDate',
+        'ISO':              'ExifIFD:ISO',
+        'FocalLength':      'ExifIFD:FocalLength',
+        'ExposureTime':     'ExifIFD:ExposureTime',
+        'FNumber':          'ExifIFD:FNumber',
+        'MeteringMode':     'ExifIFD:MeteringMode',
+        'WhiteBalance':     'ExifIFD:WhiteBalance',
+        'Flash':            'ExifIFD:Flash',
+        'SceneType':        'ExifIFD:SceneType',
+        'LensMake':         'ExifIFD:LensMake',
+        'LensModel':        'ExifIFD:LensModel',
+    }
+    camera_present = {label: str(tags[key]) for label, key in _CAMERA_KEYS.items() if key in tags}
+    camera_absent  = [label for label, key in _CAMERA_KEYS.items() if key not in tags]
+
+    photoshop_adobe = {k: str(v) for k, v in tags.items() if k.startswith(('Photoshop:', 'Adobe:'))}
+
+    icc_meas_view = {k: str(v) for k, v in tags.items() if k.startswith(('ICC-meas:', 'ICC-view:'))}
+
+    artist      = str(tags.get('IFD0:Artist', ''))
+    user_comment = str(tags.get('ExifIFD:UserComment', ''))
+    grok_artist    = artist      if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-', artist.lower())      else None
+    grok_signature = user_comment if user_comment.startswith('Signature:') else None
+    grok_signatures = {'artist': grok_artist, 'user_comment': grok_signature} if (grok_artist or grok_signature) else None
+
+    c2pa = _detect_c2pa_from_tags(tags)
+
+    parts = []
+    if camera_present:
+        parts.append(f"Camera EXIF: present ({len(camera_present)} fields)")
+    else:
+        parts.append("Camera EXIF: absent")
+    if photoshop_adobe:
+        parts.append("Photoshop/Adobe markers detected")
+    if icc_meas_view:
+        parts.append("ICC measurement/viewing conditions detected")
+    if grok_signatures:
+        parts.append("Grok signature detected")
+    if c2pa:
+        parts.append("C2PA manifest detected")
+
+    return {
+        'summary':        ' | '.join(parts),
+        'camera_exif':    {'present': camera_present, 'absent': camera_absent},
+        'photoshop_adobe': photoshop_adobe or None,
+        'icc_meas_view':  icc_meas_view or None,
+        'grok_signatures': grok_signatures,
+        'c2pa':           c2pa,
+    }
+
+
 def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     tags = _run_exiftool(path)
     if tags:
         meta_path = METADATA_DIR / (path.stem + ".json")
         meta_path.write_text(json.dumps(tags, indent=2))
     ifd0_tags      = {k: v for k, v in tags.items() if k.startswith("IFD0:")}
+    indicators     = _detect_indicators(tags) if tags else None
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
     c2pa_status    = _check_c2pa(path, tags)
     c2pa_details   = _extract_c2pa_details(tags, path)
+    if indicators is not None and c2pa_status:
+        c2pa_ind = {'status': c2pa_status}
+        if c2pa_details:
+            c2pa_ind.update({k: v for k, v in c2pa_details.items() if v is not None})
+        already_detected = indicators.get('c2pa') is not None
+        indicators['c2pa'] = c2pa_ind
+        if not already_detected:
+            indicators['summary'] += f' | C2PA: {c2pa_status}'
     ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
     noise_flagged, noise_note           = _check_noise_inconsistency(path)
     blocking_flagged, blocking_note     = _check_compression_blocking(path)
@@ -858,6 +969,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     return {
         "exif_anomalies": exif_anomalies,
         "ifd0_tags":      ifd0_tags,
+        "indicators":     indicators,
         "c2pa_status":    c2pa_status,
         "c2pa_details":   c2pa_details,
         "artifacts":      artifacts,

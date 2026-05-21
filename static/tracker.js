@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '', c2paViewerFound: '' },
+    filters:           { type: '', model: '', blankOnly: '', analysis: '' },
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -106,9 +106,10 @@
   }
 
   function hasBlankFields(r) {
-    if (r.type === 'p0') return !r.original_filename;
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename;
-    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used;
+    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null;
+    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null;
+    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null;
+    if (r.type === 'p3') return r.c2pa_viewer_found == null;
     return false;
   }
 
@@ -153,7 +154,7 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis, c2paViewerFound } = state.filters;
+    const { type, model, blankOnly, analysis } = state.filters;
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
@@ -161,9 +162,6 @@
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
-      if (c2paViewerFound === 'yes'        && r.c2pa_viewer_found !== true)  return false;
-      if (c2paViewerFound === 'no'         && r.c2pa_viewer_found !== false) return false;
-      if (c2paViewerFound === 'unanswered' && r.c2pa_viewer_found != null)   return false;
       return true;
     });
   }
@@ -512,8 +510,11 @@
 
   function toggleViewerDetails(prefix) {
     const yes = document.getElementById('an-' + prefix + '-viewer-found-yes');
+    const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
     const wrap = document.getElementById('an-' + prefix + '-viewer-details');
     if (wrap) wrap.style.display = yes?.checked ? '' : 'none';
+    const foundField = document.getElementById('an-' + prefix + '-viewer-found-field');
+    if (foundField) foundField.classList.toggle('field-blank', !yes?.checked && !no?.checked);
   }
 
   function fillViewerSection(prefix, rec) {
@@ -522,6 +523,8 @@
     const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
     if (yes) yes.checked = found === true;
     if (no)  no.checked  = found === false;
+    const foundField = document.getElementById('an-' + prefix + '-viewer-found-field');
+    if (foundField) foundField.classList.toggle('field-blank', found !== true && found !== false);
     const wrap = document.getElementById('an-' + prefix + '-viewer-details');
     if (wrap) wrap.style.display = found ? '' : 'none';
     setVal('an-' + prefix + '-viewer-signed-by',   rec.c2pa_viewer_signed_by   || '');
@@ -593,6 +596,91 @@
     detailsEl.style.display = '';
   }
 
+  function _buildIndicatorTable(tableEl, detailsEl, rows) {
+    if (!detailsEl || !tableEl) return;
+    if (!rows || !rows.length) { detailsEl.style.display = 'none'; return; }
+    tableEl.textContent = '';
+    rows.forEach(([label, value, cls]) => {
+      const tr = document.createElement('tr');
+      const tdL = document.createElement('td'); tdL.textContent = label;
+      const tdV = document.createElement('td'); tdV.textContent = value;
+      if (cls) tdV.className = cls;
+      tr.append(tdL, tdV);
+      tableEl.appendChild(tr);
+    });
+    detailsEl.style.display = '';
+  }
+
+  function _fillIndicatorsSection(prefix, rec) {
+    const ind = rec.indicators;
+    setVal('an-' + prefix + '-indicators-summary', ind?.summary || '');
+
+    // Camera EXIF
+    const camRows = ind?.camera_exif ? [
+      ...Object.entries(ind.camera_exif.present).map(([k, v]) => [k, v, null]),
+      ...(ind.camera_exif.absent.length ? [['Absent', ind.camera_exif.absent.join(', '), 'c2pa-warn']] : []),
+    ] : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-camera-exif-table'),
+      document.getElementById('an-' + prefix + '-camera-exif-details'),
+      camRows
+    );
+
+    // Photoshop/Adobe
+    const psRows = ind?.photoshop_adobe
+      ? Object.entries(ind.photoshop_adobe).map(([k, v]) => [k.replace(/^(Photoshop|Adobe):/, ''), v, null])
+      : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-photoshop-table'),
+      document.getElementById('an-' + prefix + '-photoshop-details'),
+      psRows
+    );
+
+    // ICC meas/view
+    const iccRows = ind?.icc_meas_view
+      ? Object.entries(ind.icc_meas_view).map(([k, v]) => [k.replace(/^ICC-(meas|view):/, ''), v, null])
+      : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-icc-table'),
+      document.getElementById('an-' + prefix + '-icc-details'),
+      iccRows
+    );
+
+    // Grok signatures
+    const grokRows = ind?.grok_signatures ? [
+      ...(ind.grok_signatures.artist      ? [['Artist (UUID)',  ind.grok_signatures.artist,       'c2pa-warn']] : []),
+      ...(ind.grok_signatures.user_comment ? [['UserComment',   ind.grok_signatures.user_comment,  'c2pa-warn']] : []),
+    ] : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-grok-table'),
+      document.getElementById('an-' + prefix + '-grok-details'),
+      grokRows
+    );
+
+    // C2PA auto-detected
+    const c2pa = ind?.c2pa;
+    const c2paRows = c2pa ? (() => {
+      const rows = [['Status', c2pa.status || '', null]];
+      if (c2pa.claim_generator)         rows.push(['Claim generator', c2pa.claim_generator, null]);
+      if (c2pa.software_agent)          rows.push(['Software agent', c2pa.software_agent, null]);
+      if (c2pa.c2pa_version)            rows.push(['C2PA version', c2pa.c2pa_version, null]);
+      if (c2pa.actions?.length)         rows.push(['Actions', c2pa.actions.join(', '), null]);
+      if (c2pa.digital_source_type)     rows.push(['Digital source type', c2pa.digital_source_type, null]);
+      if (c2pa.manifest_id)             rows.push(['Manifest ID', c2pa.manifest_id, null]);
+      if (c2pa.validation_failures?.length) {
+        rows.push(['Validation', c2pa.validation_failure_explanations?.join('; ') || c2pa.validation_failures.join('; '), 'c2pa-warn']);
+      } else if (rows.length > 1) {
+        rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+      }
+      return rows;
+    })() : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-c2pa-table'),
+      document.getElementById('an-' + prefix + '-c2pa-details'),
+      c2paRows
+    );
+  }
+
   function _renderElaPreview(previewId, imgId, b64) {
     const preview = document.getElementById(previewId);
     const img     = document.getElementById(imgId);
@@ -607,7 +695,7 @@
 
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
-    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -618,6 +706,7 @@
       if (results) results.style.display = 'none';
       if (analyzeBtn) analyzeBtn.style.display = '';
       section.open = false;
+      _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
       return;
     }
@@ -626,13 +715,7 @@
     if (analyzeBtn) analyzeBtn.style.display = 'none';
     section.open = true;
 
-    setVal('an-' + prefix + '-exif', rec.exif_anomalies);
-    _buildIfd0Table(
-      document.getElementById('an-' + prefix + '-ifd0-table'),
-      document.getElementById('an-' + prefix + '-ifd0-details'),
-      rec.ifd0_tags
-    );
-    setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
+    _fillIndicatorsSection(prefix, rec);
     setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
 
     // Artifact tags
@@ -646,12 +729,6 @@
         listEl.appendChild(tag);
       });
     }
-
-    _buildC2paTable(
-      document.getElementById('an-' + prefix + '-c2pa-table'),
-      document.getElementById('an-' + prefix + '-c2pa-details'),
-      rec.c2pa_details
-    );
 
     fillViewerSection(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
@@ -670,8 +747,7 @@
       document.getElementById('p3-form-actions').style.display = '';
       document.getElementById('p3-empty').style.display = 'none';
 
-      setVal('an-p3-exif', rec.exif_anomalies);
-      setVal('an-p3-c2pa', rec.c2pa_status);
+      _fillIndicatorsSection('p3', rec);
       setVal('an-p3-artifact-notes', rec.artifact_notes);
       setVal('p3-analysis-notes', rec.analysis_notes);
 
@@ -685,12 +761,6 @@
           listEl.appendChild(tag);
         });
       }
-
-      _buildC2paTable(
-        document.getElementById('an-p3-c2pa-table'),
-        document.getElementById('an-p3-c2pa-details'),
-        rec.c2pa_details
-      );
 
       fillViewerSection('p3', rec);
       _renderElaPreview('an-p3-ela-preview', 'an-p3-ela-img', rec.ela_image_b64);
@@ -811,6 +881,7 @@
       Object.assign(rec, {
         exif_anomalies: result.exif_anomalies,
         ifd0_tags:      result.ifd0_tags,
+        indicators:     result.indicators,
         c2pa_status:    result.c2pa_status,
         c2pa_details:   result.c2pa_details,
         artifacts:      result.artifacts,
