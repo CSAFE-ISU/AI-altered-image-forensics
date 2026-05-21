@@ -833,12 +833,66 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
         return False, ""
 
 
+def _detect_indicators(tags: dict) -> dict:
+    """Detect forensic indicators of AI generation from exiftool tags."""
+    _CAMERA_KEYS = {
+        'Make':             'IFD0:Make',
+        'Model':            'IFD0:Model',
+        'Software':         'IFD0:Software',
+        'DateTimeOriginal': 'ExifIFD:DateTimeOriginal',
+        'CreateDate':       'ExifIFD:CreateDate',
+        'ISO':              'ExifIFD:ISO',
+        'FocalLength':      'ExifIFD:FocalLength',
+        'ExposureTime':     'ExifIFD:ExposureTime',
+        'FNumber':          'ExifIFD:FNumber',
+        'MeteringMode':     'ExifIFD:MeteringMode',
+        'WhiteBalance':     'ExifIFD:WhiteBalance',
+        'Flash':            'ExifIFD:Flash',
+        'SceneType':        'ExifIFD:SceneType',
+        'LensMake':         'ExifIFD:LensMake',
+        'LensModel':        'ExifIFD:LensModel',
+    }
+    camera_present = {label: str(tags[key]) for label, key in _CAMERA_KEYS.items() if key in tags}
+    camera_absent  = [label for label, key in _CAMERA_KEYS.items() if key not in tags]
+
+    photoshop_adobe = {k: str(v) for k, v in tags.items() if k.startswith(('Photoshop:', 'Adobe:'))}
+
+    icc_meas_view = {k: str(v) for k, v in tags.items() if k.startswith(('ICC-meas:', 'ICC-view:'))}
+
+    artist      = str(tags.get('IFD0:Artist', ''))
+    user_comment = str(tags.get('ExifIFD:UserComment', ''))
+    grok_artist    = artist      if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-', artist.lower())      else None
+    grok_signature = user_comment if user_comment.startswith('Signature:') else None
+    grok_signatures = {'artist': grok_artist, 'user_comment': grok_signature} if (grok_artist or grok_signature) else None
+
+    parts = []
+    if camera_present:
+        parts.append(f"Camera EXIF: present ({len(camera_present)} fields)")
+    else:
+        parts.append("Camera EXIF: absent")
+    if photoshop_adobe:
+        parts.append("Photoshop/Adobe markers detected")
+    if icc_meas_view:
+        parts.append("ICC measurement/viewing conditions detected")
+    if grok_signatures:
+        parts.append("Grok signature detected")
+
+    return {
+        'summary':        ' | '.join(parts),
+        'camera_exif':    {'present': camera_present, 'absent': camera_absent},
+        'photoshop_adobe': photoshop_adobe or None,
+        'icc_meas_view':  icc_meas_view or None,
+        'grok_signatures': grok_signatures,
+    }
+
+
 def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     tags = _run_exiftool(path)
     if tags:
         meta_path = METADATA_DIR / (path.stem + ".json")
         meta_path.write_text(json.dumps(tags, indent=2))
     ifd0_tags      = {k: v for k, v in tags.items() if k.startswith("IFD0:")}
+    indicators     = _detect_indicators(tags) if tags else None
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
     c2pa_status    = _check_c2pa(path, tags)
     c2pa_details   = _extract_c2pa_details(tags, path)
@@ -858,6 +912,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     return {
         "exif_anomalies": exif_anomalies,
         "ifd0_tags":      ifd0_tags,
+        "indicators":     indicators,
         "c2pa_status":    c2pa_status,
         "c2pa_details":   c2pa_details,
         "artifacts":      artifacts,

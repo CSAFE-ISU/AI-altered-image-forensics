@@ -593,6 +593,68 @@
     detailsEl.style.display = '';
   }
 
+  function _buildIndicatorTable(tableEl, detailsEl, rows) {
+    if (!detailsEl || !tableEl) return;
+    if (!rows || !rows.length) { detailsEl.style.display = 'none'; return; }
+    tableEl.textContent = '';
+    rows.forEach(([label, value, cls]) => {
+      const tr = document.createElement('tr');
+      const tdL = document.createElement('td'); tdL.textContent = label;
+      const tdV = document.createElement('td'); tdV.textContent = value;
+      if (cls) tdV.className = cls;
+      tr.append(tdL, tdV);
+      tableEl.appendChild(tr);
+    });
+    detailsEl.style.display = '';
+  }
+
+  function _fillIndicatorsSection(prefix, rec) {
+    const ind = rec.indicators;
+    setVal('an-' + prefix + '-indicators-summary', ind?.summary || '');
+
+    // Camera EXIF
+    const camRows = ind?.camera_exif ? [
+      ...Object.entries(ind.camera_exif.present).map(([k, v]) => [k, v, null]),
+      ...(ind.camera_exif.absent.length ? [['Absent', ind.camera_exif.absent.join(', '), 'c2pa-warn']] : []),
+    ] : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-camera-exif-table'),
+      document.getElementById('an-' + prefix + '-camera-exif-details'),
+      camRows
+    );
+
+    // Photoshop/Adobe
+    const psRows = ind?.photoshop_adobe
+      ? Object.entries(ind.photoshop_adobe).map(([k, v]) => [k.replace(/^(Photoshop|Adobe):/, ''), v, null])
+      : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-photoshop-table'),
+      document.getElementById('an-' + prefix + '-photoshop-details'),
+      psRows
+    );
+
+    // ICC meas/view
+    const iccRows = ind?.icc_meas_view
+      ? Object.entries(ind.icc_meas_view).map(([k, v]) => [k.replace(/^ICC-(meas|view):/, ''), v, null])
+      : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-icc-table'),
+      document.getElementById('an-' + prefix + '-icc-details'),
+      iccRows
+    );
+
+    // Grok signatures
+    const grokRows = ind?.grok_signatures ? [
+      ...(ind.grok_signatures.artist      ? [['Artist (UUID)',  ind.grok_signatures.artist,       'c2pa-warn']] : []),
+      ...(ind.grok_signatures.user_comment ? [['UserComment',   ind.grok_signatures.user_comment,  'c2pa-warn']] : []),
+    ] : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-grok-table'),
+      document.getElementById('an-' + prefix + '-grok-details'),
+      grokRows
+    );
+  }
+
   function _renderElaPreview(previewId, imgId, b64) {
     const preview = document.getElementById(previewId);
     const img     = document.getElementById(imgId);
@@ -607,7 +669,7 @@
 
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
-    const hasData = rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -618,6 +680,7 @@
       if (results) results.style.display = 'none';
       if (analyzeBtn) analyzeBtn.style.display = '';
       section.open = false;
+      _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
       return;
     }
@@ -626,12 +689,7 @@
     if (analyzeBtn) analyzeBtn.style.display = 'none';
     section.open = true;
 
-    setVal('an-' + prefix + '-exif', rec.exif_anomalies);
-    _buildIfd0Table(
-      document.getElementById('an-' + prefix + '-ifd0-table'),
-      document.getElementById('an-' + prefix + '-ifd0-details'),
-      rec.ifd0_tags
-    );
+    _fillIndicatorsSection(prefix, rec);
     setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
     setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
 
@@ -811,6 +869,7 @@
       Object.assign(rec, {
         exif_anomalies: result.exif_anomalies,
         ifd0_tags:      result.ifd0_tags,
+        indicators:     result.indicators,
         c2pa_status:    result.c2pa_status,
         c2pa_details:   result.c2pa_details,
         artifacts:      result.artifacts,

@@ -160,8 +160,11 @@
           <div id="an-p0-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p0-exif" readonly class="auto-field"></textarea></div>
-              <details id="an-p0-ifd0-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">IFD0 tags</summary><table id="an-p0-ifd0-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-indicators-summary" readonly class="auto-field" style="width:100%"></div>
+              <details id="an-p0-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p0-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p0-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p0-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p0-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p0-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p0-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p0-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Results - Auto-detected</div>
@@ -293,8 +296,11 @@
           <div id="an-p1-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p1-exif" readonly class="auto-field"></textarea></div>
-              <details id="an-p1-ifd0-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">IFD0 tags</summary><table id="an-p1-ifd0-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-indicators-summary" readonly class="auto-field" style="width:100%"></div>
+              <details id="an-p1-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p1-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p1-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p1-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p1-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p1-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p1-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p1-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Results - Auto-detected</div>
@@ -531,8 +537,11 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           <div id="an-p2-results" style="display:none">
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
-              <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p2-exif" readonly class="auto-field"></textarea></div>
-              <details id="an-p2-ifd0-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">IFD0 tags</summary><table id="an-p2-ifd0-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-indicators-summary" readonly class="auto-field" style="width:100%"></div>
+              <details id="an-p2-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p2-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p2-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p2-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p2-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p2-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p2-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p2-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Results - Auto-detected</div>
@@ -607,8 +616,11 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
         <div id="an-p3-results" style="display:none">
           <div class="section-card">
             <div class="section-label">Metadata forensics</div>
-            <div class="field"><label>EXIF / metadata anomalies <span class="auto-tag">(auto)</span></label><textarea id="an-p3-exif" readonly class="auto-field"></textarea></div>
-            <details id="an-p3-ifd0-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">IFD0 tags</summary><table id="an-p3-ifd0-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-indicators-summary" readonly class="auto-field" style="width:100%"></div>
+            <details id="an-p3-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p3-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <details id="an-p3-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p3-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <details id="an-p3-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p3-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+            <details id="an-p3-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p3-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
           </div>
           <div class="section-card">
             <div class="section-label">C2PA Results - Auto-detected</div>
