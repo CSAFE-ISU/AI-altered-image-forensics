@@ -653,6 +653,29 @@
       document.getElementById('an-' + prefix + '-grok-details'),
       grokRows
     );
+
+    // C2PA auto-detected
+    const c2pa = ind?.c2pa;
+    const c2paRows = c2pa ? (() => {
+      const rows = [['Status', c2pa.status || '', null]];
+      if (c2pa.claim_generator)         rows.push(['Claim generator', c2pa.claim_generator, null]);
+      if (c2pa.software_agent)          rows.push(['Software agent', c2pa.software_agent, null]);
+      if (c2pa.c2pa_version)            rows.push(['C2PA version', c2pa.c2pa_version, null]);
+      if (c2pa.actions?.length)         rows.push(['Actions', c2pa.actions.join(', '), null]);
+      if (c2pa.digital_source_type)     rows.push(['Digital source type', c2pa.digital_source_type, null]);
+      if (c2pa.manifest_id)             rows.push(['Manifest ID', c2pa.manifest_id, null]);
+      if (c2pa.validation_failures?.length) {
+        rows.push(['Validation', c2pa.validation_failure_explanations?.join('; ') || c2pa.validation_failures.join('; '), 'c2pa-warn']);
+      } else if (rows.length > 1) {
+        rows.push(['Validation', 'All checks passed', 'c2pa-ok']);
+      }
+      return rows;
+    })() : null;
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-c2pa-table'),
+      document.getElementById('an-' + prefix + '-c2pa-details'),
+      c2paRows
+    );
   }
 
   function _renderElaPreview(previewId, imgId, b64) {
@@ -690,7 +713,6 @@
     section.open = true;
 
     _fillIndicatorsSection(prefix, rec);
-    setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
     setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
 
     // Artifact tags
@@ -704,12 +726,6 @@
         listEl.appendChild(tag);
       });
     }
-
-    _buildC2paTable(
-      document.getElementById('an-' + prefix + '-c2pa-table'),
-      document.getElementById('an-' + prefix + '-c2pa-details'),
-      rec.c2pa_details
-    );
 
     fillViewerSection(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
@@ -728,8 +744,7 @@
       document.getElementById('p3-form-actions').style.display = '';
       document.getElementById('p3-empty').style.display = 'none';
 
-      setVal('an-p3-exif', rec.exif_anomalies);
-      setVal('an-p3-c2pa', rec.c2pa_status);
+      _fillIndicatorsSection('p3', rec);
       setVal('an-p3-artifact-notes', rec.artifact_notes);
       setVal('p3-analysis-notes', rec.analysis_notes);
 
@@ -743,12 +758,6 @@
           listEl.appendChild(tag);
         });
       }
-
-      _buildC2paTable(
-        document.getElementById('an-p3-c2pa-table'),
-        document.getElementById('an-p3-c2pa-details'),
-        rec.c2pa_details
-      );
 
       fillViewerSection('p3', rec);
       _renderElaPreview('an-p3-ela-preview', 'an-p3-ela-img', rec.ela_image_b64);
