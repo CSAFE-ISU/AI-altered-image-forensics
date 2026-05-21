@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '' },
+    filters:           { type: '', model: '', blankOnly: '', analysis: '', c2paViewerFound: '' },
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -153,7 +153,7 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis } = state.filters;
+    const { type, model, blankOnly, analysis, c2paViewerFound } = state.filters;
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
@@ -161,6 +161,9 @@
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
+      if (c2paViewerFound === 'yes'        && r.c2pa_viewer_found !== true)  return false;
+      if (c2paViewerFound === 'no'         && r.c2pa_viewer_found !== false) return false;
+      if (c2paViewerFound === 'unanswered' && r.c2pa_viewer_found != null)   return false;
       return true;
     });
   }
