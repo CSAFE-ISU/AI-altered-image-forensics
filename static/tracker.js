@@ -579,6 +579,20 @@
     detailsEl.style.display = '';
   }
 
+  function _buildIfd0Table(tableEl, detailsEl, ifd0Tags) {
+    if (!detailsEl || !tableEl) return;
+    if (!ifd0Tags || !Object.keys(ifd0Tags).length) { detailsEl.style.display = 'none'; return; }
+    tableEl.textContent = '';
+    Object.entries(ifd0Tags).forEach(([key, value]) => {
+      const tr = document.createElement('tr');
+      const tdL = document.createElement('td'); tdL.textContent = key.startsWith('IFD0:') ? key.slice(5) : key;
+      const tdV = document.createElement('td'); tdV.textContent = value;
+      tr.append(tdL, tdV);
+      tableEl.appendChild(tr);
+    });
+    detailsEl.style.display = '';
+  }
+
   function _renderElaPreview(previewId, imgId, b64) {
     const preview = document.getElementById(previewId);
     const img     = document.getElementById(imgId);
@@ -613,6 +627,11 @@
     section.open = true;
 
     setVal('an-' + prefix + '-exif', rec.exif_anomalies);
+    _buildIfd0Table(
+      document.getElementById('an-' + prefix + '-ifd0-table'),
+      document.getElementById('an-' + prefix + '-ifd0-details'),
+      rec.ifd0_tags
+    );
     setVal('an-' + prefix + '-c2pa', rec.c2pa_status);
     setVal('an-' + prefix + '-artifact-notes', rec.artifact_notes);
 
@@ -791,6 +810,7 @@
       }
       Object.assign(rec, {
         exif_anomalies: result.exif_anomalies,
+        ifd0_tags:      result.ifd0_tags,
         c2pa_status:    result.c2pa_status,
         c2pa_details:   result.c2pa_details,
         artifacts:      result.artifacts,

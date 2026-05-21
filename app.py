@@ -838,6 +838,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     if tags:
         meta_path = METADATA_DIR / (path.stem + ".json")
         meta_path.write_text(json.dumps(tags, indent=2))
+    ifd0_tags      = {k: v for k, v in tags.items() if k.startswith("IFD0:")}
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
     c2pa_status    = _check_c2pa(path, tags)
     c2pa_details   = _extract_c2pa_details(tags, path)
@@ -856,6 +857,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         notes.append(blocking_note)
     return {
         "exif_anomalies": exif_anomalies,
+        "ifd0_tags":      ifd0_tags,
         "c2pa_status":    c2pa_status,
         "c2pa_details":   c2pa_details,
         "artifacts":      artifacts,
