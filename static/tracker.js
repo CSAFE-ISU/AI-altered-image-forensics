@@ -1531,6 +1531,91 @@
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
+  function buildDashGroup(title, open = true) {
+    const details = document.createElement('details');
+    details.className = 'dash-group';
+    if (open) details.open = true;
+    const summary = document.createElement('summary');
+    summary.textContent = title;
+    details.appendChild(summary);
+    const body = document.createElement('div');
+    body.className = 'dash-group-body';
+    details.appendChild(body);
+    return { details, body };
+  }
+
+  function buildMetadataIndicatorsSection(p0, p1, p2) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = 'Metadata Indicators';
+    section.appendChild(titleEl);
+
+    const INDICATORS = [
+      ['Camera EXIF absent',              r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length === 0],
+      ['Photoshop / Adobe markers',       r => r.indicators?.photoshop_adobe != null],
+      ['ICC measurement / viewing cond.', r => r.indicators?.icc_meas_view != null],
+      ['Grok signature',                  r => r.indicators?.grok_signatures != null],
+      ['C2PA manifest',                   r => r.indicators?.c2pa != null],
+    ];
+
+    const types = [
+      { label: 'Original', records: p0 },
+      { label: 'Modified', records: p1 },
+      { label: 'Altered',  records: p2 },
+    ];
+
+    const anyAnalyzed = [...p0, ...p1, ...p2].some(r => r.indicators);
+    if (!anyAnalyzed) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No analyzed records yet.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    const maxVal = Math.max(
+      1,
+      ...INDICATORS.flatMap(([, fn]) => types.map(({ records }) => records.filter(fn).length))
+    );
+
+    INDICATORS.forEach(([name, fn]) => {
+      const group = document.createElement('div');
+      group.className = 'dash-indicator-group';
+      const lbl = document.createElement('div');
+      lbl.className = 'dash-indicator-label';
+      lbl.textContent = name;
+      group.appendChild(lbl);
+      const chart = document.createElement('div');
+      chart.className = 'dash-bar-chart';
+      types.forEach(({ label, records }) => {
+        const analyzed = records.filter(r => r.indicators);
+        if (!analyzed.length) return;
+        const count = analyzed.filter(fn).length;
+        const row = document.createElement('div');
+        row.className = 'dash-bar-row';
+        const labelEl = document.createElement('span');
+        labelEl.className = 'dash-bar-label';
+        labelEl.textContent = label;
+        const track = document.createElement('div');
+        track.className = 'dash-bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'dash-bar-fill';
+        fill.style.width = Math.round(count / maxVal * 100) + '%';
+        track.appendChild(fill);
+        const cEl = document.createElement('span');
+        cEl.className = 'dash-bar-count-wide';
+        cEl.textContent = `${count} / ${analyzed.length}`;
+        row.append(labelEl, track, cEl);
+        chart.appendChild(row);
+      });
+      group.appendChild(chart);
+      section.appendChild(group);
+    });
+
+    return section;
+  }
+
   function openDashboard() {
     const content = document.getElementById('dashboard-content');
     content.innerHTML = '';
@@ -1538,71 +1623,56 @@
     const p0 = state.records.filter(r => r.type === 'p0');
     const p1 = state.records.filter(r => r.type === 'p1');
     const p2 = state.records.filter(r => r.type === 'p2');
-    // ── Summary cards ──
-    const summarySection = document.createElement('div');
-    const summaryTitle = document.createElement('div');
-    summaryTitle.className = 'dash-section-title';
-    summaryTitle.textContent = 'Summary';
-    summarySection.appendChild(summaryTitle);
+
+    // ── Summary group ──
+    const { details: sumDetails, body: sumBody } = buildDashGroup('Summary');
+    content.appendChild(sumDetails);
 
     const cards = document.createElement('div');
     cards.className = 'dash-cards';
-    [
-      [p0.length, 'Originals'],
-      [p1.length, 'Modifications'],
-      [p2.length, 'Alterations'],
-    ].forEach(([num, label]) => {
+    [[p0.length, 'Originals'], [p1.length, 'Modifications'], [p2.length, 'Alterations']].forEach(([num, label]) => {
       const card = document.createElement('div');
       card.className = 'dash-card';
-      const n = document.createElement('div');
-      n.className = 'dash-card-num';
-      n.textContent = num;
-      const l = document.createElement('div');
-      l.className = 'dash-card-label';
-      l.textContent = label;
-      card.appendChild(n);
-      card.appendChild(l);
-      cards.appendChild(card);
+      const n = document.createElement('div'); n.className = 'dash-card-num'; n.textContent = num;
+      const l = document.createElement('div'); l.className = 'dash-card-label'; l.textContent = label;
+      card.appendChild(n); card.appendChild(l); cards.appendChild(card);
     });
-    summarySection.appendChild(cards);
-    content.appendChild(summarySection);
+    sumBody.appendChild(cards);
 
-    // ── Alterations by model ──
     if (p2.length) {
-      const modelCounts = {};
-      const modelIds = {};
+      const modelCounts = {}, modelIds = {};
       p2.forEach(r => {
         const m = (r.model || 'Unknown').trim() || 'Unknown';
         modelCounts[m] = (modelCounts[m] || 0) + 1;
         (modelIds[m] = modelIds[m] || []).push(r.id);
       });
-      content.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
+      sumBody.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
     }
 
-    // ── Subjective quality distribution ──
     if (p2.length) {
-      const qualityCounts = {};
-      const qualityIds = {};
+      const qualityCounts = {}, qualityIds = {};
       p2.forEach(r => {
         const q = r.subjective_quality ? '★' + r.subjective_quality : 'Not rated';
         qualityCounts[q] = (qualityCounts[q] || 0) + 1;
         (qualityIds[q] = qualityIds[q] || []).push(r.id);
       });
-      const ordered = {};
-      const orderedIds = {};
+      const ordered = {}, orderedIds = {};
       ['★5','★4','★3','★2','★1'].forEach(k => {
         if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
       });
       if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
-      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
+      sumBody.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
     }
 
-    // ── Quality by model scatter plot ──
-    if (p2.length) content.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
 
-    // ── Models with visible watermarks ──
-    const watermarked = p2.filter(r => r.visible_watermark);
+    // ── AI Indicators group ──
+    const { details: aiDetails, body: aiBody } = buildDashGroup('AI Indicators');
+    content.appendChild(aiDetails);
+
+    // Models with visible watermarks
     if (p2.length) {
+      const watermarked = p2.filter(r => r.visible_watermark);
       const allModels = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
       const wmModels = new Set(watermarked.map(r => (r.model || 'Unknown').trim() || 'Unknown'));
       const noWmModels = allModels.filter(m => !wmModels.has(m));
@@ -1613,10 +1683,10 @@
       wmTitle.textContent = 'Models with Visible Watermarks';
       wmSection.appendChild(wmTitle);
 
-      const summary = document.createElement('p');
-      summary.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0 0 1rem;';
-      summary.textContent = `${wmModels.size} out of ${allModels.length} models have visible watermarks`;
-      wmSection.appendChild(summary);
+      const wmSummary = document.createElement('p');
+      wmSummary.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0 0 1rem;';
+      wmSummary.textContent = `${wmModels.size} out of ${allModels.length} models have visible watermarks`;
+      wmSection.appendChild(wmSummary);
 
       if (watermarked.length) {
         const table = document.createElement('table');
@@ -1624,9 +1694,7 @@
         const thead = table.createTHead();
         const hrow = thead.insertRow();
         ['Model', 'Watermark description'].forEach(h => {
-          const th = document.createElement('th');
-          th.textContent = h;
-          hrow.appendChild(th);
+          const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
         });
         const tbody = table.createTBody();
         const seen = new Set();
@@ -1652,8 +1720,11 @@
         wmSection.appendChild(noWmList);
       }
 
-      content.appendChild(wmSection);
+      aiBody.appendChild(wmSection);
     }
+
+    // Metadata indicators
+    aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
