@@ -1552,7 +1552,7 @@
     section.appendChild(titleEl);
 
     const INDICATORS = [
-      ['Camera EXIF absent',              r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length === 0],
+      ['Camera EXIF',                      r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
       ['Photoshop / Adobe markers',       r => r.indicators?.photoshop_adobe != null],
       ['ICC measurement / viewing cond.', r => r.indicators?.icc_meas_view != null],
       ['Grok signature',                  r => r.indicators?.grok_signatures != null],
