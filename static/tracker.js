@@ -1548,7 +1548,7 @@
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
-    titleEl.textContent = 'Metadata Indicators by Image Type';
+    titleEl.textContent = 'Metadata Tags by Image Type';
     section.appendChild(titleEl);
     const subEl1 = document.createElement('p');
     subEl1.className = 'dash-section-subtitle';
@@ -1626,80 +1626,56 @@
     return section;
   }
 
-  function buildMetadataIndicatorsByModelSection(p2) {
+  function buildModelIndicatorTable(p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
-    titleEl.textContent = 'Metadata Indicators for Altered Images by Model';
+    titleEl.textContent = 'Indicator Presence by Model';
     section.appendChild(titleEl);
-    const subEl2 = document.createElement('p');
-    subEl2.className = 'dash-section-subtitle';
-    subEl2.textContent = 'Percentage of total images from the specified model that have the indicator in their metadata.';
-    section.appendChild(subEl2);
+    const subEl = document.createElement('p');
+    subEl.className = 'dash-section-subtitle';
+    subEl.textContent = 'Marked if any altered image from that model has the indicator present.';
+    section.appendChild(subEl);
 
     const INDICATORS = [
-      ['Camera EXIF',                      r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
-      ['Photoshop / Adobe markers',        r => r.indicators?.photoshop_adobe != null],
-      ['ICC measurement / viewing cond.',  r => r.indicators?.icc_meas_view != null],
-      ['Grok signature',                   r => r.indicators?.grok_signatures != null],
-      ['C2PA manifest',                    r => r.indicators?.c2pa != null],
+      ['Camera EXIF',         r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
+      ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null],
+      ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null],
+      ['Grok signature',      r => r.indicators?.grok_signatures != null],
+      ['C2PA manifest',       r => r.indicators?.c2pa != null],
+      ['Visible watermark',   r => !!r.visible_watermark],
     ];
 
-    const analyzed = p2.filter(r => r.indicators);
-    if (!analyzed.length) {
-      const empty = document.createElement('p');
-      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
-      empty.textContent = 'No analyzed altered records yet.';
-      section.appendChild(empty);
-      return section;
-    }
+    const models = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
 
-    const models = [...new Set(analyzed.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
+    const table = document.createElement('table');
+    table.className = 'dash-table';
 
-    INDICATORS.forEach(([name, fn]) => {
-      const group = document.createElement('div');
-      group.className = 'dash-indicator-group';
-      const lbl = document.createElement('div');
-      lbl.className = 'dash-indicator-label';
-      lbl.textContent = name;
-      group.appendChild(lbl);
-      const chart = document.createElement('div');
-      chart.className = 'dash-bar-chart';
-      models.forEach(model => {
-        const modelRecords = analyzed.filter(r => (r.model || 'Unknown').trim() === model);
-        const matching = modelRecords.filter(fn);
-        const count = matching.length;
-        const pct = Math.round(count / modelRecords.length * 100);
-        const row = document.createElement('div');
-        row.className = 'dash-bar-row';
-        if (count > 0) {
-          row.style.cursor = 'pointer';
-          row.title = 'Click to view in gallery';
-          const ids = new Set(matching.map(r => r.id));
-          row.addEventListener('click', () => {
-            closeDashboard();
-            openGallery(ids, `${name} — ${model}`);
-          });
-        }
-        const labelEl = document.createElement('span');
-        labelEl.className = 'dash-bar-label';
-        labelEl.textContent = model;
-        const track = document.createElement('div');
-        track.className = 'dash-bar-track';
-        const fill = document.createElement('div');
-        fill.className = 'dash-bar-fill';
-        fill.style.width = pct + '%';
-        track.appendChild(fill);
-        const cEl = document.createElement('span');
-        cEl.className = 'dash-bar-count-wide';
-        cEl.textContent = `${pct}%`;
-        row.append(labelEl, track, cEl);
-        chart.appendChild(row);
-      });
-      group.appendChild(chart);
-      section.appendChild(group);
+    const thead = table.createTHead();
+    const hrow = thead.insertRow();
+    const modelTh = document.createElement('th');
+    modelTh.textContent = 'Model';
+    hrow.appendChild(modelTh);
+    INDICATORS.forEach(([label]) => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      th.style.textAlign = 'center';
+      hrow.appendChild(th);
     });
 
+    const tbody = table.createTBody();
+    models.forEach(model => {
+      const modelRecords = p2.filter(r => (r.model || 'Unknown').trim() === model);
+      const tr = tbody.insertRow();
+      tr.insertCell().textContent = model;
+      INDICATORS.forEach(([, fn]) => {
+        const td = tr.insertCell();
+        td.style.textAlign = 'center';
+        if (modelRecords.some(fn)) td.textContent = 'x';
+      });
+    });
+
+    section.appendChild(table);
     return section;
   }
 
@@ -1812,7 +1788,8 @@
 
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
-    if (p2.length) aiBody.appendChild(buildMetadataIndicatorsByModelSection(p2));
+
+    if (p2.length) aiBody.appendChild(buildModelIndicatorTable(p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
