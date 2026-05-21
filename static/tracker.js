@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '', c2paViewerFound: '' },
+    filters:           { type: '', model: '', blankOnly: '', analysis: '' },
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -106,9 +106,10 @@
   }
 
   function hasBlankFields(r) {
-    if (r.type === 'p0') return !r.original_filename;
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename;
-    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used;
+    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null;
+    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null;
+    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null;
+    if (r.type === 'p3') return r.c2pa_viewer_found == null;
     return false;
   }
 
@@ -153,7 +154,7 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis, c2paViewerFound } = state.filters;
+    const { type, model, blankOnly, analysis } = state.filters;
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
@@ -161,9 +162,6 @@
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
-      if (c2paViewerFound === 'yes'        && r.c2pa_viewer_found !== true)  return false;
-      if (c2paViewerFound === 'no'         && r.c2pa_viewer_found !== false) return false;
-      if (c2paViewerFound === 'unanswered' && r.c2pa_viewer_found != null)   return false;
       return true;
     });
   }
@@ -512,8 +510,11 @@
 
   function toggleViewerDetails(prefix) {
     const yes = document.getElementById('an-' + prefix + '-viewer-found-yes');
+    const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
     const wrap = document.getElementById('an-' + prefix + '-viewer-details');
     if (wrap) wrap.style.display = yes?.checked ? '' : 'none';
+    const foundField = document.getElementById('an-' + prefix + '-viewer-found-field');
+    if (foundField) foundField.classList.toggle('field-blank', !yes?.checked && !no?.checked);
   }
 
   function fillViewerSection(prefix, rec) {
@@ -522,6 +523,8 @@
     const no  = document.getElementById('an-' + prefix + '-viewer-found-no');
     if (yes) yes.checked = found === true;
     if (no)  no.checked  = found === false;
+    const foundField = document.getElementById('an-' + prefix + '-viewer-found-field');
+    if (foundField) foundField.classList.toggle('field-blank', found !== true && found !== false);
     const wrap = document.getElementById('an-' + prefix + '-viewer-details');
     if (wrap) wrap.style.display = found ? '' : 'none';
     setVal('an-' + prefix + '-viewer-signed-by',   rec.c2pa_viewer_signed_by   || '');

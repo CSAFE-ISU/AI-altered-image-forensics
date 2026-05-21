@@ -60,15 +60,6 @@
           <option value="no">No analysis</option>
         </select>
       </div>
-      <div class="filter-row">
-        <label class="filter-label">C2PA data found</label>
-        <select id="filter-c2pa-viewer-found" onchange="setFilter('c2paViewerFound', this.value)">
-          <option value="">All</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-          <option value="unanswered">Unanswered</option>
-        </select>
-      </div>
     </div>
     <div id="study-tree"></div>
     <div id="analyses-section" style="display:none">
@@ -169,7 +160,7 @@
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
-              <div class="field">
+              <div class="field" id="an-p0-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                   <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p0')"> Yes</label>
@@ -303,7 +294,7 @@
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
-              <div class="field">
+              <div class="field" id="an-p1-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                   <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p1')"> Yes</label>
@@ -542,7 +533,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
-              <div class="field">
+              <div class="field" id="an-p2-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                   <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p2')"> Yes</label>
@@ -619,7 +610,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           </div>
           <div class="section-card">
             <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
-            <div class="field">
+            <div class="field" id="an-p3-viewer-found-field">
               <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
                 <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
                 <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p3-viewer-found" id="an-p3-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p3')"> Yes</label>
