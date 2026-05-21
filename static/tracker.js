@@ -604,6 +604,7 @@
       if (results) results.style.display = 'none';
       if (analyzeBtn) analyzeBtn.style.display = '';
       section.open = false;
+      fillViewerSection(prefix, rec);
       return;
     }
     if (empty) empty.style.display = 'none';
