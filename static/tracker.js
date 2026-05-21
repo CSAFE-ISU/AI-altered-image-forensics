@@ -1548,8 +1548,12 @@
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
-    titleEl.textContent = 'Metadata Indicators';
+    titleEl.textContent = 'Metadata Indicators by Image Type';
     section.appendChild(titleEl);
+    const subEl1 = document.createElement('p');
+    subEl1.className = 'dash-section-subtitle';
+    subEl1.textContent = 'Percentage of total images of the specified type that have the indicator in their metadata.';
+    section.appendChild(subEl1);
 
     const INDICATORS = [
       ['Camera EXIF',                      r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
@@ -1574,11 +1578,6 @@
       return section;
     }
 
-    const maxVal = Math.max(
-      1,
-      ...INDICATORS.flatMap(([, fn]) => types.map(({ records }) => records.filter(fn).length))
-    );
-
     INDICATORS.forEach(([name, fn]) => {
       const group = document.createElement('div');
       group.className = 'dash-indicator-group';
@@ -1591,9 +1590,20 @@
       types.forEach(({ label, records }) => {
         const analyzed = records.filter(r => r.indicators);
         if (!analyzed.length) return;
-        const count = analyzed.filter(fn).length;
+        const matching = analyzed.filter(fn);
+        const count = matching.length;
+        const pct = Math.round(count / analyzed.length * 100);
         const row = document.createElement('div');
         row.className = 'dash-bar-row';
+        if (count > 0) {
+          row.style.cursor = 'pointer';
+          row.title = 'Click to view in gallery';
+          const ids = new Set(matching.map(r => r.id));
+          row.addEventListener('click', () => {
+            closeDashboard();
+            openGallery(ids, `${name} — ${label}`);
+          });
+        }
         const labelEl = document.createElement('span');
         labelEl.className = 'dash-bar-label';
         labelEl.textContent = label;
@@ -1601,11 +1611,88 @@
         track.className = 'dash-bar-track';
         const fill = document.createElement('div');
         fill.className = 'dash-bar-fill';
-        fill.style.width = Math.round(count / maxVal * 100) + '%';
+        fill.style.width = pct + '%';
         track.appendChild(fill);
         const cEl = document.createElement('span');
         cEl.className = 'dash-bar-count-wide';
-        cEl.textContent = `${count} / ${analyzed.length}`;
+        cEl.textContent = `${pct}%`;
+        row.append(labelEl, track, cEl);
+        chart.appendChild(row);
+      });
+      group.appendChild(chart);
+      section.appendChild(group);
+    });
+
+    return section;
+  }
+
+  function buildMetadataIndicatorsByModelSection(p2) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = 'Metadata Indicators for Altered Images by Model';
+    section.appendChild(titleEl);
+    const subEl2 = document.createElement('p');
+    subEl2.className = 'dash-section-subtitle';
+    subEl2.textContent = 'Percentage of total images from the specified model that have the indicator in their metadata.';
+    section.appendChild(subEl2);
+
+    const INDICATORS = [
+      ['Camera EXIF',                      r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
+      ['Photoshop / Adobe markers',        r => r.indicators?.photoshop_adobe != null],
+      ['ICC measurement / viewing cond.',  r => r.indicators?.icc_meas_view != null],
+      ['Grok signature',                   r => r.indicators?.grok_signatures != null],
+      ['C2PA manifest',                    r => r.indicators?.c2pa != null],
+    ];
+
+    const analyzed = p2.filter(r => r.indicators);
+    if (!analyzed.length) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No analyzed altered records yet.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    const models = [...new Set(analyzed.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
+
+    INDICATORS.forEach(([name, fn]) => {
+      const group = document.createElement('div');
+      group.className = 'dash-indicator-group';
+      const lbl = document.createElement('div');
+      lbl.className = 'dash-indicator-label';
+      lbl.textContent = name;
+      group.appendChild(lbl);
+      const chart = document.createElement('div');
+      chart.className = 'dash-bar-chart';
+      models.forEach(model => {
+        const modelRecords = analyzed.filter(r => (r.model || 'Unknown').trim() === model);
+        const matching = modelRecords.filter(fn);
+        const count = matching.length;
+        const pct = Math.round(count / modelRecords.length * 100);
+        const row = document.createElement('div');
+        row.className = 'dash-bar-row';
+        if (count > 0) {
+          row.style.cursor = 'pointer';
+          row.title = 'Click to view in gallery';
+          const ids = new Set(matching.map(r => r.id));
+          row.addEventListener('click', () => {
+            closeDashboard();
+            openGallery(ids, `${name} — ${model}`);
+          });
+        }
+        const labelEl = document.createElement('span');
+        labelEl.className = 'dash-bar-label';
+        labelEl.textContent = model;
+        const track = document.createElement('div');
+        track.className = 'dash-bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'dash-bar-fill';
+        fill.style.width = pct + '%';
+        track.appendChild(fill);
+        const cEl = document.createElement('span');
+        cEl.className = 'dash-bar-count-wide';
+        cEl.textContent = `${pct}%`;
         row.append(labelEl, track, cEl);
         chart.appendChild(row);
       });
@@ -1725,6 +1812,7 @@
 
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
+    if (p2.length) aiBody.appendChild(buildMetadataIndicatorsByModelSection(p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }

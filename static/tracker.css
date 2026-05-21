@@ -221,6 +221,7 @@
     letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
+  .dash-section-subtitle { font-size: 12px; color: var(--text-muted); margin: -0.5rem 0 1.25rem; }
   .dash-cards { display: flex; flex-wrap: wrap; gap: 12px; }
   .dash-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -270,7 +271,7 @@
   .dash-group[open] > summary::before { content: '▾'; }
   .dash-group > summary::-webkit-details-marker { display: none; }
   .dash-group-body { padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 2rem; }
-  .dash-indicator-group { display: flex; flex-direction: column; gap: 4px; }
+  .dash-indicator-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1.25rem; }
   .dash-indicator-label {
     font-family: var(--mono); font-size: 10px; font-weight: 500;
     text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
