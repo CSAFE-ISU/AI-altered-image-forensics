@@ -53,7 +53,9 @@ IMAGE_ROOTS = [
     BASE / "analyzed images",
 ]
 
-UPLOAD_DIR = BASE / "analyzed images"
+UPLOAD_DIR    = BASE / "analyzed images"
+METADATA_DIR  = BASE / "metadata"
+METADATA_DIR.mkdir(exist_ok=True)
 
 app = Flask(__name__, static_folder=str(BASE / "static"))
 
@@ -833,6 +835,9 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
 
 def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     tags = _run_exiftool(path)
+    if tags:
+        meta_path = METADATA_DIR / (path.stem + ".json")
+        meta_path.write_text(json.dumps(tags, indent=2))
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
     c2pa_status    = _check_c2pa(path, tags)
     c2pa_details   = _extract_c2pa_details(tags, path)
