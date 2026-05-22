@@ -808,28 +808,6 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, float, float, 
         return False, 0.0, 0.0, 0.0, ""
 
 
-def _analyze_frequency_spectrum(path: pathlib.Path) -> float:
-    """Return the fraction of spectral energy in high-frequency bands (outer 50% of radius).
-
-    Diffusion-model images often have different high-frequency characteristics than
-    real camera images.  Returns 0.0 on error.
-    """
-    try:
-        with Image.open(path) as img:
-            gray = np.array(img.convert("L"), dtype=float)
-        f      = np.fft.fftshift(np.fft.fft2(gray))
-        power  = np.abs(f) ** 2
-        h, w   = power.shape
-        cy, cx = h // 2, w // 2
-        Y, X   = np.ogrid[:h, :w]
-        r      = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2)
-        r_max  = min(cx, cy)
-        total  = power.sum() + 1e-9
-        hf     = power[r > 0.5 * r_max].sum()
-        return float(hf / total)
-    except Exception:
-        return 0.0
-
 
 def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
     """Detect DCT blocking artifacts in JPEG images."""
@@ -996,7 +974,6 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     ela_flagged, ela_max_diff, ela_mean_diff, ela_std_diff, ela_source, ela_b64 = _run_ela(path)
     noise_flagged, noise_std, noise_skewness, noise_kurtosis, noise_note = _check_noise_inconsistency(path)
     blocking_flagged, blocking_note = _check_compression_blocking(path)
-    hf_energy_ratio = _analyze_frequency_spectrum(path)
     artifacts, notes = [], []
     if ela_flagged:
         artifacts.append("ELA anomaly")
@@ -1023,7 +1000,6 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         "block_noise_std":  round(noise_std, 4),
         "noise_skewness":   round(noise_skewness, 4),
         "noise_kurtosis":   round(noise_kurtosis, 4),
-        "hf_energy_ratio":  round(hf_energy_ratio, 6),
     }
 
 

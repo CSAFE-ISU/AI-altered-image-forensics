@@ -23,7 +23,7 @@ load_dotenv()
 BASE = pathlib.Path(__file__).parent
 
 sys.path.insert(0, str(BASE))
-from app import find_image, _run_ela, _check_noise_inconsistency, _analyze_frequency_spectrum  # noqa: E402
+from app import find_image, _run_ela, _check_noise_inconsistency  # noqa: E402
 
 
 def get_filename(rec):
@@ -86,12 +86,11 @@ def main():
         try:
             _, ela_max, ela_mean, ela_std, ela_src, _ = _run_ela(path)
             _, noise_std, noise_skew, noise_kurt, _   = _check_noise_inconsistency(path)
-            hf_ratio                                   = _analyze_frequency_spectrum(path)
 
             print(
                 f"  [UPDATE] {filename} — "
                 f"ela_mean={ela_mean:.2f}, ela_std={ela_std:.2f}, ela_src={ela_src}, "
-                f"hf={hf_ratio:.4f}, skew={noise_skew:.3f}, kurt={noise_kurt:.3f}"
+                f"skew={noise_skew:.3f}, kurt={noise_kurt:.3f}"
             )
 
             if not args.dry_run:
@@ -103,7 +102,6 @@ def main():
                 updated_rec["block_noise_std"] = round(noise_std, 4)
                 updated_rec["noise_skewness"]  = round(noise_skew, 4)
                 updated_rec["noise_kurtosis"]  = round(noise_kurt, 4)
-                updated_rec["hf_energy_ratio"] = round(hf_ratio, 6)
                 sb.table("records").upsert({"id": rec_id, "data": updated_rec}).execute()
 
             updated += 1

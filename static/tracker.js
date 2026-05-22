@@ -818,7 +818,6 @@
           block_noise_std: result.block_noise_std,
           noise_skewness:  result.noise_skewness,
           noise_kurtosis:  result.noise_kurtosis,
-          hf_energy_ratio: result.hf_energy_ratio,
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
         const placeholderId = state.currentId;
@@ -848,7 +847,6 @@
           block_noise_std:   result.block_noise_std,
           noise_skewness:    result.noise_skewness,
           noise_kurtosis:    result.noise_kurtosis,
-          hf_energy_ratio:   result.hf_energy_ratio,
           analysis_notes:    '',
           linked_record:     ''
         });
@@ -910,7 +908,6 @@
         block_noise_std: result.block_noise_std,
         noise_skewness:  result.noise_skewness,
         noise_kurtosis:  result.noise_kurtosis,
-        hf_energy_ratio: result.hf_energy_ratio,
       });
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1887,10 +1884,6 @@
     wrapper.appendChild(plotWithSubtitle(
       'ELA Std Pixel Diff', 'std pixel diff', 'ela_std_diff',
       'Standard deviation of per-pixel error at quality 75 — measures spatial uniformity of compression artifacts.'
-    ));
-    wrapper.appendChild(plotWithSubtitle(
-      'High-Frequency Energy Ratio', 'HF energy ratio', 'hf_energy_ratio',
-      'Fraction of FFT spectral energy in high-frequency bands (outer 50% of radius). Diffusion-model images may differ from real camera images.'
     ));
     wrapper.appendChild(plotWithSubtitle(
       'Noise Skewness', 'skewness', 'noise_skewness',

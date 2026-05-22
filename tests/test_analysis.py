@@ -9,7 +9,6 @@ from app import (
     _check_c2pa,
     _run_ela,
     _check_noise_inconsistency,
-    _analyze_frequency_spectrum,
     _check_compression_blocking,
     _run_analysis_pipeline,
 )
@@ -289,7 +288,7 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
-        for key in ("ela_mean_diff", "ela_std_diff", "ela_source", "noise_skewness", "noise_kurtosis", "hf_energy_ratio"):
+        for key in ("ela_mean_diff", "ela_std_diff", "ela_source", "noise_skewness", "noise_kurtosis"):
             assert key in result
 
     def test_ela_source_is_string(self, mocker, sample_jpeg):
@@ -299,44 +298,3 @@ class TestRunAnalysisPipeline:
         result = _run_analysis_pipeline(sample_jpeg)
         assert result["ela_source"] in ("jpeg", "png", "unknown")
 
-
-# ── _analyze_frequency_spectrum ───────────────────────────────────────────────
-
-class TestAnalyzeFrequencySpectrum:
-    def test_jpeg_returns_float_in_range(self, sample_jpeg):
-        ratio = _analyze_frequency_spectrum(sample_jpeg)
-        assert isinstance(ratio, float)
-        assert 0.0 <= ratio <= 1.0
-
-    def test_png_returns_float_in_range(self, sample_png):
-        ratio = _analyze_frequency_spectrum(sample_png)
-        assert isinstance(ratio, float)
-        assert 0.0 <= ratio <= 1.0
-
-    def test_nonexistent_file_returns_zero(self, tmp_path):
-        ratio = _analyze_frequency_spectrum(tmp_path / "missing.jpg")
-        assert ratio == 0.0
-
-    def test_uniform_image_has_low_hf_ratio(self, tmp_path):
-        from PIL import Image
-        img = Image.new("RGB", (64, 64), color=(128, 128, 128))
-        p = tmp_path / "uniform.png"
-        img.save(p, format="PNG")
-        ratio = _analyze_frequency_spectrum(p)
-        assert ratio < 0.5
-
-    def test_noisy_image_has_higher_hf_ratio_than_uniform(self, tmp_path):
-        import numpy as np
-        from PIL import Image
-        uniform = Image.new("RGB", (64, 64), color=(128, 128, 128))
-        p_uniform = tmp_path / "uniform.png"
-        uniform.save(p_uniform, format="PNG")
-
-        arr = np.random.randint(0, 256, (64, 64, 3), dtype=np.uint8)
-        noisy = Image.fromarray(arr)
-        p_noisy = tmp_path / "noisy.png"
-        noisy.save(p_noisy, format="PNG")
-
-        ratio_uniform = _analyze_frequency_spectrum(p_uniform)
-        ratio_noisy   = _analyze_frequency_spectrum(p_noisy)
-        assert ratio_noisy > ratio_uniform
