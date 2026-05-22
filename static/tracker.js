@@ -805,12 +805,14 @@
       if (matched) {
         // Attach analysis to existing record and navigate to it
         Object.assign(matched, {
-          exif_anomalies: result.exif_anomalies,
-          c2pa_status:    result.c2pa_status,
-          c2pa_details:   result.c2pa_details,
-          artifacts:      result.artifacts,
-          artifact_notes: result.artifact_notes,
-          ela_image_b64:  result.ela_image_b64
+          exif_anomalies:  result.exif_anomalies,
+          c2pa_status:     result.c2pa_status,
+          c2pa_details:    result.c2pa_details,
+          artifacts:       result.artifacts,
+          artifact_notes:  result.artifact_notes,
+          ela_image_b64:   result.ela_image_b64,
+          ela_max_diff:    result.ela_max_diff,
+          block_noise_std: result.block_noise_std,
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
         const placeholderId = state.currentId;
@@ -833,6 +835,8 @@
           artifacts:         result.artifacts,
           artifact_notes:    result.artifact_notes,
           ela_image_b64:     result.ela_image_b64,
+          ela_max_diff:      result.ela_max_diff,
+          block_noise_std:   result.block_noise_std,
           analysis_notes:    '',
           linked_record:     ''
         });
@@ -879,14 +883,16 @@
         return;
       }
       Object.assign(rec, {
-        exif_anomalies: result.exif_anomalies,
-        ifd0_tags:      result.ifd0_tags,
-        indicators:     result.indicators,
-        c2pa_status:    result.c2pa_status,
-        c2pa_details:   result.c2pa_details,
-        artifacts:      result.artifacts,
-        artifact_notes: result.artifact_notes,
-        ela_image_b64:  result.ela_image_b64,
+        exif_anomalies:  result.exif_anomalies,
+        ifd0_tags:       result.ifd0_tags,
+        indicators:      result.indicators,
+        c2pa_status:     result.c2pa_status,
+        c2pa_details:    result.c2pa_details,
+        artifacts:       result.artifacts,
+        artifact_notes:  result.artifact_notes,
+        ela_image_b64:   result.ela_image_b64,
+        ela_max_diff:    result.ela_max_diff,
+        block_noise_std: result.block_noise_std,
       });
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1531,6 +1537,321 @@
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
+  function buildDashGroup(title, open = true) {
+    const details = document.createElement('details');
+    details.className = 'dash-group';
+    if (open) details.open = true;
+    const summary = document.createElement('summary');
+    summary.textContent = title;
+    details.appendChild(summary);
+    const body = document.createElement('div');
+    body.className = 'dash-group-body';
+    details.appendChild(body);
+    return { details, body };
+  }
+
+  function buildMetadataIndicatorsSection(p0, p1, p2) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = 'Metadata Tags by Image Type';
+    section.appendChild(titleEl);
+    const subEl1 = document.createElement('p');
+    subEl1.className = 'dash-section-subtitle';
+    subEl1.textContent = 'Percentage of total images of the specified type that have the indicator in their metadata.';
+    section.appendChild(subEl1);
+
+    const INDICATORS = [
+      ['Camera EXIF',                      r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
+      ['Photoshop / Adobe markers',       r => r.indicators?.photoshop_adobe != null],
+      ['ICC measurement / viewing cond.', r => r.indicators?.icc_meas_view != null],
+      ['Grok signature',                  r => r.indicators?.grok_signatures != null],
+      ['C2PA manifest',                   r => r.indicators?.c2pa != null],
+    ];
+
+    const types = [
+      { label: 'Original', records: p0 },
+      { label: 'Modified', records: p1 },
+      { label: 'Altered',  records: p2 },
+    ];
+
+    const anyAnalyzed = [...p0, ...p1, ...p2].some(r => r.indicators);
+    if (!anyAnalyzed) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No analyzed records yet.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    types.forEach(({ label, records }) => {
+      const analyzed = records.filter(r => r.indicators);
+      if (!analyzed.length) return;
+      const group = document.createElement('div');
+      group.className = 'dash-indicator-group';
+      const lbl = document.createElement('div');
+      lbl.className = 'dash-indicator-label';
+      lbl.textContent = label;
+      group.appendChild(lbl);
+      const chart = document.createElement('div');
+      chart.className = 'dash-bar-chart';
+      INDICATORS.forEach(([name, fn]) => {
+        const matching = analyzed.filter(fn);
+        const count = matching.length;
+        const pct = Math.round(count / analyzed.length * 100);
+        const row = document.createElement('div');
+        row.className = 'dash-bar-row';
+        if (count > 0) {
+          row.style.cursor = 'pointer';
+          row.title = 'Click to view in gallery';
+          const ids = new Set(matching.map(r => r.id));
+          row.addEventListener('click', () => {
+            closeDashboard();
+            openGallery(ids, `${name} — ${label}`);
+          });
+        }
+        const labelEl = document.createElement('span');
+        labelEl.className = 'dash-bar-label';
+        labelEl.textContent = name;
+        labelEl.style.width = '220px';
+        const track = document.createElement('div');
+        track.className = 'dash-bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'dash-bar-fill';
+        fill.style.width = pct + '%';
+        track.appendChild(fill);
+        const cEl = document.createElement('span');
+        cEl.className = 'dash-bar-count-wide';
+        cEl.textContent = `${pct}%`;
+        row.append(labelEl, track, cEl);
+        chart.appendChild(row);
+      });
+      group.appendChild(chart);
+      section.appendChild(group);
+    });
+
+    return section;
+  }
+
+  function buildModelIndicatorTable(p0, p1, p2) {
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = 'Indicator Presence by Model';
+    section.appendChild(titleEl);
+    const subEl = document.createElement('p');
+    subEl.className = 'dash-section-subtitle';
+    subEl.textContent = 'Marked if any image in that group has the indicator present.';
+    section.appendChild(subEl);
+
+    const INDICATORS = [
+      ['Camera EXIF',         r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
+      ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null],
+      ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null],
+      ['Grok signature',      r => r.indicators?.grok_signatures != null],
+      ['C2PA manifest',       r => r.indicators?.c2pa != null],
+      ['Visible watermark',   r => !!r.visible_watermark],
+    ];
+
+    const models = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
+
+    const table = document.createElement('table');
+    table.className = 'dash-table';
+
+    const thead = table.createTHead();
+    const hrow = thead.insertRow();
+    const modelTh = document.createElement('th');
+    modelTh.textContent = 'Group';
+    hrow.appendChild(modelTh);
+    INDICATORS.forEach(([label]) => {
+      const th = document.createElement('th');
+      th.textContent = label;
+      th.style.textAlign = 'center';
+      hrow.appendChild(th);
+    });
+
+    const tbody = table.createTBody();
+
+    const addRow = (label, records) => {
+      const tr = tbody.insertRow();
+      tr.insertCell().textContent = label;
+      INDICATORS.forEach(([, fn]) => {
+        const td = tr.insertCell();
+        td.style.textAlign = 'center';
+        if (records.some(fn)) td.textContent = 'x';
+      });
+    };
+
+    addRow('Originals', p0);
+    addRow('Modified', p1);
+    models.forEach(model => addRow(model, p2.filter(r => (r.model || 'Unknown').trim() === model)));
+
+    section.appendChild(table);
+    return section;
+  }
+
+  // ── KDE density plot ──────────────────────────────────────────────────────
+
+  function buildDensityPlot(title, unit, datasets) {
+    // datasets: [{ label, color, values: number[] }, ...]
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const allValues = datasets.flatMap(d => d.values);
+    if (!allValues.length) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No data yet.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const ML = 44, MR = 20, MT = 20, MB = 36;
+    const plotW = 480, plotH = 140;
+    const totalW = ML + plotW + MR;
+    const totalH = MT + plotH + MB;
+
+    // Compute KDE for each dataset
+    function silverman(vals) {
+      const n = vals.length;
+      if (n < 2) return 1;
+      const mean = vals.reduce((s, v) => s + v, 0) / n;
+      const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1));
+      return Math.max(1.06 * std * Math.pow(n, -0.2), 0.1);
+    }
+
+    const xMin = Math.min(...allValues);
+    const xMax = Math.max(...allValues);
+    const xPad = (xMax - xMin) * 0.1 || 1;
+    const xLo = xMin - xPad, xHi = xMax + xPad;
+    const STEPS = 200;
+    const xs = Array.from({ length: STEPS + 1 }, (_, i) => xLo + (xHi - xLo) * i / STEPS);
+
+    const curves = datasets.map(({ label, color, values }) => {
+      if (!values.length) return { label, color, ys: xs.map(() => 0) };
+      const h = silverman(values);
+      const ys = xs.map(x =>
+        values.reduce((sum, xi) => {
+          const u = (x - xi) / h;
+          return sum + Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
+        }, 0) / (values.length * h)
+      );
+      return { label, color, ys };
+    });
+
+    const yMax = Math.max(...curves.flatMap(c => c.ys), 1e-9);
+    const xScale = x => ML + (x - xLo) / (xHi - xLo) * plotW;
+    const yScale = y => MT + plotH - y / yMax * plotH;
+
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    svg.setAttribute('width', '100%');
+    svg.style.maxWidth = totalW + 'px';
+    svg.style.display = 'block';
+
+    // Grid lines
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = MT + plotH * (1 - t);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', ML); line.setAttribute('x2', ML + plotW);
+      line.setAttribute('y1', y);  line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '0.5');
+      svg.appendChild(line);
+    });
+
+    // X-axis ticks
+    const nTicks = 6;
+    for (let i = 0; i <= nTicks; i++) {
+      const xv = xLo + (xHi - xLo) * i / nTicks;
+      const px = xScale(xv);
+      const tick = document.createElementNS(NS, 'line');
+      tick.setAttribute('x1', px); tick.setAttribute('x2', px);
+      tick.setAttribute('y1', MT + plotH); tick.setAttribute('y2', MT + plotH + 4);
+      tick.setAttribute('stroke', 'var(--text-faint)'); tick.setAttribute('stroke-width', '1');
+      svg.appendChild(tick);
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', px); label.setAttribute('y', MT + plotH + 14);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '9'); label.setAttribute('fill', 'var(--text-muted)');
+      label.setAttribute('font-family', 'var(--mono)');
+      label.textContent = Math.round(xv * 10) / 10;
+      svg.appendChild(label);
+    }
+
+    // X-axis label (unit)
+    const xAxisLabel = document.createElementNS(NS, 'text');
+    xAxisLabel.setAttribute('x', ML + plotW / 2);
+    xAxisLabel.setAttribute('y', totalH - 2);
+    xAxisLabel.setAttribute('text-anchor', 'middle');
+    xAxisLabel.setAttribute('font-size', '9'); xAxisLabel.setAttribute('fill', 'var(--text-faint)');
+    xAxisLabel.setAttribute('font-family', 'var(--mono)');
+    xAxisLabel.textContent = unit;
+    svg.appendChild(xAxisLabel);
+
+    // KDE curves (filled)
+    curves.forEach(({ color, ys }) => {
+      const pts = xs.map((x, i) => `${xScale(x).toFixed(1)},${yScale(ys[i]).toFixed(1)}`).join(' ');
+      const baseline = `${xScale(xs[xs.length - 1]).toFixed(1)},${(MT + plotH).toFixed(1)} ${xScale(xs[0]).toFixed(1)},${(MT + plotH).toFixed(1)}`;
+      const fill = document.createElementNS(NS, 'polygon');
+      fill.setAttribute('points', pts + ' ' + baseline);
+      fill.setAttribute('fill', color); fill.setAttribute('fill-opacity', '0.15');
+      svg.appendChild(fill);
+      const path = document.createElementNS(NS, 'polyline');
+      path.setAttribute('points', pts);
+      path.setAttribute('fill', 'none'); path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', '1.5'); path.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(path);
+    });
+
+    // Axes
+    const axisColor = 'var(--text-faint)';
+    [[ML, MT, ML, MT + plotH], [ML, MT + plotH, ML + plotW, MT + plotH]].forEach(([x1, y1, x2, y2]) => {
+      const ax = document.createElementNS(NS, 'line');
+      ax.setAttribute('x1', x1); ax.setAttribute('y1', y1);
+      ax.setAttribute('x2', x2); ax.setAttribute('y2', y2);
+      ax.setAttribute('stroke', axisColor); ax.setAttribute('stroke-width', '1');
+      svg.appendChild(ax);
+    });
+
+    section.appendChild(svg);
+
+    // Legend
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:flex; gap:1.5rem; margin-top:0.5rem;';
+    datasets.forEach(({ label, color }) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--text-muted);';
+      const swatch = document.createElement('span');
+      swatch.style.cssText = `display:inline-block; width:18px; height:3px; background:${color}; border-radius:2px; flex-shrink:0;`;
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(label));
+      legend.appendChild(item);
+    });
+    section.appendChild(legend);
+    return section;
+  }
+
+  function buildPixelArtifactsSection(p0, p1, p2) {
+    const COLORS = { Original: '#4e9af1', Modified: '#f5a623', Altered: '#e05c5c' };
+
+    function dataset(label, records, field) {
+      return { label, color: COLORS[label], values: records.map(r => r[field]).filter(v => v != null && typeof v === 'number') };
+    }
+
+    const elaSection  = buildDensityPlot('ELA Max Pixel Diff',  'max pixel diff',   [dataset('Original', p0, 'ela_max_diff'),    dataset('Modified', p1, 'ela_max_diff'),    dataset('Altered', p2, 'ela_max_diff')]);
+    const noiseSection = buildDensityPlot('Block Noise Std',     'block noise std',  [dataset('Original', p0, 'block_noise_std'), dataset('Modified', p1, 'block_noise_std'), dataset('Altered', p2, 'block_noise_std')]);
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+    wrapper.appendChild(elaSection);
+    wrapper.appendChild(noiseSection);
+    return wrapper;
+  }
+
   function openDashboard() {
     const content = document.getElementById('dashboard-content');
     content.innerHTML = '';
@@ -1538,71 +1859,58 @@
     const p0 = state.records.filter(r => r.type === 'p0');
     const p1 = state.records.filter(r => r.type === 'p1');
     const p2 = state.records.filter(r => r.type === 'p2');
-    // ── Summary cards ──
-    const summarySection = document.createElement('div');
-    const summaryTitle = document.createElement('div');
-    summaryTitle.className = 'dash-section-title';
-    summaryTitle.textContent = 'Summary';
-    summarySection.appendChild(summaryTitle);
+
+    // ── Summary group ──
+    const { details: sumDetails, body: sumBody } = buildDashGroup('Summary');
+    content.appendChild(sumDetails);
 
     const cards = document.createElement('div');
     cards.className = 'dash-cards';
-    [
-      [p0.length, 'Originals'],
-      [p1.length, 'Modifications'],
-      [p2.length, 'Alterations'],
-    ].forEach(([num, label]) => {
+    [[p0.length, 'Originals'], [p1.length, 'Modifications'], [p2.length, 'Alterations']].forEach(([num, label]) => {
       const card = document.createElement('div');
       card.className = 'dash-card';
-      const n = document.createElement('div');
-      n.className = 'dash-card-num';
-      n.textContent = num;
-      const l = document.createElement('div');
-      l.className = 'dash-card-label';
-      l.textContent = label;
-      card.appendChild(n);
-      card.appendChild(l);
-      cards.appendChild(card);
+      const n = document.createElement('div'); n.className = 'dash-card-num'; n.textContent = num;
+      const l = document.createElement('div'); l.className = 'dash-card-label'; l.textContent = label;
+      card.appendChild(n); card.appendChild(l); cards.appendChild(card);
     });
-    summarySection.appendChild(cards);
-    content.appendChild(summarySection);
+    sumBody.appendChild(cards);
 
-    // ── Alterations by model ──
     if (p2.length) {
-      const modelCounts = {};
-      const modelIds = {};
+      const modelCounts = {}, modelIds = {};
       p2.forEach(r => {
         const m = (r.model || 'Unknown').trim() || 'Unknown';
         modelCounts[m] = (modelCounts[m] || 0) + 1;
         (modelIds[m] = modelIds[m] || []).push(r.id);
       });
-      content.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
+      sumBody.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
     }
 
-    // ── Subjective quality distribution ──
     if (p2.length) {
-      const qualityCounts = {};
-      const qualityIds = {};
+      const qualityCounts = {}, qualityIds = {};
       p2.forEach(r => {
         const q = r.subjective_quality ? '★' + r.subjective_quality : 'Not rated';
         qualityCounts[q] = (qualityCounts[q] || 0) + 1;
         (qualityIds[q] = qualityIds[q] || []).push(r.id);
       });
-      const ordered = {};
-      const orderedIds = {};
+      const ordered = {}, orderedIds = {};
       ['★5','★4','★3','★2','★1'].forEach(k => {
         if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
       });
       if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
-      content.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
+      sumBody.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
     }
 
-    // ── Quality by model scatter plot ──
-    if (p2.length) content.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
 
-    // ── Models with visible watermarks ──
-    const watermarked = p2.filter(r => r.visible_watermark);
+    // ── AI Indicators group ──
+    const { details: aiDetails, body: aiBody } = buildDashGroup('AI Indicators');
+    content.appendChild(aiDetails);
+
+    aiBody.appendChild(buildModelIndicatorTable(p0, p1, p2));
+
+    // Models with visible watermarks
     if (p2.length) {
+      const watermarked = p2.filter(r => r.visible_watermark);
       const allModels = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
       const wmModels = new Set(watermarked.map(r => (r.model || 'Unknown').trim() || 'Unknown'));
       const noWmModels = allModels.filter(m => !wmModels.has(m));
@@ -1613,10 +1921,10 @@
       wmTitle.textContent = 'Models with Visible Watermarks';
       wmSection.appendChild(wmTitle);
 
-      const summary = document.createElement('p');
-      summary.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0 0 1rem;';
-      summary.textContent = `${wmModels.size} out of ${allModels.length} models have visible watermarks`;
-      wmSection.appendChild(summary);
+      const wmSummary = document.createElement('p');
+      wmSummary.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0 0 1rem;';
+      wmSummary.textContent = `${wmModels.size} out of ${allModels.length} models have visible watermarks`;
+      wmSection.appendChild(wmSummary);
 
       if (watermarked.length) {
         const table = document.createElement('table');
@@ -1624,9 +1932,7 @@
         const thead = table.createTHead();
         const hrow = thead.insertRow();
         ['Model', 'Watermark description'].forEach(h => {
-          const th = document.createElement('th');
-          th.textContent = h;
-          hrow.appendChild(th);
+          const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
         });
         const tbody = table.createTBody();
         const seen = new Set();
@@ -1652,8 +1958,16 @@
         wmSection.appendChild(noWmList);
       }
 
-      content.appendChild(wmSection);
+      aiBody.appendChild(wmSection);
     }
+
+    // Metadata indicators
+    aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
+
+    // ── Visual / pixel-level artifacts group ──
+    const { details: pixDetails, body: pixBody } = buildDashGroup('Visual / pixel-level artifacts');
+    content.appendChild(pixDetails);
+    pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }

@@ -781,14 +781,14 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
                 block_noises.append(float(np.std(block)))
 
         if not block_noises:
-            return False, ""
+            return False, 0.0, ""
 
         noise_std = float(np.std(block_noises))
         flagged = noise_std > THRESHOLD
         note = f"Noise inconsistency: block noise std={noise_std:.2f} (threshold {THRESHOLD})."
-        return flagged, note if flagged else ""
+        return flagged, noise_std, note if flagged else ""
     except Exception:
-        return False, ""
+        return False, 0.0, ""
 
 
 def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
@@ -953,9 +953,9 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         indicators['c2pa'] = c2pa_ind
         if not already_detected:
             indicators['summary'] += f' | C2PA: {c2pa_status}'
-    ela_flagged, ela_max_diff, ela_b64 = _run_ela(path)
-    noise_flagged, noise_note           = _check_noise_inconsistency(path)
-    blocking_flagged, blocking_note     = _check_compression_blocking(path)
+    ela_flagged, ela_max_diff, ela_b64    = _run_ela(path)
+    noise_flagged, noise_std, noise_note  = _check_noise_inconsistency(path)
+    blocking_flagged, blocking_note       = _check_compression_blocking(path)
     artifacts, notes = [], []
     if ela_flagged:
         artifacts.append("ELA anomaly")
@@ -967,14 +967,16 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         artifacts.append("Compression blocking")
         notes.append(blocking_note)
     return {
-        "exif_anomalies": exif_anomalies,
-        "ifd0_tags":      ifd0_tags,
-        "indicators":     indicators,
-        "c2pa_status":    c2pa_status,
-        "c2pa_details":   c2pa_details,
-        "artifacts":      artifacts,
-        "artifact_notes": "\n".join(notes),
-        "ela_image_b64":  ela_b64,
+        "exif_anomalies":  exif_anomalies,
+        "ifd0_tags":       ifd0_tags,
+        "indicators":      indicators,
+        "c2pa_status":     c2pa_status,
+        "c2pa_details":    c2pa_details,
+        "artifacts":       artifacts,
+        "artifact_notes":  "\n".join(notes),
+        "ela_image_b64":   ela_b64,
+        "ela_max_diff":    ela_max_diff,
+        "block_noise_std": round(noise_std, 4),
     }
 
 

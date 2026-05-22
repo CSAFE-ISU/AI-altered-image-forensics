@@ -221,6 +221,7 @@
     letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
+  .dash-section-subtitle { font-size: 12px; color: var(--text-muted); margin: -0.5rem 0 1.25rem; }
   .dash-cards { display: flex; flex-wrap: wrap; gap: 12px; }
   .dash-card {
     background: var(--surface); border: 1px solid var(--border);
@@ -256,6 +257,30 @@
   .dash-table th { font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 6px 12px; border-bottom: 1px solid var(--border); text-align: left; }
   .dash-table td { padding: 6px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
   .dash-table tbody tr:hover { background: var(--surface); }
+
+  .dash-group { border: 1px solid var(--border); border-radius: var(--radius); }
+  .dash-group > summary {
+    padding: 0.75rem 1rem; cursor: pointer; list-style: none;
+    display: flex; align-items: center; gap: 0.5rem; user-select: none;
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+    background: var(--surface2); border-radius: var(--radius);
+  }
+  .dash-group[open] > summary { border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--border); }
+  .dash-group > summary::before { content: '▸'; font-size: 9px; color: var(--text-faint); }
+  .dash-group[open] > summary::before { content: '▾'; }
+  .dash-group > summary::-webkit-details-marker { display: none; }
+  .dash-group-body { padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 2rem; }
+  .dash-indicator-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1.25rem; }
+  .dash-indicator-label {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .dash-bar-count-wide {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    min-width: 52px; text-align: right;
+  }
 
   /* ── Gallery overlay ── */
   #gallery-overlay {
