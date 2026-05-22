@@ -1850,6 +1850,116 @@
     return section;
   }
 
+  function buildRandomForestSection(data) {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+
+    // ── Description ──
+    const desc = document.createElement('p');
+    desc.className = 'dash-section-subtitle';
+    desc.textContent =
+      `5-fold stratified cross-validation on ${data.n_total} images ` +
+      `(${data.n_original} original, ${data.n_altered} AI-altered). ` +
+      `Modified images excluded. Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
+    wrapper.appendChild(desc);
+
+    // ── Accuracy card ──
+    const accCard = document.createElement('div');
+    accCard.style.cssText = 'display:flex; align-items:baseline; gap:0.5rem;';
+    const accVal = document.createElement('span');
+    accVal.style.cssText = 'font-size:2rem; font-weight:700; font-family:var(--mono); color:var(--accent);';
+    accVal.textContent = (data.mean_accuracy * 100).toFixed(1) + '%';
+    const accLabel = document.createElement('span');
+    accLabel.style.cssText = 'font-size:0.85rem; color:var(--text-muted); font-family:var(--mono);';
+    accLabel.textContent = `± ${(data.std_accuracy * 100).toFixed(1)}%  mean 5-fold CV accuracy`;
+    accCard.appendChild(accVal);
+    accCard.appendChild(accLabel);
+    wrapper.appendChild(accCard);
+
+    // Per-fold breakdown
+    const foldRow = document.createElement('div');
+    foldRow.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap;';
+    data.fold_accuracies.forEach((a, i) => {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'font-family:var(--mono); font-size:0.8rem; color:var(--text-muted); background:var(--bg-alt); padding:2px 8px; border-radius:4px;';
+      chip.textContent = `Fold ${i + 1}: ${(a * 100).toFixed(1)}%`;
+      foldRow.appendChild(chip);
+    });
+    wrapper.appendChild(foldRow);
+
+    // ── Confusion matrix ──
+    const cmTitle = document.createElement('div');
+    cmTitle.className = 'dash-section-title';
+    cmTitle.textContent = 'Confusion Matrix';
+    wrapper.appendChild(cmTitle);
+
+    const cmSub = document.createElement('p');
+    cmSub.className = 'dash-section-subtitle';
+    cmSub.textContent = 'Rows = true label, columns = predicted label. Aggregated across all 5 folds.';
+    wrapper.appendChild(cmSub);
+
+    const cm = data.confusion_matrix;
+    const maxCell = Math.max(...cm.flat());
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:140px repeat(2,110px); grid-template-rows:repeat(3,auto); gap:4px; width:fit-content;';
+
+    const cellStyle = (val, isHeader) => {
+      if (isHeader) return 'display:flex; align-items:center; justify-content:center; padding:6px 10px; font-family:var(--mono); font-size:0.78rem; color:var(--text-muted); font-weight:600;';
+      const alpha = 0.15 + 0.7 * (val / maxCell);
+      return `display:flex; align-items:center; justify-content:center; padding:12px 8px; font-family:var(--mono); font-size:1.1rem; font-weight:700; border-radius:6px; background:rgba(78,154,241,${alpha.toFixed(2)}); color:var(--text);`;
+    };
+
+    [['', 'Pred: Original', 'Pred: AI-altered'],
+     ['True: Original',  cm[0][0], cm[0][1]],
+     ['True: AI-altered', cm[1][0], cm[1][1]]].forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        const el = document.createElement('div');
+        const isHeader = ri === 0 || ci === 0;
+        el.style.cssText = cellStyle(cell, isHeader);
+        el.textContent = cell;
+        grid.appendChild(el);
+      });
+    });
+    wrapper.appendChild(grid);
+
+    // ── Feature importances ──
+    const fiTitle = document.createElement('div');
+    fiTitle.className = 'dash-section-title';
+    fiTitle.textContent = 'Feature Importances';
+    wrapper.appendChild(fiTitle);
+
+    const fiSub = document.createElement('p');
+    fiSub.className = 'dash-section-subtitle';
+    fiSub.textContent = 'Mean decrease in impurity, trained on the full dataset. All features contribute nearly equally.';
+    wrapper.appendChild(fiSub);
+
+    const maxImp = data.feature_importances[0].importance;
+    const fiChart = document.createElement('div');
+    fiChart.style.cssText = 'display:flex; flex-direction:column; gap:6px; max-width:520px;';
+    data.feature_importances.forEach(({ label, importance }) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-family:var(--mono); font-size:0.78rem; color:var(--text-muted); width:160px; text-align:right; flex-shrink:0;';
+      lbl.textContent = label;
+      const barWrap = document.createElement('div');
+      barWrap.style.cssText = 'flex:1; background:var(--bg-alt); border-radius:3px; height:16px; position:relative;';
+      const bar = document.createElement('div');
+      bar.style.cssText = `width:${(importance / maxImp * 100).toFixed(1)}%; height:100%; background:#4e9af1; border-radius:3px;`;
+      const val = document.createElement('span');
+      val.style.cssText = 'font-family:var(--mono); font-size:0.75rem; color:var(--text-muted); margin-left:6px; flex-shrink:0;';
+      val.textContent = (importance * 100).toFixed(1) + '%';
+      barWrap.appendChild(bar);
+      row.appendChild(lbl);
+      row.appendChild(barWrap);
+      row.appendChild(val);
+      fiChart.appendChild(row);
+    });
+    wrapper.appendChild(fiChart);
+
+    return wrapper;
+  }
+
   function buildPixelArtifactsSection(p0, p1, p2) {
     const COLORS = { Original: '#4e9af1', Modified: '#f5a623', Altered: '#e05c5c' };
 
@@ -1892,7 +2002,7 @@
     return wrapper;
   }
 
-  function openDashboard() {
+  async function openDashboard() {
     const content = document.getElementById('dashboard-content');
     content.innerHTML = '';
 
@@ -2009,7 +2119,31 @@
     content.appendChild(pixDetails);
     pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
 
+    // ── Random Forest group ──
+    const { details: rfDetails, body: rfBody } = buildDashGroup('Random Forest Classifier', false);
+    content.appendChild(rfDetails);
+    const rfPlaceholder = document.createElement('p');
+    rfPlaceholder.className = 'dash-section-subtitle';
+    rfPlaceholder.textContent = 'Loading…';
+    rfBody.appendChild(rfPlaceholder);
+
     document.getElementById('dashboard-overlay').style.display = 'flex';
+
+    try {
+      const resp = await fetch('/api/random_forest');
+      const data = await resp.json();
+      rfBody.removeChild(rfPlaceholder);
+      if (!resp.ok) {
+        const err = document.createElement('p');
+        err.className = 'dash-section-subtitle';
+        err.textContent = 'Error: ' + (data.error || 'unknown');
+        rfBody.appendChild(err);
+      } else {
+        rfBody.appendChild(buildRandomForestSection(data));
+      }
+    } catch (e) {
+      rfPlaceholder.textContent = 'Failed to load: ' + e.message;
+    }
   }
 
   function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {

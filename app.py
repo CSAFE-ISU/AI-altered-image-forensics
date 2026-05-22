@@ -1080,6 +1080,88 @@ def upload_and_analyze():
         return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
+# ── Random Forest classifier ──────────────────────────────────────────────────
+
+_RF_FEATURES = [
+    "ela_mean_diff", "ela_std_diff", "ela_max_diff",
+    "block_noise_std", "noise_skewness", "noise_kurtosis",
+]
+_RF_FEATURE_LABELS = {
+    "ela_mean_diff":   "ELA Mean Diff",
+    "ela_std_diff":    "ELA Std Diff",
+    "ela_max_diff":    "ELA Max Diff",
+    "block_noise_std": "Block Noise Std",
+    "noise_skewness":  "Noise Skewness",
+    "noise_kurtosis":  "Noise Kurtosis",
+    "ela_source_png":  "ELA Source: PNG",
+}
+
+
+@app.route("/api/random_forest")
+def random_forest_analysis():
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.model_selection import StratifiedKFold, cross_val_predict
+        from sklearn.metrics import accuracy_score, confusion_matrix as sk_cm
+    except ImportError:
+        return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
+
+    if _supabase:
+        rows = _supabase.table("records").select("data").execute().data
+        records = [row["data"] for row in rows]
+    elif DATA_FILE.exists():
+        records = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    else:
+        return jsonify({"error": "No data available"}), 503
+
+    X_rows, y, ela_sources = [], [], []
+    for rec in records:
+        if rec.get("type") not in ("p0", "p2"):
+            continue
+        vals = [rec.get(f) for f in _RF_FEATURES]
+        if any(v is None for v in vals):
+            continue
+        X_rows.append(vals)
+        y.append(0 if rec["type"] == "p0" else 1)
+        ela_sources.append(1 if rec.get("ela_source") == "png" else 0)
+
+    if len(X_rows) < 10:
+        return jsonify({"error": "Not enough analyzed records to run classifier"}), 422
+
+    X = np.array(X_rows)
+    X = np.hstack([X, np.array(ela_sources).reshape(-1, 1)])
+    y = np.array(y)
+    feature_names = _RF_FEATURES + ["ela_source_png"]
+
+    clf = RandomForestClassifier(n_estimators=500, random_state=42, class_weight="balanced")
+    cv  = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    fold_accs = []
+    for train_idx, test_idx in cv.split(X, y):
+        clf.fit(X[train_idx], y[train_idx])
+        fold_accs.append(float(accuracy_score(y[test_idx], clf.predict(X[test_idx]))))
+
+    y_pred = cross_val_predict(clf, X, y, cv=cv)
+    cm = sk_cm(y, y_pred).tolist()
+
+    clf.fit(X, y)
+    importances = [
+        {"feature": n, "label": _RF_FEATURE_LABELS.get(n, n), "importance": round(float(imp), 4)}
+        for n, imp in sorted(zip(feature_names, clf.feature_importances_), key=lambda x: -x[1])
+    ]
+
+    return jsonify({
+        "n_original": int((y == 0).sum()),
+        "n_altered":  int((y == 1).sum()),
+        "n_total":    int(len(y)),
+        "fold_accuracies": [round(a, 4) for a in fold_accs],
+        "mean_accuracy":   round(float(np.mean(fold_accs)), 4),
+        "std_accuracy":    round(float(np.std(fold_accs)), 4),
+        "confusion_matrix": cm,
+        "feature_importances": importances,
+    })
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
