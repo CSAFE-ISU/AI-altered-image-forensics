@@ -9,6 +9,7 @@ from app import (
     _check_c2pa,
     _run_ela,
     _check_noise_inconsistency,
+    _analyze_frequency_spectrum,
     _check_compression_blocking,
     _run_analysis_pipeline,
 )
@@ -109,22 +110,28 @@ class TestCheckC2pa:
 
 class TestRunEla:
     def test_jpeg_returns_tuple(self, sample_jpeg):
-        flagged, max_diff, b64 = _run_ela(sample_jpeg)
+        flagged, max_diff, mean_diff, std_diff, ela_source, b64 = _run_ela(sample_jpeg)
         assert isinstance(flagged, bool)
         assert isinstance(max_diff, int)
         assert max_diff >= 0
+        assert isinstance(mean_diff, float)
+        assert isinstance(std_diff, float)
+        assert ela_source in ("jpeg", "png", "unknown")
         assert isinstance(b64, str)
         assert len(b64) > 0
 
     def test_png_does_not_crash(self, sample_png):
-        flagged, max_diff, b64 = _run_ela(sample_png)
+        flagged, max_diff, mean_diff, std_diff, ela_source, b64 = _run_ela(sample_png)
         assert isinstance(flagged, bool)
+        assert ela_source == "png"
         assert isinstance(b64, str)
 
     def test_nonexistent_file_returns_safe_default(self, tmp_path):
-        flagged, max_diff, b64 = _run_ela(tmp_path / "missing.jpg")
+        flagged, max_diff, mean_diff, std_diff, ela_source, b64 = _run_ela(tmp_path / "missing.jpg")
         assert flagged is False
         assert max_diff == 0
+        assert mean_diff == 0.0
+        assert std_diff == 0.0
         assert b64 == ""
 
 
@@ -132,20 +139,26 @@ class TestRunEla:
 
 class TestCheckNoiseInconsistency:
     def test_jpeg_returns_tuple(self, sample_jpeg):
-        flagged, noise_std, note = _check_noise_inconsistency(sample_jpeg)
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(sample_jpeg)
         assert isinstance(flagged, bool)
         assert isinstance(noise_std, float)
+        assert isinstance(noise_skew, float)
+        assert isinstance(noise_kurt, float)
         assert isinstance(note, str)
 
     def test_png_returns_tuple(self, sample_png):
-        flagged, noise_std, note = _check_noise_inconsistency(sample_png)
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(sample_png)
         assert isinstance(flagged, bool)
         assert isinstance(noise_std, float)
+        assert isinstance(noise_skew, float)
+        assert isinstance(noise_kurt, float)
 
     def test_nonexistent_file_returns_safe_default(self, tmp_path):
-        flagged, noise_std, note = _check_noise_inconsistency(tmp_path / "missing.jpg")
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(tmp_path / "missing.jpg")
         assert flagged is False
         assert noise_std == 0.0
+        assert noise_skew == 0.0
+        assert noise_kurt == 0.0
         assert note == ""
 
     def test_flagged_note_is_not_empty(self, tmp_path):
@@ -159,9 +172,11 @@ class TestCheckNoiseInconsistency:
                 pixels[x, y] = (x % 255, y % 255, (x + y) % 255)
         p = tmp_path / "noisy.jpg"
         img.save(p, format="JPEG")
-        flagged, noise_std, note = _check_noise_inconsistency(p)
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(p)
         assert isinstance(flagged, bool)
         assert isinstance(noise_std, float)
+        assert isinstance(noise_skew, float)
+        assert isinstance(noise_kurt, float)
 
 
 # ── _check_compression_blocking ───────────────────────────────────────────────
@@ -225,8 +240,8 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_run_exiftool", return_value={})
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(True, 2.5, "Noise note"))
+        mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc"))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(True, 2.5, 0.0, 0.0, "Noise note"))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(False, ""))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Noise inconsistency" in result["artifacts"]
@@ -236,8 +251,8 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_run_exiftool", return_value={})
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, ""))
+        mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc"))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, 0.0, 0.0, ""))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(True, "Blocking note"))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Compression blocking" in result["artifacts"]
@@ -255,8 +270,8 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_run_exiftool", return_value={})
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(flask_app, "_run_ela", return_value=(True, 20, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, ""))
+        mocker.patch.object(flask_app, "_run_ela", return_value=(True, 20, 5.0, 2.0, "jpeg", "abc"))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, 0.0, 0.0, ""))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(False, ""))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "ELA anomaly" in result["artifacts"]
@@ -268,3 +283,60 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
         assert result["c2pa_status"] == "Yes — with provenance data"
+
+    def test_new_pixel_fields_present(self, mocker, sample_jpeg):
+        mocker.patch.object(flask_app, "_run_exiftool", return_value={})
+        mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
+        mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
+        result = _run_analysis_pipeline(sample_jpeg)
+        for key in ("ela_mean_diff", "ela_std_diff", "ela_source", "noise_skewness", "noise_kurtosis", "hf_energy_ratio"):
+            assert key in result
+
+    def test_ela_source_is_string(self, mocker, sample_jpeg):
+        mocker.patch.object(flask_app, "_run_exiftool", return_value={})
+        mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
+        mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
+        result = _run_analysis_pipeline(sample_jpeg)
+        assert result["ela_source"] in ("jpeg", "png", "unknown")
+
+
+# ── _analyze_frequency_spectrum ───────────────────────────────────────────────
+
+class TestAnalyzeFrequencySpectrum:
+    def test_jpeg_returns_float_in_range(self, sample_jpeg):
+        ratio = _analyze_frequency_spectrum(sample_jpeg)
+        assert isinstance(ratio, float)
+        assert 0.0 <= ratio <= 1.0
+
+    def test_png_returns_float_in_range(self, sample_png):
+        ratio = _analyze_frequency_spectrum(sample_png)
+        assert isinstance(ratio, float)
+        assert 0.0 <= ratio <= 1.0
+
+    def test_nonexistent_file_returns_zero(self, tmp_path):
+        ratio = _analyze_frequency_spectrum(tmp_path / "missing.jpg")
+        assert ratio == 0.0
+
+    def test_uniform_image_has_low_hf_ratio(self, tmp_path):
+        from PIL import Image
+        img = Image.new("RGB", (64, 64), color=(128, 128, 128))
+        p = tmp_path / "uniform.png"
+        img.save(p, format="PNG")
+        ratio = _analyze_frequency_spectrum(p)
+        assert ratio < 0.5
+
+    def test_noisy_image_has_higher_hf_ratio_than_uniform(self, tmp_path):
+        import numpy as np
+        from PIL import Image
+        uniform = Image.new("RGB", (64, 64), color=(128, 128, 128))
+        p_uniform = tmp_path / "uniform.png"
+        uniform.save(p_uniform, format="PNG")
+
+        arr = np.random.randint(0, 256, (64, 64, 3), dtype=np.uint8)
+        noisy = Image.fromarray(arr)
+        p_noisy = tmp_path / "noisy.png"
+        noisy.save(p_noisy, format="PNG")
+
+        ratio_uniform = _analyze_frequency_spectrum(p_uniform)
+        ratio_noisy   = _analyze_frequency_spectrum(p_noisy)
+        assert ratio_noisy > ratio_uniform

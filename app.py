@@ -726,14 +726,21 @@ def _extract_c2pa_details(tags: dict, path: pathlib.Path | None = None) -> dict 
     }
 
 
-def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
-    """Run Error Level Analysis. Returns (flagged, max_diff, base64_png)."""
-    ELA_QUALITY = 90
+def _run_ela(path: pathlib.Path) -> tuple[bool, int, float, float, str, str]:
+    """Run Error Level Analysis at quality 75 (standard ELA practice).
+
+    Returns (flagged, max_diff, mean_diff, std_diff, ela_source, base64_png).
+    ela_source is 'jpeg' or 'png'; PNG images are re-compressed as JPEG for
+    the first time so their ELA values reflect first-time compression artifacts,
+    not tampering.
+    """
+    ELA_QUALITY = 75
     ELA_SCALE = 10
     ELA_THRESHOLD = 15
 
     try:
         with Image.open(path) as img:
+            ela_source = 'png' if (img.format or '').upper() == 'PNG' else 'jpeg'
             img_rgb = img.convert("RGB")
 
         buf = io.BytesIO()
@@ -743,7 +750,9 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
 
         diff = ImageChops.difference(img_rgb, recompressed)
         diff_arr = np.array(diff)
-        max_diff = int(diff_arr.max())
+        max_diff  = int(diff_arr.max())
+        mean_diff = float(diff_arr.mean())
+        std_diff  = float(diff_arr.std())
 
         # Scale up for visibility.
         scaled = diff_arr * ELA_SCALE
@@ -754,13 +763,16 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
         ela_img.save(out_buf, format="PNG")
         b64 = base64.b64encode(out_buf.getvalue()).decode("ascii")
 
-        return max_diff > ELA_THRESHOLD, max_diff, b64
+        return max_diff > ELA_THRESHOLD, max_diff, mean_diff, std_diff, ela_source, b64
     except Exception:
-        return False, 0, ""
+        return False, 0, 0.0, 0.0, 'unknown', ""
 
 
-def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
-    """Estimate per-block noise and flag regions with inconsistent levels."""
+def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, float, float, float, str]:
+    """Estimate per-block noise and flag regions with inconsistent levels.
+
+    Returns (flagged, noise_std, noise_skewness, noise_kurtosis, note).
+    """
     BLOCK_SIZE = 64
     THRESHOLD = 1.5  # std of block noise estimates
 
@@ -781,14 +793,42 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
                 block_noises.append(float(np.std(block)))
 
         if not block_noises:
-            return False, 0.0, ""
+            return False, 0.0, 0.0, 0.0, ""
 
-        noise_std = float(np.std(block_noises))
-        flagged = noise_std > THRESHOLD
+        noise_arr  = np.array(block_noises)
+        noise_std  = float(np.std(noise_arr))
+        mean_bn    = float(np.mean(noise_arr))
+        diffs      = noise_arr - mean_bn
+        noise_skew = float(np.mean(diffs ** 3) / (noise_std ** 3 + 1e-9))
+        noise_kurt = float(np.mean(diffs ** 4) / (noise_std ** 4 + 1e-9)) - 3.0
+        flagged    = noise_std > THRESHOLD
         note = f"Noise inconsistency: block noise std={noise_std:.2f} (threshold {THRESHOLD})."
-        return flagged, noise_std, note if flagged else ""
+        return flagged, noise_std, noise_skew, noise_kurt, note if flagged else ""
     except Exception:
-        return False, 0.0, ""
+        return False, 0.0, 0.0, 0.0, ""
+
+
+def _analyze_frequency_spectrum(path: pathlib.Path) -> float:
+    """Return the fraction of spectral energy in high-frequency bands (outer 50% of radius).
+
+    Diffusion-model images often have different high-frequency characteristics than
+    real camera images.  Returns 0.0 on error.
+    """
+    try:
+        with Image.open(path) as img:
+            gray = np.array(img.convert("L"), dtype=float)
+        f      = np.fft.fftshift(np.fft.fft2(gray))
+        power  = np.abs(f) ** 2
+        h, w   = power.shape
+        cy, cx = h // 2, w // 2
+        Y, X   = np.ogrid[:h, :w]
+        r      = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2)
+        r_max  = min(cx, cy)
+        total  = power.sum() + 1e-9
+        hf     = power[r > 0.5 * r_max].sum()
+        return float(hf / total)
+    except Exception:
+        return 0.0
 
 
 def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
@@ -953,13 +993,14 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         indicators['c2pa'] = c2pa_ind
         if not already_detected:
             indicators['summary'] += f' | C2PA: {c2pa_status}'
-    ela_flagged, ela_max_diff, ela_b64    = _run_ela(path)
-    noise_flagged, noise_std, noise_note  = _check_noise_inconsistency(path)
-    blocking_flagged, blocking_note       = _check_compression_blocking(path)
+    ela_flagged, ela_max_diff, ela_mean_diff, ela_std_diff, ela_source, ela_b64 = _run_ela(path)
+    noise_flagged, noise_std, noise_skewness, noise_kurtosis, noise_note = _check_noise_inconsistency(path)
+    blocking_flagged, blocking_note = _check_compression_blocking(path)
+    hf_energy_ratio = _analyze_frequency_spectrum(path)
     artifacts, notes = [], []
     if ela_flagged:
         artifacts.append("ELA anomaly")
-        notes.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+        notes.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15, quality 75).")
     if noise_flagged:
         artifacts.append("Noise inconsistency")
         notes.append(noise_note)
@@ -967,16 +1008,22 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         artifacts.append("Compression blocking")
         notes.append(blocking_note)
     return {
-        "exif_anomalies":  exif_anomalies,
-        "ifd0_tags":       ifd0_tags,
-        "indicators":      indicators,
-        "c2pa_status":     c2pa_status,
-        "c2pa_details":    c2pa_details,
-        "artifacts":       artifacts,
-        "artifact_notes":  "\n".join(notes),
-        "ela_image_b64":   ela_b64,
-        "ela_max_diff":    ela_max_diff,
-        "block_noise_std": round(noise_std, 4),
+        "exif_anomalies":   exif_anomalies,
+        "ifd0_tags":        ifd0_tags,
+        "indicators":       indicators,
+        "c2pa_status":      c2pa_status,
+        "c2pa_details":     c2pa_details,
+        "artifacts":        artifacts,
+        "artifact_notes":   "\n".join(notes),
+        "ela_image_b64":    ela_b64,
+        "ela_max_diff":     ela_max_diff,
+        "ela_mean_diff":    round(ela_mean_diff, 4),
+        "ela_std_diff":     round(ela_std_diff, 4),
+        "ela_source":       ela_source,
+        "block_noise_std":  round(noise_std, 4),
+        "noise_skewness":   round(noise_skewness, 4),
+        "noise_kurtosis":   round(noise_kurtosis, 4),
+        "hf_energy_ratio":  round(hf_energy_ratio, 6),
     }
 
 

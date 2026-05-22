@@ -812,7 +812,13 @@
           artifact_notes:  result.artifact_notes,
           ela_image_b64:   result.ela_image_b64,
           ela_max_diff:    result.ela_max_diff,
+          ela_mean_diff:   result.ela_mean_diff,
+          ela_std_diff:    result.ela_std_diff,
+          ela_source:      result.ela_source,
           block_noise_std: result.block_noise_std,
+          noise_skewness:  result.noise_skewness,
+          noise_kurtosis:  result.noise_kurtosis,
+          hf_energy_ratio: result.hf_energy_ratio,
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
         const placeholderId = state.currentId;
@@ -836,7 +842,13 @@
           artifact_notes:    result.artifact_notes,
           ela_image_b64:     result.ela_image_b64,
           ela_max_diff:      result.ela_max_diff,
+          ela_mean_diff:     result.ela_mean_diff,
+          ela_std_diff:      result.ela_std_diff,
+          ela_source:        result.ela_source,
           block_noise_std:   result.block_noise_std,
+          noise_skewness:    result.noise_skewness,
+          noise_kurtosis:    result.noise_kurtosis,
+          hf_energy_ratio:   result.hf_energy_ratio,
           analysis_notes:    '',
           linked_record:     ''
         });
@@ -892,7 +904,13 @@
         artifact_notes:  result.artifact_notes,
         ela_image_b64:   result.ela_image_b64,
         ela_max_diff:    result.ela_max_diff,
+        ela_mean_diff:   result.ela_mean_diff,
+        ela_std_diff:    result.ela_std_diff,
+        ela_source:      result.ela_source,
         block_noise_std: result.block_noise_std,
+        noise_skewness:  result.noise_skewness,
+        noise_kurtosis:  result.noise_kurtosis,
+        hf_energy_ratio: result.hf_energy_ratio,
       });
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1842,13 +1860,42 @@
       return { label, color: COLORS[label], values: records.map(r => r[field]).filter(v => v != null && typeof v === 'number') };
     }
 
-    const elaSection  = buildDensityPlot('ELA Max Pixel Diff',  'max pixel diff',   [dataset('Original', p0, 'ela_max_diff'),    dataset('Modified', p1, 'ela_max_diff'),    dataset('Altered', p2, 'ela_max_diff')]);
-    const noiseSection = buildDensityPlot('Block Noise Std',     'block noise std',  [dataset('Original', p0, 'block_noise_std'), dataset('Modified', p1, 'block_noise_std'), dataset('Altered', p2, 'block_noise_std')]);
+    function subtitle(text) {
+      const s = document.createElement('p');
+      s.className = 'dash-section-subtitle';
+      s.textContent = text;
+      return s;
+    }
+
+    function plotWithSubtitle(title, unit, field, note) {
+      const container = document.createElement('div');
+      container.appendChild(subtitle(note));
+      container.appendChild(buildDensityPlot(title, unit, [
+        dataset('Original', p0, field),
+        dataset('Modified', p1, field),
+        dataset('Altered',  p2, field),
+      ]));
+      return container;
+    }
 
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
-    wrapper.appendChild(elaSection);
-    wrapper.appendChild(noiseSection);
+    wrapper.appendChild(plotWithSubtitle(
+      'ELA Mean Pixel Diff', 'mean pixel diff', 'ela_mean_diff',
+      'Mean per-pixel error after re-saving at JPEG quality 75. PNG-source images show higher values due to first-time JPEG compression.'
+    ));
+    wrapper.appendChild(plotWithSubtitle(
+      'ELA Std Pixel Diff', 'std pixel diff', 'ela_std_diff',
+      'Standard deviation of per-pixel error at quality 75 — measures spatial uniformity of compression artifacts.'
+    ));
+    wrapper.appendChild(plotWithSubtitle(
+      'High-Frequency Energy Ratio', 'HF energy ratio', 'hf_energy_ratio',
+      'Fraction of FFT spectral energy in high-frequency bands (outer 50% of radius). Diffusion-model images may differ from real camera images.'
+    ));
+    wrapper.appendChild(plotWithSubtitle(
+      'Noise Skewness', 'skewness', 'noise_skewness',
+      'Skewness of the block noise distribution. Real camera noise is approximately symmetric (≈ 0); AI images may deviate.'
+    ));
     return wrapper;
   }
 
