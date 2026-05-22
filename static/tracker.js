@@ -805,12 +805,14 @@
       if (matched) {
         // Attach analysis to existing record and navigate to it
         Object.assign(matched, {
-          exif_anomalies: result.exif_anomalies,
-          c2pa_status:    result.c2pa_status,
-          c2pa_details:   result.c2pa_details,
-          artifacts:      result.artifacts,
-          artifact_notes: result.artifact_notes,
-          ela_image_b64:  result.ela_image_b64
+          exif_anomalies:  result.exif_anomalies,
+          c2pa_status:     result.c2pa_status,
+          c2pa_details:    result.c2pa_details,
+          artifacts:       result.artifacts,
+          artifact_notes:  result.artifact_notes,
+          ela_image_b64:   result.ela_image_b64,
+          ela_max_diff:    result.ela_max_diff,
+          block_noise_std: result.block_noise_std,
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
         const placeholderId = state.currentId;
@@ -833,6 +835,8 @@
           artifacts:         result.artifacts,
           artifact_notes:    result.artifact_notes,
           ela_image_b64:     result.ela_image_b64,
+          ela_max_diff:      result.ela_max_diff,
+          block_noise_std:   result.block_noise_std,
           analysis_notes:    '',
           linked_record:     ''
         });
@@ -879,14 +883,16 @@
         return;
       }
       Object.assign(rec, {
-        exif_anomalies: result.exif_anomalies,
-        ifd0_tags:      result.ifd0_tags,
-        indicators:     result.indicators,
-        c2pa_status:    result.c2pa_status,
-        c2pa_details:   result.c2pa_details,
-        artifacts:      result.artifacts,
-        artifact_notes: result.artifact_notes,
-        ela_image_b64:  result.ela_image_b64,
+        exif_anomalies:  result.exif_anomalies,
+        ifd0_tags:       result.ifd0_tags,
+        indicators:      result.indicators,
+        c2pa_status:     result.c2pa_status,
+        c2pa_details:    result.c2pa_details,
+        artifacts:       result.artifacts,
+        artifact_notes:  result.artifact_notes,
+        ela_image_b64:   result.ela_image_b64,
+        ela_max_diff:    result.ela_max_diff,
+        block_noise_std: result.block_noise_std,
       });
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1684,6 +1690,168 @@
     return section;
   }
 
+  // ── KDE density plot ──────────────────────────────────────────────────────
+
+  function buildDensityPlot(title, unit, datasets) {
+    // datasets: [{ label, color, values: number[] }, ...]
+    const section = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.className = 'dash-section-title';
+    titleEl.textContent = title;
+    section.appendChild(titleEl);
+
+    const allValues = datasets.flatMap(d => d.values);
+    if (!allValues.length) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No data yet.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const ML = 44, MR = 20, MT = 20, MB = 36;
+    const plotW = 480, plotH = 140;
+    const totalW = ML + plotW + MR;
+    const totalH = MT + plotH + MB;
+
+    // Compute KDE for each dataset
+    function silverman(vals) {
+      const n = vals.length;
+      if (n < 2) return 1;
+      const mean = vals.reduce((s, v) => s + v, 0) / n;
+      const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1));
+      return Math.max(1.06 * std * Math.pow(n, -0.2), 0.1);
+    }
+
+    const xMin = Math.min(...allValues);
+    const xMax = Math.max(...allValues);
+    const xPad = (xMax - xMin) * 0.1 || 1;
+    const xLo = xMin - xPad, xHi = xMax + xPad;
+    const STEPS = 200;
+    const xs = Array.from({ length: STEPS + 1 }, (_, i) => xLo + (xHi - xLo) * i / STEPS);
+
+    const curves = datasets.map(({ label, color, values }) => {
+      if (!values.length) return { label, color, ys: xs.map(() => 0) };
+      const h = silverman(values);
+      const ys = xs.map(x =>
+        values.reduce((sum, xi) => {
+          const u = (x - xi) / h;
+          return sum + Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
+        }, 0) / (values.length * h)
+      );
+      return { label, color, ys };
+    });
+
+    const yMax = Math.max(...curves.flatMap(c => c.ys), 1e-9);
+    const xScale = x => ML + (x - xLo) / (xHi - xLo) * plotW;
+    const yScale = y => MT + plotH - y / yMax * plotH;
+
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
+    svg.setAttribute('width', '100%');
+    svg.style.maxWidth = totalW + 'px';
+    svg.style.display = 'block';
+
+    // Grid lines
+    [0, 0.25, 0.5, 0.75, 1].forEach(t => {
+      const y = MT + plotH * (1 - t);
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', ML); line.setAttribute('x2', ML + plotW);
+      line.setAttribute('y1', y);  line.setAttribute('y2', y);
+      line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '0.5');
+      svg.appendChild(line);
+    });
+
+    // X-axis ticks
+    const nTicks = 6;
+    for (let i = 0; i <= nTicks; i++) {
+      const xv = xLo + (xHi - xLo) * i / nTicks;
+      const px = xScale(xv);
+      const tick = document.createElementNS(NS, 'line');
+      tick.setAttribute('x1', px); tick.setAttribute('x2', px);
+      tick.setAttribute('y1', MT + plotH); tick.setAttribute('y2', MT + plotH + 4);
+      tick.setAttribute('stroke', 'var(--text-faint)'); tick.setAttribute('stroke-width', '1');
+      svg.appendChild(tick);
+      const label = document.createElementNS(NS, 'text');
+      label.setAttribute('x', px); label.setAttribute('y', MT + plotH + 14);
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '9'); label.setAttribute('fill', 'var(--text-muted)');
+      label.setAttribute('font-family', 'var(--mono)');
+      label.textContent = Math.round(xv * 10) / 10;
+      svg.appendChild(label);
+    }
+
+    // X-axis label (unit)
+    const xAxisLabel = document.createElementNS(NS, 'text');
+    xAxisLabel.setAttribute('x', ML + plotW / 2);
+    xAxisLabel.setAttribute('y', totalH - 2);
+    xAxisLabel.setAttribute('text-anchor', 'middle');
+    xAxisLabel.setAttribute('font-size', '9'); xAxisLabel.setAttribute('fill', 'var(--text-faint)');
+    xAxisLabel.setAttribute('font-family', 'var(--mono)');
+    xAxisLabel.textContent = unit;
+    svg.appendChild(xAxisLabel);
+
+    // KDE curves (filled)
+    curves.forEach(({ color, ys }) => {
+      const pts = xs.map((x, i) => `${xScale(x).toFixed(1)},${yScale(ys[i]).toFixed(1)}`).join(' ');
+      const baseline = `${xScale(xs[xs.length - 1]).toFixed(1)},${(MT + plotH).toFixed(1)} ${xScale(xs[0]).toFixed(1)},${(MT + plotH).toFixed(1)}`;
+      const fill = document.createElementNS(NS, 'polygon');
+      fill.setAttribute('points', pts + ' ' + baseline);
+      fill.setAttribute('fill', color); fill.setAttribute('fill-opacity', '0.15');
+      svg.appendChild(fill);
+      const path = document.createElementNS(NS, 'polyline');
+      path.setAttribute('points', pts);
+      path.setAttribute('fill', 'none'); path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', '1.5'); path.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(path);
+    });
+
+    // Axes
+    const axisColor = 'var(--text-faint)';
+    [[ML, MT, ML, MT + plotH], [ML, MT + plotH, ML + plotW, MT + plotH]].forEach(([x1, y1, x2, y2]) => {
+      const ax = document.createElementNS(NS, 'line');
+      ax.setAttribute('x1', x1); ax.setAttribute('y1', y1);
+      ax.setAttribute('x2', x2); ax.setAttribute('y2', y2);
+      ax.setAttribute('stroke', axisColor); ax.setAttribute('stroke-width', '1');
+      svg.appendChild(ax);
+    });
+
+    section.appendChild(svg);
+
+    // Legend
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:flex; gap:1.5rem; margin-top:0.5rem;';
+    datasets.forEach(({ label, color }) => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:11px; color:var(--text-muted);';
+      const swatch = document.createElement('span');
+      swatch.style.cssText = `display:inline-block; width:18px; height:3px; background:${color}; border-radius:2px; flex-shrink:0;`;
+      item.appendChild(swatch);
+      item.appendChild(document.createTextNode(label));
+      legend.appendChild(item);
+    });
+    section.appendChild(legend);
+    return section;
+  }
+
+  function buildPixelArtifactsSection(p0, p1, p2) {
+    const COLORS = { Original: '#4e9af1', Modified: '#f5a623', Altered: '#e05c5c' };
+
+    function dataset(label, records, field) {
+      return { label, color: COLORS[label], values: records.map(r => r[field]).filter(v => v != null && typeof v === 'number') };
+    }
+
+    const elaSection  = buildDensityPlot('ELA Max Pixel Diff',  'max pixel diff',   [dataset('Original', p0, 'ela_max_diff'),    dataset('Modified', p1, 'ela_max_diff'),    dataset('Altered', p2, 'ela_max_diff')]);
+    const noiseSection = buildDensityPlot('Block Noise Std',     'block noise std',  [dataset('Original', p0, 'block_noise_std'), dataset('Modified', p1, 'block_noise_std'), dataset('Altered', p2, 'block_noise_std')]);
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+    wrapper.appendChild(elaSection);
+    wrapper.appendChild(noiseSection);
+    return wrapper;
+  }
+
   function openDashboard() {
     const content = document.getElementById('dashboard-content');
     content.innerHTML = '';
@@ -1796,6 +1964,10 @@
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
+    // ── Visual / pixel-level artifacts group ──
+    const { details: pixDetails, body: pixBody } = buildDashGroup('Visual / pixel-level artifacts');
+    content.appendChild(pixDetails);
+    pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }

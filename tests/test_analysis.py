@@ -132,17 +132,20 @@ class TestRunEla:
 
 class TestCheckNoiseInconsistency:
     def test_jpeg_returns_tuple(self, sample_jpeg):
-        flagged, note = _check_noise_inconsistency(sample_jpeg)
+        flagged, noise_std, note = _check_noise_inconsistency(sample_jpeg)
         assert isinstance(flagged, bool)
+        assert isinstance(noise_std, float)
         assert isinstance(note, str)
 
     def test_png_returns_tuple(self, sample_png):
-        flagged, note = _check_noise_inconsistency(sample_png)
+        flagged, noise_std, note = _check_noise_inconsistency(sample_png)
         assert isinstance(flagged, bool)
+        assert isinstance(noise_std, float)
 
     def test_nonexistent_file_returns_safe_default(self, tmp_path):
-        flagged, note = _check_noise_inconsistency(tmp_path / "missing.jpg")
+        flagged, noise_std, note = _check_noise_inconsistency(tmp_path / "missing.jpg")
         assert flagged is False
+        assert noise_std == 0.0
         assert note == ""
 
     def test_flagged_note_is_not_empty(self, tmp_path):
@@ -156,9 +159,9 @@ class TestCheckNoiseInconsistency:
                 pixels[x, y] = (x % 255, y % 255, (x + y) % 255)
         p = tmp_path / "noisy.jpg"
         img.save(p, format="JPEG")
-        flagged, note = _check_noise_inconsistency(p)
-        # We don't assert flagged=True (depends on thresholds), just that it runs
+        flagged, noise_std, note = _check_noise_inconsistency(p)
         assert isinstance(flagged, bool)
+        assert isinstance(noise_std, float)
 
 
 # ── _check_compression_blocking ───────────────────────────────────────────────
@@ -223,7 +226,7 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
         mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(True, "Noise note"))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(True, 2.5, "Noise note"))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(False, ""))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Noise inconsistency" in result["artifacts"]
@@ -234,7 +237,7 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
         mocker.patch.object(flask_app, "_run_ela", return_value=(False, 0, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, ""))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, ""))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(True, "Blocking note"))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Compression blocking" in result["artifacts"]
@@ -253,7 +256,7 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(flask_app, "_check_c2pa", return_value="No")
         mocker.patch.object(flask_app, "_extract_c2pa_details", return_value=None)
         mocker.patch.object(flask_app, "_run_ela", return_value=(True, 20, "abc"))
-        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, ""))
+        mocker.patch.object(flask_app, "_check_noise_inconsistency", return_value=(False, 0.0, ""))
         mocker.patch.object(flask_app, "_check_compression_blocking", return_value=(False, ""))
         result = _run_analysis_pipeline(sample_jpeg)
         assert "ELA anomaly" in result["artifacts"]
