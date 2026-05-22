@@ -159,6 +159,7 @@
   .btn.save:hover { opacity: 0.88; }
   .btn.danger { color: var(--danger); border-color: #d0b0b0; }
   .btn.danger:hover { background: #fff0f0; border-color: var(--danger); }
+  .btn.active { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
   .status-msg { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: var(--radius); display: none; }
   .status-msg.success { background: var(--success-bg); color: var(--success); display: inline-block; }
   .status-msg.warning { background: var(--warning-bg); color: var(--warning); display: inline-block; }

@@ -1850,6 +1850,108 @@
     return section;
   }
 
+  function buildFeatureDistributionsSection(p0, p2) {
+    const RF_FEATURES = [
+      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff' },
+      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff'  },
+      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff'  },
+      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std' },
+      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness'        },
+      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis'        },
+    ];
+    const MODEL_COLORS = ['#e05c5c','#f5a623','#4eb84e','#9b59b6','#1abc9c','#e67e22','#3498db'];
+    const ORIG_COLOR   = '#4e9af1';
+    const ALT_COLOR    = '#e05c5c';
+
+    const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
+    const modelCounts = {};
+    p2.forEach(r => { const m = (r.model || '').trim(); if (m) modelCounts[m] = (modelCounts[m] || 0) + 1; });
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem;';
+
+    // ── Mode toggle ──
+    const toggleRow = document.createElement('div');
+    toggleRow.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+    const btnCombined = document.createElement('button');
+    btnCombined.className = 'btn';
+    btnCombined.textContent = 'Combined';
+    const btnByModel = document.createElement('button');
+    btnByModel.className = 'btn';
+    btnByModel.textContent = 'By Model';
+    toggleRow.appendChild(btnCombined);
+    toggleRow.appendChild(btnByModel);
+    wrapper.appendChild(toggleRow);
+
+    // ── Model checkboxes (Combined mode only) ──
+    const checkboxArea = document.createElement('div');
+    checkboxArea.style.cssText = 'display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem;';
+    const checkboxes = {};
+    models.forEach(m => {
+      const lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+      cb.addEventListener('change', rebuildPlots);
+      checkboxes[m] = cb;
+      const span = document.createElement('span');
+      span.style.color = 'var(--text-muted)';
+      span.textContent = `${m} (${modelCounts[m] || 0})`;
+      lbl.appendChild(cb);
+      lbl.appendChild(span);
+      checkboxArea.appendChild(lbl);
+    });
+    wrapper.appendChild(checkboxArea);
+
+    // ── Plots container ──
+    const plotsContainer = document.createElement('div');
+    plotsContainer.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+    wrapper.appendChild(plotsContainer);
+
+    let currentMode = 'combined';
+
+    function rebuildPlots() {
+      plotsContainer.innerHTML = '';
+      RF_FEATURES.forEach(({ field, label, unit }) => {
+        let datasets;
+        if (currentMode === 'combined') {
+          const selected = new Set(models.filter(m => checkboxes[m].checked));
+          const altRecs  = p2.filter(r => selected.has((r.model || '').trim()));
+          datasets = [
+            { label: 'Original', color: ORIG_COLOR, values: p0.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+            { label: 'Altered',  color: ALT_COLOR,  values: altRecs.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+          ];
+        } else {
+          datasets = [
+            { label: 'Original', color: ORIG_COLOR, values: p0.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+            ...models.map((m, i) => ({
+              label:  m,
+              color:  MODEL_COLORS[i % MODEL_COLORS.length],
+              values: p2.filter(r => (r.model || '').trim() === m).map(r => r[field]).filter(v => v != null && typeof v === 'number'),
+            })),
+          ];
+        }
+        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets));
+      });
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      checkboxArea.style.display = mode === 'combined' ? 'flex' : 'none';
+      btnCombined.classList.toggle('active', mode === 'combined');
+      btnByModel.classList.toggle('active', mode === 'bymodel');
+      rebuildPlots();
+    }
+
+    btnCombined.addEventListener('click', () => setMode('combined'));
+    btnByModel.addEventListener('click', () => setMode('bymodel'));
+
+    setMode('combined');
+    return wrapper;
+  }
+
   function buildRFControls(container, p2) {
     const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
     const modelCounts = {};
@@ -2209,6 +2311,11 @@
     const { details: pixDetails, body: pixBody } = buildDashGroup('Visual / pixel-level artifacts');
     content.appendChild(pixDetails);
     pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
+
+    // ── Feature distributions group ──
+    const { details: fdDetails, body: fdBody } = buildDashGroup('Feature Distributions', false);
+    content.appendChild(fdDetails);
+    fdBody.appendChild(buildFeatureDistributionsSection(p0, p2));
 
     // ── Random Forest group ──
     const { details: rfDetails, body: rfBody } = buildDashGroup('Random Forest Classifier', false);
