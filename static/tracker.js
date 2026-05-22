@@ -1578,18 +1578,18 @@
       return section;
     }
 
-    INDICATORS.forEach(([name, fn]) => {
+    types.forEach(({ label, records }) => {
+      const analyzed = records.filter(r => r.indicators);
+      if (!analyzed.length) return;
       const group = document.createElement('div');
       group.className = 'dash-indicator-group';
       const lbl = document.createElement('div');
       lbl.className = 'dash-indicator-label';
-      lbl.textContent = name;
+      lbl.textContent = label;
       group.appendChild(lbl);
       const chart = document.createElement('div');
       chart.className = 'dash-bar-chart';
-      types.forEach(({ label, records }) => {
-        const analyzed = records.filter(r => r.indicators);
-        if (!analyzed.length) return;
+      INDICATORS.forEach(([name, fn]) => {
         const matching = analyzed.filter(fn);
         const count = matching.length;
         const pct = Math.round(count / analyzed.length * 100);
@@ -1606,7 +1606,8 @@
         }
         const labelEl = document.createElement('span');
         labelEl.className = 'dash-bar-label';
-        labelEl.textContent = label;
+        labelEl.textContent = name;
+        labelEl.style.width = '220px';
         const track = document.createElement('div');
         track.className = 'dash-bar-track';
         const fill = document.createElement('div');
@@ -1626,7 +1627,7 @@
     return section;
   }
 
-  function buildModelIndicatorTable(p2) {
+  function buildModelIndicatorTable(p0, p1, p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
@@ -1634,7 +1635,7 @@
     section.appendChild(titleEl);
     const subEl = document.createElement('p');
     subEl.className = 'dash-section-subtitle';
-    subEl.textContent = 'Marked if any altered image from that model has the indicator present.';
+    subEl.textContent = 'Marked if any image in that group has the indicator present.';
     section.appendChild(subEl);
 
     const INDICATORS = [
@@ -1654,7 +1655,7 @@
     const thead = table.createTHead();
     const hrow = thead.insertRow();
     const modelTh = document.createElement('th');
-    modelTh.textContent = 'Model';
+    modelTh.textContent = 'Group';
     hrow.appendChild(modelTh);
     INDICATORS.forEach(([label]) => {
       const th = document.createElement('th');
@@ -1664,16 +1665,20 @@
     });
 
     const tbody = table.createTBody();
-    models.forEach(model => {
-      const modelRecords = p2.filter(r => (r.model || 'Unknown').trim() === model);
+
+    const addRow = (label, records) => {
       const tr = tbody.insertRow();
-      tr.insertCell().textContent = model;
+      tr.insertCell().textContent = label;
       INDICATORS.forEach(([, fn]) => {
         const td = tr.insertCell();
         td.style.textAlign = 'center';
-        if (modelRecords.some(fn)) td.textContent = 'x';
+        if (records.some(fn)) td.textContent = 'x';
       });
-    });
+    };
+
+    addRow('Originals', p0);
+    addRow('Modified', p1);
+    models.forEach(model => addRow(model, p2.filter(r => (r.model || 'Unknown').trim() === model)));
 
     section.appendChild(table);
     return section;
@@ -1733,6 +1738,8 @@
     const { details: aiDetails, body: aiBody } = buildDashGroup('AI Indicators');
     content.appendChild(aiDetails);
 
+    aiBody.appendChild(buildModelIndicatorTable(p0, p1, p2));
+
     // Models with visible watermarks
     if (p2.length) {
       const watermarked = p2.filter(r => r.visible_watermark);
@@ -1789,7 +1796,6 @@
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
-    if (p2.length) aiBody.appendChild(buildModelIndicatorTable(p2));
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }
