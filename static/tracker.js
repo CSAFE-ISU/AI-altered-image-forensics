@@ -1850,6 +1850,94 @@
     return section;
   }
 
+  function buildRFControls(container, p2) {
+    const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
+    const modelCounts = {};
+    p2.forEach(r => {
+      const m = (r.model || '').trim();
+      if (m) modelCounts[m] = (modelCounts[m] || 0) + 1;
+    });
+
+    // ── Model checkboxes ──
+    const ctrlSub = document.createElement('p');
+    ctrlSub.className = 'dash-section-subtitle';
+    ctrlSub.textContent = 'Select which AI models to include as the "AI-altered" class. All originals are always included.';
+    container.appendChild(ctrlSub);
+
+    const checkboxArea = document.createElement('div');
+    checkboxArea.style.cssText = 'display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem; margin-bottom:1rem;';
+
+    const checkboxes = {};
+    models.forEach(model => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+      checkboxes[model] = cb;
+      const count = document.createElement('span');
+      count.style.cssText = 'color:var(--text-muted);';
+      count.textContent = `${model} (${modelCounts[model] ?? 0})`;
+      label.appendChild(cb);
+      label.appendChild(count);
+      checkboxArea.appendChild(label);
+    });
+    container.appendChild(checkboxArea);
+
+    // ── Train button ──
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Train Random Forest';
+    btn.style.cssText = 'margin-bottom:1.5rem;';
+    container.appendChild(btn);
+
+    // ── Results area ──
+    const resultsArea = document.createElement('div');
+    container.appendChild(resultsArea);
+
+    btn.addEventListener('click', async () => {
+      const selectedModels = models.filter(m => checkboxes[m].checked);
+      if (!selectedModels.length) {
+        resultsArea.innerHTML = '';
+        const warn = document.createElement('p');
+        warn.className = 'dash-section-subtitle';
+        warn.textContent = 'Select at least one model to train.';
+        resultsArea.appendChild(warn);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Training…';
+      resultsArea.innerHTML = '';
+
+      try {
+        const resp = await fetch('/api/random_forest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ models: selectedModels }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          const err = document.createElement('p');
+          err.className = 'dash-section-subtitle';
+          err.textContent = 'Error: ' + (data.error || 'unknown');
+          resultsArea.appendChild(err);
+        } else {
+          resultsArea.appendChild(buildRandomForestSection(data));
+        }
+      } catch (e) {
+        const err = document.createElement('p');
+        err.className = 'dash-section-subtitle';
+        err.textContent = 'Failed to load: ' + e.message;
+        resultsArea.appendChild(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Train Random Forest';
+      }
+    });
+  }
+
   function buildRandomForestSection(data) {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
@@ -1857,10 +1945,13 @@
     // ── Description ──
     const desc = document.createElement('p');
     desc.className = 'dash-section-subtitle';
+    const modelNote = data.selected_models
+      ? `Models: ${data.selected_models.join(', ')}.`
+      : 'All models included.';
     desc.textContent =
       `5-fold stratified cross-validation on ${data.n_total} images ` +
       `(${data.n_original} original, ${data.n_altered} AI-altered). ` +
-      `Modified images excluded. Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
+      `${modelNote} Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
     wrapper.appendChild(desc);
 
     // ── Accuracy card ──
@@ -2002,7 +2093,7 @@
     return wrapper;
   }
 
-  async function openDashboard() {
+  function openDashboard() {
     const content = document.getElementById('dashboard-content');
     content.innerHTML = '';
 
@@ -2122,28 +2213,9 @@
     // ── Random Forest group ──
     const { details: rfDetails, body: rfBody } = buildDashGroup('Random Forest Classifier', false);
     content.appendChild(rfDetails);
-    const rfPlaceholder = document.createElement('p');
-    rfPlaceholder.className = 'dash-section-subtitle';
-    rfPlaceholder.textContent = 'Loading…';
-    rfBody.appendChild(rfPlaceholder);
+    buildRFControls(rfBody, p2);
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
-
-    try {
-      const resp = await fetch('/api/random_forest');
-      const data = await resp.json();
-      rfBody.removeChild(rfPlaceholder);
-      if (!resp.ok) {
-        const err = document.createElement('p');
-        err.className = 'dash-section-subtitle';
-        err.textContent = 'Error: ' + (data.error || 'unknown');
-        rfBody.appendChild(err);
-      } else {
-        rfBody.appendChild(buildRandomForestSection(data));
-      }
-    } catch (e) {
-      rfPlaceholder.textContent = 'Failed to load: ' + e.message;
-    }
   }
 
   function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {

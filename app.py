@@ -1097,7 +1097,7 @@ _RF_FEATURE_LABELS = {
 }
 
 
-@app.route("/api/random_forest")
+@app.route("/api/random_forest", methods=["POST"])
 def random_forest_analysis():
     try:
         from sklearn.ensemble import RandomForestClassifier
@@ -1105,6 +1105,9 @@ def random_forest_analysis():
         from sklearn.metrics import accuracy_score, confusion_matrix as sk_cm
     except ImportError:
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
+
+    body = request.get_json(force=True) or {}
+    selected_models = body.get("models")  # None = all; list = filter p2 by model name
 
     if _supabase:
         rows = _supabase.table("records").select("data").execute().data
@@ -1116,13 +1119,17 @@ def random_forest_analysis():
 
     X_rows, y, ela_sources = [], [], []
     for rec in records:
-        if rec.get("type") not in ("p0", "p2"):
+        rtype = rec.get("type")
+        if rtype == "p2":
+            if selected_models is not None and rec.get("model") not in selected_models:
+                continue
+        elif rtype != "p0":
             continue
         vals = [rec.get(f) for f in _RF_FEATURES]
         if any(v is None for v in vals):
             continue
         X_rows.append(vals)
-        y.append(0 if rec["type"] == "p0" else 1)
+        y.append(0 if rtype == "p0" else 1)
         ela_sources.append(1 if rec.get("ela_source") == "png" else 0)
 
     if len(X_rows) < 10:
@@ -1151,13 +1158,14 @@ def random_forest_analysis():
     ]
 
     return jsonify({
-        "n_original": int((y == 0).sum()),
-        "n_altered":  int((y == 1).sum()),
-        "n_total":    int(len(y)),
-        "fold_accuracies": [round(a, 4) for a in fold_accs],
-        "mean_accuracy":   round(float(np.mean(fold_accs)), 4),
-        "std_accuracy":    round(float(np.std(fold_accs)), 4),
-        "confusion_matrix": cm,
+        "n_original":          int((y == 0).sum()),
+        "n_altered":           int((y == 1).sum()),
+        "n_total":             int(len(y)),
+        "selected_models":     selected_models,
+        "fold_accuracies":     [round(a, 4) for a in fold_accs],
+        "mean_accuracy":       round(float(np.mean(fold_accs)), 4),
+        "std_accuracy":        round(float(np.std(fold_accs)), 4),
+        "confusion_matrix":    cm,
         "feature_importances": importances,
     })
 
