@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import pathlib
+import random
 import re
 import shutil
 import subprocess
@@ -29,12 +30,11 @@ import subprocess
 import numpy as np
 from PIL import Image, ImageChops, ImageFilter
 from werkzeug.utils import secure_filename
-
 from dotenv import load_dotenv
+from flask import Flask, abort, jsonify, request, send_file
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from flask import Flask, abort, jsonify, request, send_file
 
 load_dotenv()
 
@@ -1073,13 +1073,12 @@ def random_forest_analysis():
     except ImportError:
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
 
-    import random as _random
     body = request.get_json(force=True) or {}
     selected_models = body.get("models")                    # None = all; list = filter p2
     stratify_by     = body.get("stratify_by", "class")     # "class" or "model"
     feature_set     = body.get("feature_set",  "pixel")    # "pixel", "indicators", "both"
     seed_param      = body.get("seed")                      # int or None (auto)
-    seed = int(seed_param) if seed_param is not None else _random.randint(0, 2**31 - 1)
+    seed = int(seed_param) if seed_param is not None else random.randint(0, 2**31 - 1)
 
     if _supabase:
         rows = _supabase.table("records").select("data").execute().data
@@ -1196,12 +1195,12 @@ if __name__ == "__main__":
         if not DATA_FILE.exists():
             candidates = sorted(BASE.glob("ai_image_records_*.json"))
             if candidates:
-                seed = candidates[-1]
-                DATA_FILE.write_text(seed.read_text(encoding="utf-8"), encoding="utf-8")
-                print(f"  Seeded records.json from {seed.name}")
+                source_file = candidates[-1]
+                DATA_FILE.write_text(source_file.read_text(encoding="utf-8"), encoding="utf-8")
+                print(f"  Seeded records.json from {source_file.name}")
             else:
                 DATA_FILE.write_text("[]", encoding="utf-8")
 
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     print(f"\n  CSAFE Tracker running → http://localhost:{port}\n")
     app.run(debug=True, port=port)
