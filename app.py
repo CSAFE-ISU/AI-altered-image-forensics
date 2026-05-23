@@ -1087,14 +1087,40 @@ _RF_FEATURES = [
     "block_noise_std", "noise_skewness", "noise_kurtosis",
 ]
 _RF_FEATURE_LABELS = {
-    "ela_mean_diff":   "ELA Mean Diff",
-    "ela_std_diff":    "ELA Std Diff",
-    "ela_max_diff":    "ELA Max Diff",
-    "block_noise_std": "Block Noise Std",
-    "noise_skewness":  "Noise Skewness",
-    "noise_kurtosis":  "Noise Kurtosis",
-    "ela_source_png":  "ELA Source: PNG",
+    "ela_mean_diff":        "ELA Mean Diff",
+    "ela_std_diff":         "ELA Std Diff",
+    "ela_max_diff":         "ELA Max Diff",
+    "block_noise_std":      "Block Noise Std",
+    "noise_skewness":       "Noise Skewness",
+    "noise_kurtosis":       "Noise Kurtosis",
+    "ela_source_png":       "ELA Source: PNG",
+    "has_camera_exif":      "Camera EXIF Present",
+    "n_camera_exif_fields": "# Camera EXIF Fields",
+    "has_photoshop_adobe":  "Photoshop/Adobe Tags",
+    "has_icc":              "ICC Profile Tags",
+    "has_grok_sig":         "Grok Signature",
+    "has_c2pa":             "C2PA Manifest",
 }
+_INDICATOR_FEATURES = [
+    "has_camera_exif", "n_camera_exif_fields",
+    "has_photoshop_adobe", "has_icc", "has_grok_sig", "has_c2pa",
+]
+
+
+def _extract_indicator_vals(rec: dict) -> list | None:
+    """Return indicator feature values for one record, or None if unavailable."""
+    ind = rec.get("indicators")
+    if ind is None:
+        return None
+    present = ((ind.get("camera_exif") or {}).get("present") or {})
+    return [
+        1 if present else 0,
+        len(present),
+        1 if ind.get("photoshop_adobe") else 0,
+        1 if ind.get("icc_meas_view")   else 0,
+        1 if ind.get("grok_signatures") else 0,
+        1 if ind.get("c2pa")            else 0,
+    ]
 
 
 @app.route("/api/random_forest", methods=["POST"])
@@ -1107,8 +1133,9 @@ def random_forest_analysis():
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
 
     body = request.get_json(force=True) or {}
-    selected_models = body.get("models")       # None = all; list = filter p2 by model name
-    stratify_by     = body.get("stratify_by", "class")  # "class" or "model"
+    selected_models = body.get("models")                    # None = all; list = filter p2
+    stratify_by     = body.get("stratify_by", "class")     # "class" or "model"
+    feature_set     = body.get("feature_set",  "pixel")    # "pixel", "indicators", "both"
 
     if _supabase:
         rows = _supabase.table("records").select("data").execute().data
@@ -1119,7 +1146,15 @@ def random_forest_analysis():
         return jsonify({"error": "No data available"}), 503
 
     N_SPLITS = 5
-    X_rows, y, ela_sources, used_recs = [], [], [], []
+
+    # Determine feature names for this run
+    feature_names = []
+    if feature_set in ("pixel", "both"):
+        feature_names += _RF_FEATURES + ["ela_source_png"]
+    if feature_set in ("indicators", "both"):
+        feature_names += _INDICATOR_FEATURES
+
+    X_rows, y, used_recs = [], [], []
     for rec in records:
         rtype = rec.get("type")
         if rtype == "p2":
@@ -1127,21 +1162,29 @@ def random_forest_analysis():
                 continue
         elif rtype != "p0":
             continue
-        vals = [rec.get(f) for f in _RF_FEATURES]
-        if any(v is None for v in vals):
-            continue
-        X_rows.append(vals)
+
+        row = []
+        if feature_set in ("pixel", "both"):
+            pixel_vals = [rec.get(f) for f in _RF_FEATURES]
+            if any(v is None for v in pixel_vals):
+                continue
+            row += pixel_vals + [1 if rec.get("ela_source") == "png" else 0]
+
+        if feature_set in ("indicators", "both"):
+            ind_vals = _extract_indicator_vals(rec)
+            if ind_vals is None:
+                continue
+            row += ind_vals
+
+        X_rows.append(row)
         y.append(0 if rtype == "p0" else 1)
-        ela_sources.append(1 if rec.get("ela_source") == "png" else 0)
         used_recs.append(rec)
 
     if len(X_rows) < 10:
         return jsonify({"error": "Not enough analyzed records to run classifier"}), 422
 
     X = np.array(X_rows)
-    X = np.hstack([X, np.array(ela_sources).reshape(-1, 1)])
     y = np.array(y)
-    feature_names = _RF_FEATURES + ["ela_source_png"]
 
     # Build strata for CV splitting
     if stratify_by == "model":
@@ -1186,6 +1229,7 @@ def random_forest_analysis():
         "n_altered":           int((y == 1).sum()),
         "n_total":             int(len(y)),
         "selected_models":     selected_models,
+        "feature_set":         feature_set,
         "stratify_by":         stratify_by,
         "individual_strata":   individual_strata,
         "grouped_models":      grouped_models,
