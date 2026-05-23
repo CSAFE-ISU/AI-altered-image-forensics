@@ -812,7 +812,12 @@
           artifact_notes:  result.artifact_notes,
           ela_image_b64:   result.ela_image_b64,
           ela_max_diff:    result.ela_max_diff,
+          ela_mean_diff:   result.ela_mean_diff,
+          ela_std_diff:    result.ela_std_diff,
+          ela_source:      result.ela_source,
           block_noise_std: result.block_noise_std,
+          noise_skewness:  result.noise_skewness,
+          noise_kurtosis:  result.noise_kurtosis,
         });
         // Remove the blank p3 placeholder we created in newAnalysis()
         const placeholderId = state.currentId;
@@ -836,7 +841,12 @@
           artifact_notes:    result.artifact_notes,
           ela_image_b64:     result.ela_image_b64,
           ela_max_diff:      result.ela_max_diff,
+          ela_mean_diff:     result.ela_mean_diff,
+          ela_std_diff:      result.ela_std_diff,
+          ela_source:        result.ela_source,
           block_noise_std:   result.block_noise_std,
+          noise_skewness:    result.noise_skewness,
+          noise_kurtosis:    result.noise_kurtosis,
           analysis_notes:    '',
           linked_record:     ''
         });
@@ -892,7 +902,12 @@
         artifact_notes:  result.artifact_notes,
         ela_image_b64:   result.ela_image_b64,
         ela_max_diff:    result.ela_max_diff,
+        ela_mean_diff:   result.ela_mean_diff,
+        ela_std_diff:    result.ela_std_diff,
+        ela_source:      result.ela_source,
         block_noise_std: result.block_noise_std,
+        noise_skewness:  result.noise_skewness,
+        noise_kurtosis:  result.noise_kurtosis,
       });
       fillAnalysisSection(type, rec);
       document.getElementById('an-' + type + '-results')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1835,6 +1850,355 @@
     return section;
   }
 
+  function buildFeatureDistributionsSection(p0, p2) {
+    const RF_FEATURES = [
+      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff' },
+      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff'  },
+      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff'  },
+      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std' },
+      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness'        },
+      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis'        },
+    ];
+    const MODEL_COLORS = ['#e05c5c','#f5a623','#4eb84e','#9b59b6','#1abc9c','#e67e22','#3498db'];
+    const ORIG_COLOR   = '#4e9af1';
+    const ALT_COLOR    = '#e05c5c';
+
+    const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
+    const modelCounts = {};
+    p2.forEach(r => { const m = (r.model || '').trim(); if (m) modelCounts[m] = (modelCounts[m] || 0) + 1; });
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:1.5rem;';
+
+    // ── Mode toggle ──
+    const toggleRow = document.createElement('div');
+    toggleRow.style.cssText = 'display:flex; gap:0.5rem; align-items:center;';
+    const btnCombined = document.createElement('button');
+    btnCombined.className = 'btn';
+    btnCombined.textContent = 'Combined';
+    const btnByModel = document.createElement('button');
+    btnByModel.className = 'btn';
+    btnByModel.textContent = 'By Model';
+    toggleRow.appendChild(btnCombined);
+    toggleRow.appendChild(btnByModel);
+    wrapper.appendChild(toggleRow);
+
+    // ── Model checkboxes (Combined mode only) ──
+    const checkboxArea = document.createElement('div');
+    checkboxArea.style.cssText = 'display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem;';
+    const checkboxes = {};
+    models.forEach(m => {
+      const lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+      cb.addEventListener('change', rebuildPlots);
+      checkboxes[m] = cb;
+      const span = document.createElement('span');
+      span.style.color = 'var(--text-muted)';
+      span.textContent = `${m} (${modelCounts[m] || 0})`;
+      lbl.appendChild(cb);
+      lbl.appendChild(span);
+      checkboxArea.appendChild(lbl);
+    });
+    wrapper.appendChild(checkboxArea);
+
+    // ── Plots container ──
+    const plotsContainer = document.createElement('div');
+    plotsContainer.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+    wrapper.appendChild(plotsContainer);
+
+    let currentMode = 'combined';
+
+    function rebuildPlots() {
+      plotsContainer.innerHTML = '';
+      RF_FEATURES.forEach(({ field, label, unit }) => {
+        let datasets;
+        if (currentMode === 'combined') {
+          const selected = new Set(models.filter(m => checkboxes[m].checked));
+          const altRecs  = p2.filter(r => selected.has((r.model || '').trim()));
+          datasets = [
+            { label: 'Original', color: ORIG_COLOR, values: p0.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+            { label: 'Altered',  color: ALT_COLOR,  values: altRecs.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+          ];
+        } else {
+          datasets = [
+            { label: 'Original', color: ORIG_COLOR, values: p0.map(r => r[field]).filter(v => v != null && typeof v === 'number') },
+            ...models.map((m, i) => ({
+              label:  m,
+              color:  MODEL_COLORS[i % MODEL_COLORS.length],
+              values: p2.filter(r => (r.model || '').trim() === m).map(r => r[field]).filter(v => v != null && typeof v === 'number'),
+            })),
+          ];
+        }
+        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets));
+      });
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      checkboxArea.style.display = mode === 'combined' ? 'flex' : 'none';
+      btnCombined.classList.toggle('active', mode === 'combined');
+      btnByModel.classList.toggle('active', mode === 'bymodel');
+      rebuildPlots();
+    }
+
+    btnCombined.addEventListener('click', () => setMode('combined'));
+    btnByModel.addEventListener('click', () => setMode('bymodel'));
+
+    setMode('combined');
+    return wrapper;
+  }
+
+  function buildRFControls(container, p2) {
+    const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
+    const modelCounts = {};
+    p2.forEach(r => {
+      const m = (r.model || '').trim();
+      if (m) modelCounts[m] = (modelCounts[m] || 0) + 1;
+    });
+
+    // ── Model checkboxes ──
+    const ctrlSub = document.createElement('p');
+    ctrlSub.className = 'dash-section-subtitle';
+    ctrlSub.textContent = 'Select which AI models to include as the "AI-altered" class. All originals are always included.';
+    container.appendChild(ctrlSub);
+
+    const checkboxArea = document.createElement('div');
+    checkboxArea.style.cssText = 'display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem; margin-bottom:1rem;';
+
+    const checkboxes = {};
+    models.forEach(model => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = true;
+      cb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+      checkboxes[model] = cb;
+      const count = document.createElement('span');
+      count.style.cssText = 'color:var(--text-muted);';
+      count.textContent = `${model} (${modelCounts[model] ?? 0})`;
+      label.appendChild(cb);
+      label.appendChild(count);
+      checkboxArea.appendChild(label);
+    });
+    container.appendChild(checkboxArea);
+
+    // ── Stratification option ──
+    const stratLabel = document.createElement('label');
+    stratLabel.style.cssText = 'display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none; margin-bottom:1.25rem;';
+    const stratCb = document.createElement('input');
+    stratCb.type = 'checkbox';
+    stratCb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+    const stratSpan = document.createElement('span');
+    stratSpan.innerHTML = 'Stratify folds by model <span style="color:var(--text-muted)">(models with &lt;5 images are grouped into a single stratum)</span>';
+    stratLabel.appendChild(stratCb);
+    stratLabel.appendChild(stratSpan);
+    container.appendChild(stratLabel);
+
+    // ── Train button ──
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Train Random Forest';
+    btn.style.cssText = 'margin-bottom:1.5rem;';
+    container.appendChild(btn);
+
+    // ── Results area ──
+    const resultsArea = document.createElement('div');
+    container.appendChild(resultsArea);
+
+    btn.addEventListener('click', async () => {
+      const selectedModels = models.filter(m => checkboxes[m].checked);
+      if (!selectedModels.length) {
+        resultsArea.innerHTML = '';
+        const warn = document.createElement('p');
+        warn.className = 'dash-section-subtitle';
+        warn.textContent = 'Select at least one model to train.';
+        resultsArea.appendChild(warn);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Training…';
+      resultsArea.innerHTML = '';
+
+      try {
+        const resp = await fetch('/api/random_forest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ models: selectedModels, stratify_by: stratCb.checked ? 'model' : 'class' }),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          const err = document.createElement('p');
+          err.className = 'dash-section-subtitle';
+          err.textContent = 'Error: ' + (data.error || 'unknown');
+          resultsArea.appendChild(err);
+        } else {
+          resultsArea.appendChild(buildRandomForestSection(data));
+        }
+      } catch (e) {
+        const err = document.createElement('p');
+        err.className = 'dash-section-subtitle';
+        err.textContent = 'Failed to load: ' + e.message;
+        resultsArea.appendChild(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Train Random Forest';
+      }
+    });
+  }
+
+  function buildRandomForestSection(data) {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+
+    // ── Description ──
+    const desc = document.createElement('p');
+    desc.className = 'dash-section-subtitle';
+    const modelNote = data.selected_models
+      ? `Models: ${data.selected_models.join(', ')}.`
+      : 'All models included.';
+    let stratNote = 'Folds stratified by class label.';
+    if (data.stratify_by === 'model') {
+      const indiv   = (data.individual_strata  || []).join(', ') || '—';
+      const grouped = (data.grouped_models     || []).join(', ') || 'none';
+      stratNote = `Folds stratified by model. Individual strata: ${indiv}. Grouped (<5 images): ${grouped}.`;
+    }
+    desc.textContent =
+      `5-fold cross-validation on ${data.n_total} images ` +
+      `(${data.n_original} original, ${data.n_altered} AI-altered). ` +
+      `${modelNote} ${stratNote} Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
+    wrapper.appendChild(desc);
+
+    // ── Accuracy card ──
+    const accCard = document.createElement('div');
+    accCard.style.cssText = 'display:flex; align-items:baseline; gap:0.5rem;';
+    const accVal = document.createElement('span');
+    accVal.style.cssText = 'font-size:2rem; font-weight:700; font-family:var(--mono); color:var(--accent);';
+    accVal.textContent = (data.mean_accuracy * 100).toFixed(1) + '%';
+    const accLabel = document.createElement('span');
+    accLabel.style.cssText = 'font-size:0.85rem; color:var(--text-muted); font-family:var(--mono);';
+    accLabel.textContent = `± ${(data.std_accuracy * 100).toFixed(1)}%  mean 5-fold CV accuracy`;
+    accCard.appendChild(accVal);
+    accCard.appendChild(accLabel);
+    wrapper.appendChild(accCard);
+
+    // Per-fold breakdown
+    const foldRow = document.createElement('div');
+    foldRow.style.cssText = 'display:flex; gap:0.75rem; flex-wrap:wrap;';
+    data.fold_accuracies.forEach((a, i) => {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'font-family:var(--mono); font-size:0.8rem; color:var(--text-muted); background:var(--bg-alt); padding:2px 8px; border-radius:4px;';
+      chip.textContent = `Fold ${i + 1}: ${(a * 100).toFixed(1)}%`;
+      foldRow.appendChild(chip);
+    });
+    wrapper.appendChild(foldRow);
+
+    // ── Confusion matrix ──
+    const cmTitle = document.createElement('div');
+    cmTitle.className = 'dash-section-title';
+    cmTitle.textContent = 'Confusion Matrix';
+    wrapper.appendChild(cmTitle);
+
+    const cmSub = document.createElement('p');
+    cmSub.className = 'dash-section-subtitle';
+    cmSub.textContent = 'Rows = true label, columns = predicted label. Aggregated across all 5 folds.';
+    wrapper.appendChild(cmSub);
+
+    const cm = data.confusion_matrix;
+    const maxCell = Math.max(...cm.flat());
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:grid; grid-template-columns:140px repeat(2,110px); grid-template-rows:repeat(3,auto); gap:4px; width:fit-content;';
+
+    const cellStyle = (val, isHeader) => {
+      if (isHeader) return 'display:flex; align-items:center; justify-content:center; padding:6px 10px; font-family:var(--mono); font-size:0.78rem; color:var(--text-muted); font-weight:600;';
+      const alpha = 0.15 + 0.7 * (val / maxCell);
+      return `display:flex; align-items:center; justify-content:center; padding:12px 8px; font-family:var(--mono); font-size:1.1rem; font-weight:700; border-radius:6px; background:rgba(78,154,241,${alpha.toFixed(2)}); color:var(--text);`;
+    };
+
+    [['', 'Pred: Original', 'Pred: AI-altered'],
+     ['True: Original',  cm[0][0], cm[0][1]],
+     ['True: AI-altered', cm[1][0], cm[1][1]]].forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        const el = document.createElement('div');
+        const isHeader = ri === 0 || ci === 0;
+        el.style.cssText = cellStyle(cell, isHeader);
+        el.textContent = cell;
+        grid.appendChild(el);
+      });
+    });
+    wrapper.appendChild(grid);
+
+    // ── FPR / FNR ──
+    const tn = cm[0][0], fp = cm[0][1], fn = cm[1][0], tp = cm[1][1];
+    const fpr = fp / (fp + tn);
+    const fnr = fn / (fn + tp);
+
+    const rateRow = document.createElement('div');
+    rateRow.style.cssText = 'display:flex; gap:2rem; margin-top:0.75rem;';
+    [
+      { label: 'False Positive Rate', value: fpr, note: 'originals misclassified as AI-altered' },
+      { label: 'False Negative Rate', value: fnr, note: 'AI-altered images misclassified as original' },
+    ].forEach(({ label, value, note }) => {
+      const block = document.createElement('div');
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-family:var(--mono); font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;';
+      lbl.textContent = label;
+      const val = document.createElement('div');
+      val.style.cssText = 'font-family:var(--mono); font-size:1.4rem; font-weight:700; color:var(--text);';
+      val.textContent = (value * 100).toFixed(1) + '%';
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-family:var(--mono); font-size:0.72rem; color:var(--text-muted);';
+      sub.textContent = `${label === 'False Positive Rate' ? fp : fn} of ${label === 'False Positive Rate' ? (fp + tn) : (fn + tp)} — ${note}`;
+      block.appendChild(lbl);
+      block.appendChild(val);
+      block.appendChild(sub);
+      rateRow.appendChild(block);
+    });
+    wrapper.appendChild(rateRow);
+
+    // ── Feature importances ──
+    const fiTitle = document.createElement('div');
+    fiTitle.className = 'dash-section-title';
+    fiTitle.textContent = 'Feature Importances';
+    wrapper.appendChild(fiTitle);
+
+    const fiSub = document.createElement('p');
+    fiSub.className = 'dash-section-subtitle';
+    fiSub.textContent = 'Mean decrease in impurity, trained on the full dataset. All features contribute nearly equally.';
+    wrapper.appendChild(fiSub);
+
+    const maxImp = data.feature_importances[0].importance;
+    const fiChart = document.createElement('div');
+    fiChart.style.cssText = 'display:flex; flex-direction:column; gap:6px; max-width:520px;';
+    data.feature_importances.forEach(({ label, importance }) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-family:var(--mono); font-size:0.78rem; color:var(--text-muted); width:160px; text-align:right; flex-shrink:0;';
+      lbl.textContent = label;
+      const barWrap = document.createElement('div');
+      barWrap.style.cssText = 'flex:1; background:var(--bg-alt); border-radius:3px; height:16px; position:relative;';
+      const bar = document.createElement('div');
+      bar.style.cssText = `width:${(importance / maxImp * 100).toFixed(1)}%; height:100%; background:#4e9af1; border-radius:3px;`;
+      const val = document.createElement('span');
+      val.style.cssText = 'font-family:var(--mono); font-size:0.75rem; color:var(--text-muted); margin-left:6px; flex-shrink:0;';
+      val.textContent = (importance * 100).toFixed(1) + '%';
+      barWrap.appendChild(bar);
+      row.appendChild(lbl);
+      row.appendChild(barWrap);
+      row.appendChild(val);
+      fiChart.appendChild(row);
+    });
+    wrapper.appendChild(fiChart);
+
+    return wrapper;
+  }
+
   function buildPixelArtifactsSection(p0, p1, p2) {
     const COLORS = { Original: '#4e9af1', Modified: '#f5a623', Altered: '#e05c5c' };
 
@@ -1842,13 +2206,38 @@
       return { label, color: COLORS[label], values: records.map(r => r[field]).filter(v => v != null && typeof v === 'number') };
     }
 
-    const elaSection  = buildDensityPlot('ELA Max Pixel Diff',  'max pixel diff',   [dataset('Original', p0, 'ela_max_diff'),    dataset('Modified', p1, 'ela_max_diff'),    dataset('Altered', p2, 'ela_max_diff')]);
-    const noiseSection = buildDensityPlot('Block Noise Std',     'block noise std',  [dataset('Original', p0, 'block_noise_std'), dataset('Modified', p1, 'block_noise_std'), dataset('Altered', p2, 'block_noise_std')]);
+    function subtitle(text) {
+      const s = document.createElement('p');
+      s.className = 'dash-section-subtitle';
+      s.textContent = text;
+      return s;
+    }
+
+    function plotWithSubtitle(title, unit, field, note) {
+      const container = document.createElement('div');
+      container.appendChild(subtitle(note));
+      container.appendChild(buildDensityPlot(title, unit, [
+        dataset('Original', p0, field),
+        dataset('Modified', p1, field),
+        dataset('Altered',  p2, field),
+      ]));
+      return container;
+    }
 
     const wrapper = document.createElement('div');
     wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
-    wrapper.appendChild(elaSection);
-    wrapper.appendChild(noiseSection);
+    wrapper.appendChild(plotWithSubtitle(
+      'ELA Mean Pixel Diff', 'mean pixel diff', 'ela_mean_diff',
+      'Mean per-pixel error after re-saving at JPEG quality 75. PNG-source images show higher values due to first-time JPEG compression.'
+    ));
+    wrapper.appendChild(plotWithSubtitle(
+      'ELA Std Pixel Diff', 'std pixel diff', 'ela_std_diff',
+      'Standard deviation of per-pixel error at quality 75 — measures spatial uniformity of compression artifacts.'
+    ));
+    wrapper.appendChild(plotWithSubtitle(
+      'Noise Skewness', 'skewness', 'noise_skewness',
+      'Skewness of the block noise distribution. Real camera noise is approximately symmetric (≈ 0); AI images may deviate.'
+    ));
     return wrapper;
   }
 
@@ -1965,9 +2354,14 @@
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
     // ── Visual / pixel-level artifacts group ──
-    const { details: pixDetails, body: pixBody } = buildDashGroup('Visual / pixel-level artifacts');
-    content.appendChild(pixDetails);
-    pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
+    const { details: fdDetails, body: fdBody } = buildDashGroup('Visual / pixel-level artifacts', false);
+    content.appendChild(fdDetails);
+    fdBody.appendChild(buildFeatureDistributionsSection(p0, p2));
+
+    // ── Random Forest group ──
+    const { details: rfDetails, body: rfBody } = buildDashGroup('Random Forest Classifier', false);
+    content.appendChild(rfDetails);
+    buildRFControls(rfBody, p2);
 
     document.getElementById('dashboard-overlay').style.display = 'flex';
   }

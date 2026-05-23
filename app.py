@@ -726,14 +726,21 @@ def _extract_c2pa_details(tags: dict, path: pathlib.Path | None = None) -> dict 
     }
 
 
-def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
-    """Run Error Level Analysis. Returns (flagged, max_diff, base64_png)."""
-    ELA_QUALITY = 90
+def _run_ela(path: pathlib.Path) -> tuple[bool, int, float, float, str, str]:
+    """Run Error Level Analysis at quality 75 (standard ELA practice).
+
+    Returns (flagged, max_diff, mean_diff, std_diff, ela_source, base64_png).
+    ela_source is 'jpeg' or 'png'; PNG images are re-compressed as JPEG for
+    the first time so their ELA values reflect first-time compression artifacts,
+    not tampering.
+    """
+    ELA_QUALITY = 75
     ELA_SCALE = 10
     ELA_THRESHOLD = 15
 
     try:
         with Image.open(path) as img:
+            ela_source = 'png' if (img.format or '').upper() == 'PNG' else 'jpeg'
             img_rgb = img.convert("RGB")
 
         buf = io.BytesIO()
@@ -743,7 +750,9 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
 
         diff = ImageChops.difference(img_rgb, recompressed)
         diff_arr = np.array(diff)
-        max_diff = int(diff_arr.max())
+        max_diff  = int(diff_arr.max())
+        mean_diff = float(diff_arr.mean())
+        std_diff  = float(diff_arr.std())
 
         # Scale up for visibility.
         scaled = diff_arr * ELA_SCALE
@@ -754,13 +763,16 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, str]:
         ela_img.save(out_buf, format="PNG")
         b64 = base64.b64encode(out_buf.getvalue()).decode("ascii")
 
-        return max_diff > ELA_THRESHOLD, max_diff, b64
+        return max_diff > ELA_THRESHOLD, max_diff, mean_diff, std_diff, ela_source, b64
     except Exception:
-        return False, 0, ""
+        return False, 0, 0.0, 0.0, 'unknown', ""
 
 
-def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
-    """Estimate per-block noise and flag regions with inconsistent levels."""
+def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, float, float, float, str]:
+    """Estimate per-block noise and flag regions with inconsistent levels.
+
+    Returns (flagged, noise_std, noise_skewness, noise_kurtosis, note).
+    """
     BLOCK_SIZE = 64
     THRESHOLD = 1.5  # std of block noise estimates
 
@@ -781,14 +793,20 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, str]:
                 block_noises.append(float(np.std(block)))
 
         if not block_noises:
-            return False, 0.0, ""
+            return False, 0.0, 0.0, 0.0, ""
 
-        noise_std = float(np.std(block_noises))
-        flagged = noise_std > THRESHOLD
+        noise_arr  = np.array(block_noises)
+        noise_std  = float(np.std(noise_arr))
+        mean_bn    = float(np.mean(noise_arr))
+        diffs      = noise_arr - mean_bn
+        noise_skew = float(np.mean(diffs ** 3) / (noise_std ** 3 + 1e-9))
+        noise_kurt = float(np.mean(diffs ** 4) / (noise_std ** 4 + 1e-9)) - 3.0
+        flagged    = noise_std > THRESHOLD
         note = f"Noise inconsistency: block noise std={noise_std:.2f} (threshold {THRESHOLD})."
-        return flagged, noise_std, note if flagged else ""
+        return flagged, noise_std, noise_skew, noise_kurt, note if flagged else ""
     except Exception:
-        return False, 0.0, ""
+        return False, 0.0, 0.0, 0.0, ""
+
 
 
 def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
@@ -953,13 +971,13 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         indicators['c2pa'] = c2pa_ind
         if not already_detected:
             indicators['summary'] += f' | C2PA: {c2pa_status}'
-    ela_flagged, ela_max_diff, ela_b64    = _run_ela(path)
-    noise_flagged, noise_std, noise_note  = _check_noise_inconsistency(path)
-    blocking_flagged, blocking_note       = _check_compression_blocking(path)
+    ela_flagged, ela_max_diff, ela_mean_diff, ela_std_diff, ela_source, ela_b64 = _run_ela(path)
+    noise_flagged, noise_std, noise_skewness, noise_kurtosis, noise_note = _check_noise_inconsistency(path)
+    blocking_flagged, blocking_note = _check_compression_blocking(path)
     artifacts, notes = [], []
     if ela_flagged:
         artifacts.append("ELA anomaly")
-        notes.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15).")
+        notes.append(f"ELA: max pixel diff={ela_max_diff} (threshold 15, quality 75).")
     if noise_flagged:
         artifacts.append("Noise inconsistency")
         notes.append(noise_note)
@@ -967,16 +985,21 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         artifacts.append("Compression blocking")
         notes.append(blocking_note)
     return {
-        "exif_anomalies":  exif_anomalies,
-        "ifd0_tags":       ifd0_tags,
-        "indicators":      indicators,
-        "c2pa_status":     c2pa_status,
-        "c2pa_details":    c2pa_details,
-        "artifacts":       artifacts,
-        "artifact_notes":  "\n".join(notes),
-        "ela_image_b64":   ela_b64,
-        "ela_max_diff":    ela_max_diff,
-        "block_noise_std": round(noise_std, 4),
+        "exif_anomalies":   exif_anomalies,
+        "ifd0_tags":        ifd0_tags,
+        "indicators":       indicators,
+        "c2pa_status":      c2pa_status,
+        "c2pa_details":     c2pa_details,
+        "artifacts":        artifacts,
+        "artifact_notes":   "\n".join(notes),
+        "ela_image_b64":    ela_b64,
+        "ela_max_diff":     ela_max_diff,
+        "ela_mean_diff":    round(ela_mean_diff, 4),
+        "ela_std_diff":     round(ela_std_diff, 4),
+        "ela_source":       ela_source,
+        "block_noise_std":  round(noise_std, 4),
+        "noise_skewness":   round(noise_skewness, 4),
+        "noise_kurtosis":   round(noise_kurtosis, 4),
     }
 
 
@@ -1055,6 +1078,123 @@ def upload_and_analyze():
     except Exception as e:
         logger.exception("upload_and_analyze failed for %s", filename)
         return jsonify({"error": f"Analysis failed: {e}"}), 500
+
+
+# ── Random Forest classifier ──────────────────────────────────────────────────
+
+_RF_FEATURES = [
+    "ela_mean_diff", "ela_std_diff", "ela_max_diff",
+    "block_noise_std", "noise_skewness", "noise_kurtosis",
+]
+_RF_FEATURE_LABELS = {
+    "ela_mean_diff":   "ELA Mean Diff",
+    "ela_std_diff":    "ELA Std Diff",
+    "ela_max_diff":    "ELA Max Diff",
+    "block_noise_std": "Block Noise Std",
+    "noise_skewness":  "Noise Skewness",
+    "noise_kurtosis":  "Noise Kurtosis",
+    "ela_source_png":  "ELA Source: PNG",
+}
+
+
+@app.route("/api/random_forest", methods=["POST"])
+def random_forest_analysis():
+    try:
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.model_selection import StratifiedKFold, cross_val_predict
+        from sklearn.metrics import accuracy_score, confusion_matrix as sk_cm
+    except ImportError:
+        return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
+
+    body = request.get_json(force=True) or {}
+    selected_models = body.get("models")       # None = all; list = filter p2 by model name
+    stratify_by     = body.get("stratify_by", "class")  # "class" or "model"
+
+    if _supabase:
+        rows = _supabase.table("records").select("data").execute().data
+        records = [row["data"] for row in rows]
+    elif DATA_FILE.exists():
+        records = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+    else:
+        return jsonify({"error": "No data available"}), 503
+
+    N_SPLITS = 5
+    X_rows, y, ela_sources, used_recs = [], [], [], []
+    for rec in records:
+        rtype = rec.get("type")
+        if rtype == "p2":
+            if selected_models is not None and rec.get("model") not in selected_models:
+                continue
+        elif rtype != "p0":
+            continue
+        vals = [rec.get(f) for f in _RF_FEATURES]
+        if any(v is None for v in vals):
+            continue
+        X_rows.append(vals)
+        y.append(0 if rtype == "p0" else 1)
+        ela_sources.append(1 if rec.get("ela_source") == "png" else 0)
+        used_recs.append(rec)
+
+    if len(X_rows) < 10:
+        return jsonify({"error": "Not enough analyzed records to run classifier"}), 422
+
+    X = np.array(X_rows)
+    X = np.hstack([X, np.array(ela_sources).reshape(-1, 1)])
+    y = np.array(y)
+    feature_names = _RF_FEATURES + ["ela_source_png"]
+
+    # Build strata for CV splitting
+    if stratify_by == "model":
+        model_freq = {}
+        for rec in used_recs:
+            if rec.get("type") == "p2":
+                m = (rec.get("model") or "").strip()
+                model_freq[m] = model_freq.get(m, 0) + 1
+        individual_strata  = sorted(m for m, c in model_freq.items() if c >= N_SPLITS)
+        grouped_models     = sorted(m for m, c in model_freq.items() if c <  N_SPLITS)
+        individual_set     = set(individual_strata)
+        strata = np.array([
+            "original" if rec.get("type") == "p0"
+            else ((rec.get("model") or "").strip() if (rec.get("model") or "").strip() in individual_set else "_other")
+            for rec in used_recs
+        ])
+    else:
+        strata            = y
+        individual_strata = []
+        grouped_models    = []
+
+    clf = RandomForestClassifier(n_estimators=500, random_state=42, class_weight="balanced")
+    cv  = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=42)
+
+    fold_accs = []
+    y_pred    = np.empty_like(y)
+    for train_idx, test_idx in cv.split(X, strata):
+        clf.fit(X[train_idx], y[train_idx])
+        y_pred[test_idx] = clf.predict(X[test_idx])
+        fold_accs.append(float(accuracy_score(y[test_idx], y_pred[test_idx])))
+
+    cm = sk_cm(y, y_pred).tolist()
+
+    clf.fit(X, y)
+    importances = [
+        {"feature": n, "label": _RF_FEATURE_LABELS.get(n, n), "importance": round(float(imp), 4)}
+        for n, imp in sorted(zip(feature_names, clf.feature_importances_), key=lambda x: -x[1])
+    ]
+
+    return jsonify({
+        "n_original":          int((y == 0).sum()),
+        "n_altered":           int((y == 1).sum()),
+        "n_total":             int(len(y)),
+        "selected_models":     selected_models,
+        "stratify_by":         stratify_by,
+        "individual_strata":   individual_strata,
+        "grouped_models":      grouped_models,
+        "fold_accuracies":     [round(a, 4) for a in fold_accs],
+        "mean_accuracy":       round(float(np.mean(fold_accs)), 4),
+        "std_accuracy":        round(float(np.std(fold_accs)), 4),
+        "confusion_matrix":    cm,
+        "feature_importances": importances,
+    })
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
