@@ -1,0 +1,98 @@
+{
+  "SourceFile": "/Users/stephanie/Documents/CSAFE-AI-altered-image-forensics/altered images/gemini/renamed/csafe-013-b010.png",
+  "ExifTool:ExifToolVersion": 13.55,
+  "System:FileName": "csafe-013-b010.png",
+  "System:Directory": "/Users/stephanie/Documents/CSAFE-AI-altered-image-forensics/altered images/gemini/renamed",
+  "System:FileSize": "1978 kB",
+  "System:FileModifyDate": "2026:05:22 17:10:40-05:00",
+  "System:FileAccessDate": "2026:05:22 17:10:41-05:00",
+  "System:FileInodeChangeDate": "2026:05:22 17:10:40-05:00",
+  "System:FilePermissions": "-rw-r--r--",
+  "File:FileType": "PNG",
+  "File:FileTypeExtension": "png",
+  "File:MIMEType": "image/png",
+  "PNG:ImageWidth": 1195,
+  "PNG:ImageHeight": 896,
+  "PNG:BitDepth": 8,
+  "PNG:ColorType": "RGB with Alpha",
+  "PNG:Compression": "Deflate/Inflate",
+  "PNG:Filter": "Adaptive",
+  "PNG:Interlace": "Noninterlaced",
+  "JUMBF:JUMDType": "(c2pa)-0011-0010-800000aa00389b71",
+  "JUMBF:JUMDLabel": "c2pa",
+  "CBOR:Item0": "(Binary data 1579 bytes, use -b option to extract)",
+  "CBOR:Item1SigTst2TstTokensVal": "(Binary data 2014 bytes, use -b option to extract)",
+  "CBOR:Item1RValsOcspVals": [
+    "(Binary data 1011 bytes, use -b option to extract)",
+    "(Binary data 0 bytes, use -b option to extract)"
+  ],
+  "CBOR:Item1Pad": "(Binary data 70 bytes, use -b option to extract)",
+  "CBOR:Item1Pad2": "(Binary data 1 bytes, use -b option to extract)",
+  "CBOR:Item2": "null",
+  "CBOR:Item3": "(Binary data 64 bytes, use -b option to extract)",
+  "CBOR:InstanceID": "0b91b329-a196-0e43-cb39-4031615ff86e",
+  "CBOR:Claim_Generator_InfoName": "Google C2PA Core Generator Library",
+  "CBOR:Claim_Generator_InfoVersion": "919027526:919027526",
+  "CBOR:Created_AssertionsUrl": [
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+    "self#jumbf=c2pa.assertions/c2pa.actions.v2",
+    "self#jumbf=c2pa.assertions/c2pa.hash.data"
+  ],
+  "CBOR:Created_AssertionsHash": [
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)"
+  ],
+  "CBOR:Signature": "self#jumbf=c2pa.signature",
+  "CBOR:Alg": "sha256",
+  "CBOR:ExclusionsStart": 20,
+  "CBOR:ExclusionsLength": 6346,
+  "CBOR:Hash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:Pad": "(Binary data 14 bytes, use -b option to extract)",
+  "CBOR:ActionsAction": [
+    "c2pa.created",
+    "c2pa.edited"
+  ],
+  "CBOR:ActionsDescription": [
+    "Created by Google Generative AI.",
+    "Applied imperceptible SynthID watermark."
+  ],
+  "CBOR:ActionsDigitalSourceType": [
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+  ],
+  "CBOR:ActionsParametersIngredientsUrl": "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+  "CBOR:ActionsParametersIngredientsHash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:Relationship": "inputTo",
+  "CBOR:Description": "Input ingredient 0",
+  "CBOR:ValidationResultsActiveManifestSuccessCode": [
+    "timeStamp.validated",
+    "timeStamp.trusted",
+    "signingCredential.ocsp.notRevoked",
+    "signingCredential.trusted",
+    "claimSignature.insideValidity",
+    "claimSignature.validated",
+    "assertion.hashedURI.match",
+    "assertion.hashedURI.match",
+    "assertion.hashedURI.match",
+    "assertion.dataHash.match"
+  ],
+  "CBOR:ValidationResultsActiveManifestSuccessUrl": [
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.assertions/c2pa.ingredient.v3",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.assertions/c2pa.actions.v2",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.assertions/c2pa.hash.data",
+    "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.assertions/c2pa.hash.data"
+  ],
+  "CBOR:ActiveManifestUrl": "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5",
+  "CBOR:ActiveManifestHash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:ClaimSignatureUrl": "self#jumbf=/c2pa/urn:c2pa:02cdbccc-701c-1fae-ef94-4a7a901541e5/c2pa.signature",
+  "CBOR:ClaimSignatureHash": "(Binary data 32 bytes, use -b option to extract)",
+  "Composite:ImageSize": "1195x896",
+  "Composite:Megapixels": 1.1
+}
