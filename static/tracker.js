@@ -1987,6 +1987,18 @@
     });
     container.appendChild(checkboxArea);
 
+    // ── Stratification option ──
+    const stratLabel = document.createElement('label');
+    stratLabel.style.cssText = 'display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:0.82rem; color:var(--text); cursor:pointer; user-select:none; margin-bottom:1.25rem;';
+    const stratCb = document.createElement('input');
+    stratCb.type = 'checkbox';
+    stratCb.style.cssText = 'cursor:pointer; accent-color:var(--accent);';
+    const stratSpan = document.createElement('span');
+    stratSpan.innerHTML = 'Stratify folds by model <span style="color:var(--text-muted)">(models with &lt;5 images are grouped into a single stratum)</span>';
+    stratLabel.appendChild(stratCb);
+    stratLabel.appendChild(stratSpan);
+    container.appendChild(stratLabel);
+
     // ── Train button ──
     const btn = document.createElement('button');
     btn.className = 'btn';
@@ -2017,7 +2029,7 @@
         const resp = await fetch('/api/random_forest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ models: selectedModels }),
+          body: JSON.stringify({ models: selectedModels, stratify_by: stratCb.checked ? 'model' : 'class' }),
         });
         const data = await resp.json();
         if (!resp.ok) {
@@ -2050,10 +2062,16 @@
     const modelNote = data.selected_models
       ? `Models: ${data.selected_models.join(', ')}.`
       : 'All models included.';
+    let stratNote = 'Folds stratified by class label.';
+    if (data.stratify_by === 'model') {
+      const indiv   = (data.individual_strata  || []).join(', ') || '—';
+      const grouped = (data.grouped_models     || []).join(', ') || 'none';
+      stratNote = `Folds stratified by model. Individual strata: ${indiv}. Grouped (<5 images): ${grouped}.`;
+    }
     desc.textContent =
-      `5-fold stratified cross-validation on ${data.n_total} images ` +
+      `5-fold cross-validation on ${data.n_total} images ` +
       `(${data.n_original} original, ${data.n_altered} AI-altered). ` +
-      `${modelNote} Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
+      `${modelNote} ${stratNote} Features: ELA mean/std/max, block noise std, noise skewness/kurtosis, ELA source.`;
     wrapper.appendChild(desc);
 
     // ── Accuracy card ──

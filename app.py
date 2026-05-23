@@ -1107,7 +1107,8 @@ def random_forest_analysis():
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
 
     body = request.get_json(force=True) or {}
-    selected_models = body.get("models")  # None = all; list = filter p2 by model name
+    selected_models = body.get("models")       # None = all; list = filter p2 by model name
+    stratify_by     = body.get("stratify_by", "class")  # "class" or "model"
 
     if _supabase:
         rows = _supabase.table("records").select("data").execute().data
@@ -1117,7 +1118,8 @@ def random_forest_analysis():
     else:
         return jsonify({"error": "No data available"}), 503
 
-    X_rows, y, ela_sources = [], [], []
+    N_SPLITS = 5
+    X_rows, y, ela_sources, used_recs = [], [], [], []
     for rec in records:
         rtype = rec.get("type")
         if rtype == "p2":
@@ -1131,6 +1133,7 @@ def random_forest_analysis():
         X_rows.append(vals)
         y.append(0 if rtype == "p0" else 1)
         ela_sources.append(1 if rec.get("ela_source") == "png" else 0)
+        used_recs.append(rec)
 
     if len(X_rows) < 10:
         return jsonify({"error": "Not enough analyzed records to run classifier"}), 422
@@ -1140,15 +1143,36 @@ def random_forest_analysis():
     y = np.array(y)
     feature_names = _RF_FEATURES + ["ela_source_png"]
 
+    # Build strata for CV splitting
+    if stratify_by == "model":
+        model_freq = {}
+        for rec in used_recs:
+            if rec.get("type") == "p2":
+                m = (rec.get("model") or "").strip()
+                model_freq[m] = model_freq.get(m, 0) + 1
+        individual_strata  = sorted(m for m, c in model_freq.items() if c >= N_SPLITS)
+        grouped_models     = sorted(m for m, c in model_freq.items() if c <  N_SPLITS)
+        individual_set     = set(individual_strata)
+        strata = np.array([
+            "original" if rec.get("type") == "p0"
+            else ((rec.get("model") or "").strip() if (rec.get("model") or "").strip() in individual_set else "_other")
+            for rec in used_recs
+        ])
+    else:
+        strata            = y
+        individual_strata = []
+        grouped_models    = []
+
     clf = RandomForestClassifier(n_estimators=500, random_state=42, class_weight="balanced")
-    cv  = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv  = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=42)
 
     fold_accs = []
-    for train_idx, test_idx in cv.split(X, y):
+    y_pred    = np.empty_like(y)
+    for train_idx, test_idx in cv.split(X, strata):
         clf.fit(X[train_idx], y[train_idx])
-        fold_accs.append(float(accuracy_score(y[test_idx], clf.predict(X[test_idx]))))
+        y_pred[test_idx] = clf.predict(X[test_idx])
+        fold_accs.append(float(accuracy_score(y[test_idx], y_pred[test_idx])))
 
-    y_pred = cross_val_predict(clf, X, y, cv=cv)
     cm = sk_cm(y, y_pred).tolist()
 
     clf.fit(X, y)
@@ -1162,6 +1186,9 @@ def random_forest_analysis():
         "n_altered":           int((y == 1).sum()),
         "n_total":             int(len(y)),
         "selected_models":     selected_models,
+        "stratify_by":         stratify_by,
+        "individual_strata":   individual_strata,
+        "grouped_models":      grouped_models,
         "fold_accuracies":     [round(a, 4) for a in fold_accs],
         "mean_accuracy":       round(float(np.mean(fold_accs)), 4),
         "std_accuracy":        round(float(np.std(fold_accs)), 4),
