@@ -2354,12 +2354,7 @@
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
     // ── Visual / pixel-level artifacts group ──
-    const { details: pixDetails, body: pixBody } = buildDashGroup('Visual / pixel-level artifacts');
-    content.appendChild(pixDetails);
-    pixBody.appendChild(buildPixelArtifactsSection(p0, p1, p2));
-
-    // ── Feature distributions group ──
-    const { details: fdDetails, body: fdBody } = buildDashGroup('Feature Distributions', false);
+    const { details: fdDetails, body: fdBody } = buildDashGroup('Visual / pixel-level artifacts', false);
     content.appendChild(fdDetails);
     fdBody.appendChild(buildFeatureDistributionsSection(p0, p2));
 
