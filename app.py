@@ -25,7 +25,7 @@ import shutil
 import subprocess
 
 import numpy as np
-from PIL import Image, ImageChops, ImageEnhance, ImageFilter
+from PIL import Image, ImageChops, ImageFilter
 from werkzeug.utils import secure_filename
 
 from dotenv import load_dotenv
@@ -1127,7 +1127,7 @@ def _extract_indicator_vals(rec: dict) -> list | None:
 def random_forest_analysis():
     try:
         from sklearn.ensemble import RandomForestClassifier
-        from sklearn.model_selection import StratifiedKFold, cross_val_predict
+        from sklearn.model_selection import StratifiedKFold
         from sklearn.metrics import accuracy_score, confusion_matrix as sk_cm
     except ImportError:
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
