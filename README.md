@@ -22,13 +22,17 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
 
    ```bash
    cd path/to/AI-altered-image-forensics
-   ``` 
+   ```
 
-   Install the required Python packages listed in requirements.txt.
+   Create a virtual environment and install the required Python packages:
 
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip3 install -r requirements.txt
    ```
+
+   > NOTE: On Windows, activate the virtual environment with `.venv\Scripts\activate` instead.
 
 4. **(Optional) Install ExifTool**
 
@@ -53,16 +57,14 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
 
 6. **Start the app**
 
-   If your terminal is already in the CSAFE-AI-altered-image-forensics folder, launch the app:
+   If your terminal is already in the CSAFE-AI-altered-image-forensics folder, activate the virtual environment and launch the app:
 
    ```bash
+   source .venv/bin/activate
    PORT=5001 python3 app.py
    ```
-   You can launch the app without switching to the CSAFE-AI-altered-image-forensics folder by entering the full filepath to `app.py`.
 
-    ```bash
-   PORT=5001 python3 path/to/CSAFE-AI-altered-image-forensics/app.py
-   ```
+   You need to activate the virtual environment each time you open a new terminal. On Windows, use `.venv\Scripts\activate` instead.
 
 
    Open [http://localhost:5001](http://localhost:5001) in a browser.
