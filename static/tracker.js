@@ -2115,6 +2115,34 @@
     });
     wrapper.appendChild(grid);
 
+    // ── FPR / FNR ──
+    const tn = cm[0][0], fp = cm[0][1], fn = cm[1][0], tp = cm[1][1];
+    const fpr = fp / (fp + tn);
+    const fnr = fn / (fn + tp);
+
+    const rateRow = document.createElement('div');
+    rateRow.style.cssText = 'display:flex; gap:2rem; margin-top:0.75rem;';
+    [
+      { label: 'False Positive Rate', value: fpr, note: 'originals misclassified as AI-altered' },
+      { label: 'False Negative Rate', value: fnr, note: 'AI-altered images misclassified as original' },
+    ].forEach(({ label, value, note }) => {
+      const block = document.createElement('div');
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'font-family:var(--mono); font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px;';
+      lbl.textContent = label;
+      const val = document.createElement('div');
+      val.style.cssText = 'font-family:var(--mono); font-size:1.4rem; font-weight:700; color:var(--text);';
+      val.textContent = (value * 100).toFixed(1) + '%';
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-family:var(--mono); font-size:0.72rem; color:var(--text-muted);';
+      sub.textContent = `${label === 'False Positive Rate' ? fp : fn} of ${label === 'False Positive Rate' ? (fp + tn) : (fn + tp)} — ${note}`;
+      block.appendChild(lbl);
+      block.appendChild(val);
+      block.appendChild(sub);
+      rateRow.appendChild(block);
+    });
+    wrapper.appendChild(rateRow);
+
     // ── Feature importances ──
     const fiTitle = document.createElement('div');
     fiTitle.className = 'dash-section-title';
