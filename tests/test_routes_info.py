@@ -22,27 +22,6 @@ class TestServeImage:
 
 # ── /api/original_files ───────────────────────────────────────────────────────
 
-class TestGetOriginalFiles:
-    def test_empty_dir_returns_empty_list(self, client):
-        resp = client.get("/api/original_files")
-        assert resp.status_code == 200
-        assert resp.get_json() == []
-
-    def test_lists_files_in_01_original(self, client, tmp_base):
-        (tmp_base / "real images" / "01-original" / "IMG_001.jpg").touch()
-        (tmp_base / "real images" / "01-original" / "IMG_002.jpg").touch()
-        resp = client.get("/api/original_files")
-        body = resp.get_json()
-        assert "IMG_001.jpg" in body
-        assert "IMG_002.jpg" in body
-
-    def test_hidden_files_excluded(self, client, tmp_base):
-        (tmp_base / "real images" / "01-original" / ".DS_Store").touch()
-        (tmp_base / "real images" / "01-original" / "IMG_001.jpg").touch()
-        resp = client.get("/api/original_files")
-        assert ".DS_Store" not in resp.get_json()
-
-
 # ── /api/original_image_info ─────────────────────────────────────────────────
 
 class TestOriginalImageInfo:
@@ -108,37 +87,3 @@ class TestImageInfo:
         assert resp.status_code == 500
 
 
-# ── /api/downloaded_files ─────────────────────────────────────────────────────
-
-class TestGetDownloadedFiles:
-    def test_missing_model_returns_400(self, client):
-        resp = client.get("/api/downloaded_files")
-        assert resp.status_code == 400
-
-    def test_model_not_found_returns_empty_list(self, client):
-        resp = client.get("/api/downloaded_files?model=nonexistent")
-        assert resp.status_code == 200
-        assert resp.get_json() == []
-
-    def test_no_downloaded_dir_returns_empty_list(self, client, tmp_base):
-        (tmp_base / "altered images" / "grok").mkdir(parents=True)
-        resp = client.get("/api/downloaded_files?model=grok")
-        assert resp.get_json() == []
-
-    def test_lists_files_in_downloaded(self, client, tmp_base):
-        downloaded = tmp_base / "altered images" / "grok" / "downloaded"
-        downloaded.mkdir(parents=True)
-        (downloaded / "img1.png").touch()
-        (downloaded / "img2.jpg").touch()
-        resp = client.get("/api/downloaded_files?model=grok")
-        body = resp.get_json()
-        assert "img1.png" in body
-        assert "img2.jpg" in body
-
-    def test_hidden_files_excluded(self, client, tmp_base):
-        downloaded = tmp_base / "altered images" / "grok" / "downloaded"
-        downloaded.mkdir(parents=True)
-        (downloaded / ".DS_Store").touch()
-        (downloaded / "img1.png").touch()
-        resp = client.get("/api/downloaded_files?model=grok")
-        assert ".DS_Store" not in resp.get_json()

@@ -239,17 +239,6 @@ def image_info():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/original_files")
-def get_original_files():
-    """Return a sorted list of filenames in 'real images/01-original/'."""
-    if not ORIG_SRC_DIR.is_dir():
-        return jsonify([])
-    files = sorted(
-        f.name for f in ORIG_SRC_DIR.iterdir()
-        if f.is_file() and not f.name.startswith(".")
-    )
-    return jsonify(files)
-
 
 @app.route("/api/input_images")
 def get_input_images():
@@ -264,24 +253,6 @@ def get_input_images():
 
     return jsonify({"original": list_files(orig_dir), "modified": list_files(mod_dir)})
 
-
-@app.route("/api/downloaded_files")
-def get_downloaded_files():
-    """Return a sorted list of filenames in 'altered images/<model>/downloaded/'."""
-    model = request.args.get("model", "").strip()
-    if not model:
-        return jsonify({"error": "Missing model parameter"}), 400
-    model_dir = find_model_folder(model)
-    if not model_dir:
-        return jsonify([])
-    downloaded = model_dir / "downloaded"
-    if not downloaded.is_dir():
-        return jsonify([])
-    files = sorted(
-        f.name for f in downloaded.iterdir()
-        if f.is_file() and not f.name.startswith(".")
-    )
-    return jsonify(files)
 
 
 # ── Rename helpers ────────────────────────────────────────────────────────────
@@ -481,26 +452,6 @@ def upload_downloaded():
     f.save(str(dest))
     return jsonify({"ok": True, "filename": filename})
 
-
-@app.route("/api/rename_modified", methods=["POST"])
-def rename_modified():
-    """Rename a file in-place within '03-modified/'."""
-    data = request.get_json(force=True)
-    current_filename = (data.get("current_filename") or "").strip()
-    new_filename = (data.get("new_filename") or "").strip()
-    if not (current_filename and new_filename):
-        return jsonify({"error": "Missing required parameters"}), 400
-
-    src_path = MOD_DIR / current_filename
-    if not src_path.is_file():
-        return jsonify({"error": f"File not found in 03-modified/: {current_filename}"}), 404
-
-    dest_path = MOD_DIR / new_filename
-    if dest_path.exists():
-        return jsonify({"ok": False, "warning": f"File already exists: {new_filename}", "filename": new_filename})
-
-    src_path.rename(dest_path)
-    return jsonify({"ok": True, "filename": new_filename})
 
 
 # ── Forensic analysis helpers ─────────────────────────────────────────────────
@@ -1007,29 +958,6 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         "noise_kurtosis":   round(noise_kurtosis, 4),
     }
 
-
-@app.route("/api/analyze", methods=["POST"])
-def analyze_image():
-    """Run the analysis pipeline on an existing renamed altered image (model + filename required)."""
-    data = request.get_json(force=True)
-    altered_filename = (data.get("altered_filename") or "").strip()
-    model = (data.get("model") or "").strip()
-
-    if not (altered_filename and model):
-        return jsonify({"error": "Missing required parameters"}), 400
-
-    model_dir = find_model_folder(model)
-    if not model_dir:
-        return jsonify({"error": f"Model folder not found: {model}"}), 404
-    altered_path = model_dir / "renamed" / altered_filename
-    if not altered_path.is_file():
-        return jsonify({"error": f"Altered image not found: {altered_filename}"}), 404
-
-    try:
-        return jsonify(_run_analysis_pipeline(altered_path))
-    except Exception as e:
-        logger.exception("analyze_image failed for %s", altered_filename)
-        return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 
 @app.route("/api/analyze_file", methods=["POST"])

@@ -1,4 +1,4 @@
-"""API tests for /api/analyze, /api/analyze_file, /api/upload_and_analyze."""
+"""API tests for /api/analyze_file and /api/upload_and_analyze."""
 import io
 import pytest
 from PIL import Image
@@ -14,56 +14,6 @@ MOCK_RESULT = {
 }
 
 
-# ── /api/analyze ──────────────────────────────────────────────────────────────
-
-class TestAnalyzeImage:
-    def test_missing_params_returns_400(self, client):
-        resp = client.post("/api/analyze", json={"model": "grok"})
-        assert resp.status_code == 400
-
-    def test_model_not_found_returns_404(self, client):
-        resp = client.post(
-            "/api/analyze",
-            json={"altered_filename": "csafe-001-b001.jpg", "model": "nonexistent"},
-        )
-        assert resp.status_code == 404
-
-    def test_file_not_found_returns_404(self, client, tmp_base):
-        (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
-        resp = client.post(
-            "/api/analyze",
-            json={"altered_filename": "missing.jpg", "model": "grok"},
-        )
-        assert resp.status_code == 404
-
-    def test_valid_file_returns_analysis(self, mocker, client, tmp_base):
-        mocker.patch.object(flask_app, "_run_analysis_pipeline", return_value=MOCK_RESULT)
-        renamed = tmp_base / "altered images" / "grok" / "renamed"
-        renamed.mkdir(parents=True)
-        img = Image.new("RGB", (8, 8))
-        img.save(str(renamed / "csafe-001-b001.jpg"), format="JPEG")
-        resp = client.post(
-            "/api/analyze",
-            json={"altered_filename": "csafe-001-b001.jpg", "model": "grok"},
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        for key in MOCK_RESULT:
-            assert key in body
-
-    def test_pipeline_exception_returns_500(self, mocker, client, tmp_base):
-        mocker.patch.object(flask_app, "_run_analysis_pipeline", side_effect=RuntimeError("boom"))
-        renamed = tmp_base / "altered images" / "grok" / "renamed"
-        renamed.mkdir(parents=True)
-        Image.new("RGB", (8, 8)).save(str(renamed / "csafe-001-b001.jpg"), format="JPEG")
-        resp = client.post(
-            "/api/analyze",
-            json={"altered_filename": "csafe-001-b001.jpg", "model": "grok"},
-        )
-        assert resp.status_code == 500
-
-
-# ── /api/analyze_file ─────────────────────────────────────────────────────────
 
 class TestAnalyzeFile:
     def test_missing_filename_returns_400(self, client):
