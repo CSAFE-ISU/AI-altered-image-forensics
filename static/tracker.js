@@ -2028,6 +2028,34 @@
     stratLabel.appendChild(stratSpan);
     container.appendChild(stratLabel);
 
+    // ── Seed control ──
+    const seedRow = document.createElement('div');
+    seedRow.style.cssText = 'display:flex; align-items:center; gap:0.6rem; margin-bottom:1.25rem;';
+
+    const seedLbl = document.createElement('span');
+    seedLbl.style.cssText = 'font-family:var(--mono); font-size:0.82rem; color:var(--text-muted);';
+    seedLbl.textContent = 'Random seed:';
+
+    const seedInput = document.createElement('input');
+    seedInput.type = 'number';
+    seedInput.min = '0';
+    seedInput.max = '2147483647';
+    seedInput.step = '1';
+    seedInput.value = '42';
+    seedInput.style.cssText = 'width:90px; font-family:var(--mono); font-size:0.82rem; padding:4px 8px; border:1px solid var(--border-strong); border-radius:var(--radius); background:var(--surface); color:var(--text);';
+
+    const randomizeBtn = document.createElement('button');
+    randomizeBtn.className = 'btn';
+    randomizeBtn.textContent = 'Randomize';
+    randomizeBtn.addEventListener('click', () => {
+      seedInput.value = Math.floor(Math.random() * 10000);
+    });
+
+    seedRow.appendChild(seedLbl);
+    seedRow.appendChild(seedInput);
+    seedRow.appendChild(randomizeBtn);
+    container.appendChild(seedRow);
+
     // ── Train button ──
     const btn = document.createElement('button');
     btn.className = 'btn';
@@ -2058,7 +2086,7 @@
         const resp = await fetch('/api/random_forest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ models: selectedModels, stratify_by: stratCb.checked ? 'model' : 'class', feature_set: selectedFeatureSet }),
+          body: JSON.stringify({ models: selectedModels, stratify_by: stratCb.checked ? 'model' : 'class', feature_set: selectedFeatureSet, seed: parseInt(seedInput.value) || 42 }),
         });
         const data = await resp.json();
         if (!resp.ok) {
@@ -2105,7 +2133,7 @@
     desc.textContent =
       `5-fold cross-validation on ${data.n_total} images ` +
       `(${data.n_original} original, ${data.n_altered} AI-altered). ` +
-      `${modelNote} ${featureNote} ${stratNote}`;
+      `${modelNote} ${featureNote} ${stratNote} Seed: ${data.seed}.`;
     wrapper.appendChild(desc);
 
     // ── Accuracy card ──

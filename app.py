@@ -1132,10 +1132,13 @@ def random_forest_analysis():
     except ImportError:
         return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
 
+    import random as _random
     body = request.get_json(force=True) or {}
     selected_models = body.get("models")                    # None = all; list = filter p2
     stratify_by     = body.get("stratify_by", "class")     # "class" or "model"
     feature_set     = body.get("feature_set",  "pixel")    # "pixel", "indicators", "both"
+    seed_param      = body.get("seed")                      # int or None (auto)
+    seed = int(seed_param) if seed_param is not None else _random.randint(0, 2**31 - 1)
 
     if _supabase:
         rows = _supabase.table("records").select("data").execute().data
@@ -1206,8 +1209,8 @@ def random_forest_analysis():
         individual_strata = []
         grouped_models    = []
 
-    clf = RandomForestClassifier(n_estimators=500, random_state=42, class_weight="balanced")
-    cv  = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=42)
+    clf = RandomForestClassifier(n_estimators=500, random_state=seed, class_weight="balanced")
+    cv  = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=seed)
 
     fold_accs = []
     y_pred    = np.empty_like(y)
@@ -1228,6 +1231,7 @@ def random_forest_analysis():
         "n_original":          int((y == 0).sum()),
         "n_altered":           int((y == 1).sum()),
         "n_total":             int(len(y)),
+        "seed":                seed,
         "selected_models":     selected_models,
         "feature_set":         feature_set,
         "stratify_by":         stratify_by,
