@@ -2,10 +2,12 @@
 CSAFE AI Image Alteration Tracker — local Flask server.
 
 Usage:
-    pip install -r requirements.txt
-    python app.py
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip3 install -r requirements.txt
+    PORT=5001 python3 app.py
 
-Then open http://localhost:5000 in your browser.
+Then open http://localhost:5001 in your browser.
 
 Records are stored in a shared Supabase database. Copy .env.example to .env
 and fill in your SUPABASE_URL and SUPABASE_KEY. Falls back to a local
@@ -90,6 +92,7 @@ def find_image(filename: str) -> pathlib.Path | None:
 
 @app.route("/")
 def index():
+    """Serve the single-page tracker UI."""
     html = BASE / "tracker.html"
     if not html.exists():
         abort(404, "tracker.html not found next to app.py")
@@ -98,6 +101,7 @@ def index():
 
 @app.route("/api/records", methods=["GET"])
 def get_records():
+    """Return all records from Supabase (or local records.json fallback), omitting base64 ELA images."""
     if _supabase:
         try:
             result = _supabase.table("records").select("data").execute()
@@ -114,6 +118,7 @@ def get_records():
 
 @app.route("/api/records", methods=["POST"])
 def set_records():
+    """Replace the full records list — upserts all records in the payload and deletes any not included."""
     data = request.get_json(force=True)
     if not isinstance(data, list):
         return jsonify({"error": "expected a JSON array"}), 400
@@ -136,6 +141,7 @@ def set_records():
 
 @app.route("/api/records/<record_id>", methods=["POST"])
 def set_record(record_id: str):
+    """Upsert a single record by ID, stripping the ELA image before storing."""
     rec = request.get_json(force=True)
     if not isinstance(rec, dict):
         return jsonify({"error": "expected a JSON object"}), 400
@@ -158,6 +164,7 @@ def set_record(record_id: str):
 
 @app.route("/api/records/<record_id>", methods=["DELETE"])
 def delete_record(record_id: str):
+    """Delete a single record by ID."""
     if _supabase:
         _supabase.table("records").delete().eq("id", record_id).execute()
     else:
@@ -170,6 +177,7 @@ def delete_record(record_id: str):
 
 @app.route("/images/<path:filename>")
 def serve_image(filename: str):
+    """Locate an image by filename across all IMAGE_ROOTS and serve it."""
     path = find_image(filename)
     if path is None:
         abort(404)
@@ -192,6 +200,7 @@ def find_model_folder(model: str) -> pathlib.Path | None:
 
 @app.route("/api/models")
 def get_models():
+    """Return a sorted list of AI model names (subdirectories of 'altered images/')."""
     altered_root = BASE / "altered images"
     if not altered_root.exists():
         return jsonify([])
@@ -203,6 +212,7 @@ def get_models():
 
 
 def _format_filesize(size_bytes: int) -> str:
+    """Format a byte count as a human-readable string (e.g. '2.4 MB', '830.0 KB')."""
     if size_bytes >= 1_000_000:
         return f"{size_bytes / 1_000_000:.1f} MB"
     if size_bytes >= 1_000:
@@ -212,6 +222,7 @@ def _format_filesize(size_bytes: int) -> str:
 
 @app.route("/api/original_image_info")
 def original_image_info():
+    """Return filesize and pixel dimensions for an original or modified image."""
     filename = request.args.get("filename", "").strip()
     if not filename:
         return jsonify({"error": "Missing filename"}), 400
@@ -229,6 +240,7 @@ def original_image_info():
 
 @app.route("/api/image_info")
 def image_info():
+    """Return pixel format and dimensions for a file in 'altered images/<model>/downloaded/'."""
     model = request.args.get("model", "").strip()
     filename = request.args.get("filename", "").strip()
     if not model or not filename:
@@ -251,6 +263,7 @@ def image_info():
 
 @app.route("/api/original_files")
 def get_original_files():
+    """Return a sorted list of filenames in 'real images/01-original/'."""
     if not ORIG_SRC_DIR.is_dir():
         return jsonify([])
     files = sorted(
@@ -276,6 +289,7 @@ def get_input_images():
 
 @app.route("/api/downloaded_files")
 def get_downloaded_files():
+    """Return a sorted list of filenames in 'altered images/<model>/downloaded/'."""
     model = request.args.get("model", "").strip()
     if not model:
         return jsonify({"error": "Missing model parameter"}), 400
@@ -329,6 +343,7 @@ def _compute_renamed(input_image: str, ai_filename: str, model: str) -> tuple[st
 
 @app.route("/api/compute_renamed")
 def compute_renamed_route():
+    """HTTP wrapper for _compute_renamed — previews the destination filename without copying the file."""
     input_image = request.args.get("input_image", "").strip()
     ai_filename = request.args.get("ai_filename", "").strip()
     model = request.args.get("model", "").strip()
@@ -340,6 +355,7 @@ def compute_renamed_route():
 
 @app.route("/api/copy_rename_image", methods=["POST"])
 def copy_rename_image():
+    """Copy an AI-generated image from downloaded/ to renamed/ with the next sequential b-number filename."""
     data = request.get_json(force=True)
     input_image = (data.get("input_image") or "").strip()
     ai_filename = (data.get("ai_filename") or "").strip()
@@ -393,6 +409,7 @@ def _compute_original_renamed(original_filename: str, study_id: str) -> tuple[st
 
 @app.route("/api/compute_original_renamed")
 def compute_original_renamed_route():
+    """HTTP wrapper for _compute_original_renamed — previews the destination filename without copying the file."""
     original_filename = request.args.get("original_filename", "").strip()
     study_id = request.args.get("study_id", "").strip()
     if not (original_filename and study_id):
@@ -403,6 +420,7 @@ def compute_original_renamed_route():
 
 @app.route("/api/copy_rename_original", methods=["POST"])
 def copy_rename_original():
+    """Copy an original image from 01-original/ to 02-original-renamed/ using the study ID as the filename."""
     data = request.get_json(force=True)
     original_filename = (data.get("original_filename") or "").strip()
     study_id = (data.get("study_id") or "").strip()
@@ -435,6 +453,7 @@ MOD_DIR = BASE / "real images" / "03-modified"
 
 @app.route("/api/upload_original", methods=["POST"])
 def upload_original():
+    """Save an uploaded file to 'real images/01-original/'."""
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
@@ -449,6 +468,7 @@ def upload_original():
 
 @app.route("/api/upload_modified", methods=["POST"])
 def upload_modified():
+    """Save an uploaded modified image to 'real images/03-modified/', optionally renaming it via dest_filename."""
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
@@ -466,6 +486,7 @@ def upload_modified():
 
 @app.route("/api/upload_downloaded", methods=["POST"])
 def upload_downloaded():
+    """Save an AI-generated image to 'altered images/<model>/downloaded/'."""
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     f = request.files['file']
@@ -485,6 +506,7 @@ def upload_downloaded():
 
 @app.route("/api/rename_modified", methods=["POST"])
 def rename_modified():
+    """Rename a file in-place within '03-modified/'."""
     data = request.get_json(force=True)
     current_filename = (data.get("current_filename") or "").strip()
     new_filename = (data.get("new_filename") or "").strip()
@@ -954,6 +976,11 @@ def _detect_indicators(tags: dict) -> dict:
 
 
 def _run_analysis_pipeline(path: pathlib.Path) -> dict:
+    """Run the full forensic analysis pipeline on an image file.
+
+    Executes exiftool, ELA, noise inconsistency, compression blocking, and C2PA
+    checks, then returns all results in a single dict ready to be stored in the record.
+    """
     tags = _run_exiftool(path)
     if tags:
         meta_path = METADATA_DIR / (path.stem + ".json")
@@ -1005,6 +1032,7 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
 
 @app.route("/api/analyze", methods=["POST"])
 def analyze_image():
+    """Run the analysis pipeline on an existing renamed altered image (model + filename required)."""
     data = request.get_json(force=True)
     altered_filename = (data.get("altered_filename") or "").strip()
     model = (data.get("model") or "").strip()
@@ -1050,6 +1078,7 @@ def analyze_file():
 
 @app.route("/api/upload_and_analyze", methods=["POST"])
 def upload_and_analyze():
+    """Accept a file upload, save it to 'analyzed images/', and immediately run the full analysis pipeline."""
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
     file = request.files["file"]
@@ -1125,6 +1154,12 @@ def _extract_indicator_vals(rec: dict) -> list | None:
 
 @app.route("/api/random_forest", methods=["POST"])
 def random_forest_analysis():
+    """Train and cross-validate a Random Forest classifier on analyzed records.
+
+    Accepts optional JSON body fields: models (list to filter altered images),
+    stratify_by ('class' or 'model'), feature_set ('pixel', 'indicators', or 'both'),
+    and seed (int). Returns fold accuracies, confusion matrix, and feature importances.
+    """
     try:
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.model_selection import StratifiedKFold
