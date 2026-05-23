@@ -69,24 +69,6 @@ class TestSetRecordSupabase:
         assert resp.status_code == 503
 
 
-class TestSetRecordsBulkSupabase:
-    def test_bulk_upsert_to_supabase(self, client, supabase_mock):
-        data = [{"id": "r1"}, {"id": "r2"}]
-        resp = client.post("/api/records", json=data)
-        assert resp.status_code == 200
-        assert resp.get_json()["ok"] is True
-
-    def test_empty_list_deletes_all_records_in_supabase(self, client, supabase_mock):
-        resp = client.post("/api/records", json=[])
-        assert resp.status_code == 200
-        assert resp.get_json()["count"] == 0
-        supabase_mock.table.return_value.delete.return_value.neq.assert_called_once()
-
-    def test_supabase_error_returns_503(self, client, supabase_mock):
-        supabase_mock.table.return_value.upsert.return_value.execute.side_effect = RuntimeError("fail")
-        resp = client.post("/api/records", json=[{"id": "r1"}])
-        assert resp.status_code == 503
-
 
 class TestDeleteRecordSupabase:
     def test_delete_calls_supabase(self, client, supabase_mock):

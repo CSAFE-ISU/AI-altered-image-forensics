@@ -106,6 +106,8 @@ def get_records():
         try:
             result = _supabase.table("records").select("data").execute()
             records = [row["data"] for row in result.data]
+            for r in records:
+                r.pop("ela_image_b64", None)  # strip legacy records that were stored before write-time stripping
             return jsonify(records)
         except Exception as e:
             return jsonify({"error": str(e)}), 503

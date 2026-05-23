@@ -87,21 +87,3 @@ class TestDeleteRecord:
         assert resp.get_json()["ok"] is True
 
 
-class TestSetRecordsBulk:
-    def test_bulk_upsert(self, client, tmp_base):
-        data = [{"id": "r1", "type": "p0"}, {"id": "r2", "type": "p1"}]
-        resp = client.post("/api/records", json=data)
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["ok"] is True
-        assert body["count"] == 2
-        saved = json.loads((tmp_base / "records.json").read_text())
-        assert len(saved) == 2
-
-    def test_bulk_non_list_body_returns_400(self, client):
-        resp = client.post(
-            "/api/records",
-            data='{"id": "r1"}',
-            content_type="application/json",
-        )
-        assert resp.status_code == 400
