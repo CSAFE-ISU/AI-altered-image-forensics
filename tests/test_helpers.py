@@ -1,7 +1,8 @@
 """Unit tests for pure helper functions: _format_filesize, _analyze_exif, _extract_c2pa_details,
 _detect_c2pa_from_tags, _detect_indicators."""
 import pytest
-from app import _format_filesize, _analyze_exif, _extract_c2pa_details, _detect_c2pa_from_tags, _detect_indicators
+from app import _format_filesize
+from analysis import _analyze_exif, _extract_c2pa_details, _detect_c2pa_from_tags, _detect_indicators
 
 
 # ── _format_filesize ──────────────────────────────────────────────────────────

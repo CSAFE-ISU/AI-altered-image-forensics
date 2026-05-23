@@ -3,6 +3,9 @@
 .RData
 .Ruserdata
 
+# Virtual environment
+.venv/
+
 # Flask app
 records.json
 __pycache__/
