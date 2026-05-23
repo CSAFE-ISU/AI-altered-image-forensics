@@ -58,25 +58,6 @@
     return persistRecord(state.records.find(r => r.id === state.currentId));
   }
 
-  async function persistRecords() {
-    try {
-      const resp = await fetch('/api/records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state.records)
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        showPersistentStatus('header-status', 'Save failed — ' + (body.error || 'server error') + '. Do not reload until you try again.', 'warning');
-        return false;
-      }
-      return true;
-    } catch {
-      showPersistentStatus('header-status', 'Save failed — server unreachable. Do not reload until resolved.', 'warning');
-      return false;
-    }
-  }
-
   function exportAll() {
     if (!state.records.length) { showStatus('header-status', 'No records to export', 'warning'); return; }
     const blob = new Blob([JSON.stringify(state.records, null, 2)], { type: 'application/json' });

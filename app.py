@@ -114,28 +114,6 @@ def get_records():
     return jsonify([])
 
 
-@app.route("/api/records", methods=["POST"])
-def set_records():
-    """Replace the full records list — upserts all records in the payload, strips ela_image_b64 before storing, and deletes any records not included."""
-    data = request.get_json(force=True)
-    if not isinstance(data, list):
-        return jsonify({"error": "expected a JSON array"}), 400
-    if _supabase:
-        try:
-            if data:
-                ids = [r["id"] for r in data if "id" in r]
-                rows = [{"id": r["id"], "data": {k: v for k, v in r.items() if k != "ela_image_b64"}} for r in data if "id" in r]
-                if rows:
-                    _supabase.table("records").upsert(rows).execute()
-                _supabase.table("records").delete().not_.in_("id", ids).execute()
-            else:
-                _supabase.table("records").delete().neq("id", "").execute()
-        except Exception as e:
-            return jsonify({"error": str(e)}), 503
-        return jsonify({"ok": True, "count": len(data)})
-    DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    return jsonify({"ok": True, "count": len(data)})
-
 
 @app.route("/api/records/<record_id>", methods=["POST"])
 def set_record(record_id: str):
