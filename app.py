@@ -101,13 +101,11 @@ def index():
 
 @app.route("/api/records", methods=["GET"])
 def get_records():
-    """Return all records from Supabase (or local records.json fallback), omitting base64 ELA images."""
+    """Return all records from Supabase (or local records.json fallback)."""
     if _supabase:
         try:
             result = _supabase.table("records").select("data").execute()
             records = [row["data"] for row in result.data]
-            for r in records:
-                r.pop("ela_image_b64", None)
             return jsonify(records)
         except Exception as e:
             return jsonify({"error": str(e)}), 503
@@ -118,7 +116,7 @@ def get_records():
 
 @app.route("/api/records", methods=["POST"])
 def set_records():
-    """Replace the full records list — upserts all records in the payload and deletes any not included."""
+    """Replace the full records list — upserts all records in the payload, strips ela_image_b64 before storing, and deletes any records not included."""
     data = request.get_json(force=True)
     if not isinstance(data, list):
         return jsonify({"error": "expected a JSON array"}), 400
@@ -126,7 +124,7 @@ def set_records():
         try:
             if data:
                 ids = [r["id"] for r in data if "id" in r]
-                rows = [{"id": r["id"], "data": r} for r in data if "id" in r]
+                rows = [{"id": r["id"], "data": {k: v for k, v in r.items() if k != "ela_image_b64"}} for r in data if "id" in r]
                 if rows:
                     _supabase.table("records").upsert(rows).execute()
                 _supabase.table("records").delete().not_.in_("id", ids).execute()
