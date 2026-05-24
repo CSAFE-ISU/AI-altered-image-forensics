@@ -57,8 +57,6 @@ IMAGE_ROOTS = [
     BASE / "analyzed images",
 ]
 
-UPLOAD_DIR = BASE / "analyzed images"
-
 app = Flask(__name__, static_folder=str(BASE / "static"))
 
 @app.errorhandler(404)
@@ -472,41 +470,6 @@ def analyze_file():
         return jsonify(_run_analysis_pipeline(path))
     except Exception as e:
         logger.exception("analyze_file failed for %s", filename)
-        return jsonify({"error": f"Analysis failed: {e}"}), 500
-
-
-# ── Upload and analyze ────────────────────────────────────────────────────────
-
-@app.route("/api/upload_and_analyze", methods=["POST"])
-def upload_and_analyze():
-    """Accept a file upload, save it to 'analyzed images/', and immediately run the full analysis pipeline."""
-    if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-    file = request.files["file"]
-    if not file.filename:
-        return jsonify({"error": "No filename"}), 400
-
-    filename = secure_filename(file.filename)
-    if not filename:
-        return jsonify({"error": "Invalid filename"}), 400
-
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    path = UPLOAD_DIR / filename
-    file.save(str(path))
-
-    try:
-        size_str = _format_filesize(path.stat().st_size)
-        with Image.open(path) as img:
-            w, h = img.size
-        dims = f"{w} \u00d7 {h}"
-    except Exception:
-        size_str, dims = "", ""
-
-    try:
-        result = _run_analysis_pipeline(path)
-        return jsonify({"filename": filename, "filesize": size_str, "dims": dims, **result})
-    except Exception as e:
-        logger.exception("upload_and_analyze failed for %s", filename)
         return jsonify({"error": f"Analysis failed: {e}"}), 500
 
 

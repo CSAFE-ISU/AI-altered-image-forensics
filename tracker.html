@@ -26,7 +26,6 @@
       <button class="new-record-btn" onclick="newRecord('p0')">+ New original</button>
       <button class="new-record-btn" onclick="newRecord('p1')">+ New modification</button>
       <button class="new-record-btn" onclick="newRecord('p2')">+ New alteration</button>
-      <button class="new-record-btn" onclick="newAnalysis()">+ New analysis</button>
     </div>
     <div id="sidebar-filters">
       <div class="filter-row">
@@ -62,10 +61,6 @@
       </div>
     </div>
     <div id="study-tree"></div>
-    <div id="analyses-section" style="display:none">
-      <div class="sidebar-section-label">Analyses</div>
-      <div id="analyses-tree"></div>
-    </div>
   </aside>
 
   <main>
@@ -569,87 +564,6 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           </div>
       </div>
 
-      <!-- ══ PHASE 3 ══ -->
-      <div id="form-p3" style="display:none;">
-        <div class="section-card">
-          <div class="section-label">Upload image</div>
-          <div class="field">
-            <label>Select image to analyze</label>
-            <input type="file" id="p3-file-input" accept="image/*">
-          </div>
-          <div style="display:flex; gap:10px; align-items:center; margin-top:0.75rem;">
-            <button class="btn save" id="p3-upload-btn" onclick="uploadAndAnalyze()">Upload &amp; Analyze</button>
-            <span class="status-msg" id="p3-status"></span>
-          </div>
-          <div class="hint-box" style="margin-top:0.75rem;">Runs EXIF analysis, C2PA check, ELA, noise inconsistency, and compression blocking on the uploaded image. If the filename matches an existing record, results are attached to that record. Otherwise a standalone analysis record is created under <strong>Analyses</strong> in the sidebar.</div>
-        </div>
-
-        <div class="section-card" id="p3-file-info" style="display:none">
-          <div class="section-label">File info</div>
-          <div class="two-col">
-            <div class="field"><label>Filename</label><input type="text" id="p3-filename-display" readonly class="auto-field"></div>
-            <div class="field"><label>Linked record</label><input type="text" id="p3-linked-display" readonly class="auto-field"></div>
-          </div>
-          <div class="two-col">
-            <div class="field"><label>File size</label><input type="text" id="p3-filesize-display" readonly class="auto-field"></div>
-            <div class="field"><label>Dimensions</label><input type="text" id="p3-dims-display" readonly class="auto-field"></div>
-          </div>
-        </div>
-
-        <p class="analysis-empty" id="p3-empty" style="display:none; padding:0.5rem 0">Upload an image above to run analysis.</p>
-
-        <div id="an-p3-results" style="display:none">
-          <div class="section-card">
-            <div class="section-label">Metadata forensics</div>
-            <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p3-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-            <details id="an-p3-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p3-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <details id="an-p3-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p3-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <details id="an-p3-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p3-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <details id="an-p3-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p3-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-            <details id="an-p3-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p3-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-          </div>
-          <div class="section-card">
-            <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
-            <div class="field" id="an-p3-viewer-found-field">
-              <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
-                <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p3-viewer-found" id="an-p3-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p3')"> Yes</label>
-                <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p3-viewer-found" id="an-p3-viewer-found-no" value="no" onchange="toggleViewerDetails('p3')"> No</label>
-              </div>
-            </div>
-            <div id="an-p3-viewer-details" style="display:none;">
-              <div class="field"><label>Certificate status</label><select id="an-p3-viewer-cert-status" style="width:100%;"><option value="">— select —</option><option>Trusted</option><option>Untrusted signer</option><option>Unknown</option></select></div>
-              <div class="field"><label>C2PA manifest (raw JSON)</label><textarea id="an-p3-viewer-json" placeholder="Paste raw JSON from c2paviewer.com here..." style="font-family:var(--mono); font-size:11px;" onpaste="setTimeout(()=>parseC2paViewerJson('p3'),0)"></textarea></div>
-              <div class="two-col">
-                <div class="field"><label>Signed by</label><input type="text" id="an-p3-viewer-signed-by" style="width:100%;"></div>
-                <div class="field"><label>Issued</label><input type="date" id="an-p3-viewer-issued" style="width:100%;"></div>
-              </div>
-              <div class="field"><label>Algorithm</label><input type="text" id="an-p3-viewer-algorithm" style="width:100%;"></div>
-              <div class="field"><label>Software</label><input type="text" id="an-p3-viewer-software" style="width:100%;"></div>
-            </div>
-            <div class="field"><label>C2PA Viewer Summary</label><textarea id="an-p3-viewer-notes"></textarea></div>
-          </div>
-          <div class="section-card">
-            <div class="section-label">Visual / pixel-level artifacts</div>
-            <div id="an-p3-artifact-list" class="artifact-display"></div>
-            <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p3-artifact-notes" readonly class="auto-field"></textarea></div>
-            <details id="an-p3-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p3-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
-          </div>
-        </div>
-
-        <div class="section-card" id="p3-notes-card" style="display:none">
-          <div class="section-label">Notes</div>
-          <div class="field">
-            <textarea id="p3-analysis-notes" placeholder="Additional observations..."></textarea>
-          </div>
-        </div>
-
-        <div class="form-actions" id="p3-form-actions" style="display:none">
-          <button class="btn save" onclick="saveRecord()">Save record</button>
-          <button class="btn danger" onclick="deleteRecord()">Delete record</button>
-          <span class="status-msg" id="status-p3"></span>
-        </div>
-      </div>
 
     </div>
   </main>

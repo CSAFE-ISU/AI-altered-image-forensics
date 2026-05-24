@@ -26,7 +26,6 @@ def app(tmp_base, monkeypatch):
         tmp_base / "altered images",
         tmp_base / "analyzed images",
     ])
-    monkeypatch.setattr(flask_app, "UPLOAD_DIR", tmp_base / "analyzed images")
     monkeypatch.setattr(flask_app, "ORIG_SRC_DIR",  tmp_base / "real images" / "01-original")
     monkeypatch.setattr(flask_app, "ORIG_DEST_DIR", tmp_base / "real images" / "02-original-renamed")
     monkeypatch.setattr(flask_app, "MOD_DIR",       tmp_base / "real images" / "03-modified")

@@ -90,7 +90,6 @@
     if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null;
     if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null;
     if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null;
-    if (r.type === 'p3') return r.c2pa_viewer_found == null;
     return false;
   }
 
@@ -162,12 +161,10 @@
 
     const visible = applyFilters(state.records);
 
-    // Group visible records by study_id (exclude p3 — shown separately)
+    // Group visible records by study_id
     const studyMap = {};
     const unsorted = [];
-    const analyses = [];
     visible.forEach(r => {
-      if (r.type === 'p3') { analyses.push(r); return; }
       const sid = r.study_id || '';
       if (sid) {
         if (!studyMap[sid]) studyMap[sid] = [];
@@ -202,17 +199,6 @@
       unsorted.forEach(r => children.appendChild(buildRecordItem(r)));
       node.appendChild(children);
       tree.appendChild(node);
-    }
-
-    // Analyses section (p3 records)
-    const analysesSection = document.getElementById('analyses-section');
-    const analysesTree    = document.getElementById('analyses-tree');
-    if (analyses.length) {
-      analysesSection.style.display = '';
-      analysesTree.innerHTML = '';
-      analyses.forEach(r => analysesTree.appendChild(buildRecordItem(r)));
-    } else {
-      analysesSection.style.display = 'none';
     }
 
     const total = state.records.length;
@@ -285,7 +271,6 @@
     if (rec.type === 'p0') return (rec.study_id || 'csafe-???') + '.jpg';
     if (rec.type === 'p1') return rec.mod_filename || 'Untitled modification';
     if (rec.type === 'p2') return rec.altered_filename || 'Untitled alteration';
-    if (rec.type === 'p3') return rec.uploaded_filename || 'New analysis';
     return 'Untitled';
   }
 
@@ -293,7 +278,6 @@
     if (rec.type === 'p0') return 'original';
     if (rec.type === 'p1') return (rec.mod_type || 'modification').toLowerCase();
     if (rec.type === 'p2') return (rec.model || 'alteration').toLowerCase();
-    if (rec.type === 'p3') return 'analysis';
     return '';
   }
 
@@ -314,26 +298,6 @@
     if (type === 'p0') { document.getElementById('p0_study_id').value = study_id; updateFormTitle(); }
   }
 
-  function newAnalysis() {
-    const id = 'rec_' + Date.now();
-    const rec = { id, type: 'p3' };
-    state.records.push(rec);
-    state.currentId = id;
-    state.currentType = 'p3';
-    renderSidebar();
-    showFormArea(true);
-    showFormFor('p3', rec);
-    // Reset upload form
-    document.getElementById('p3-file-input').value = '';
-    document.getElementById('p3-file-info').style.display = 'none';
-    document.getElementById('p3-empty').style.display = 'none';
-    document.getElementById('an-p3-results').style.display = 'none';
-    document.getElementById('p3-notes-card').style.display = 'none';
-    document.getElementById('p3-form-actions').style.display = 'none';
-    document.getElementById('p3-status').className = 'status-msg';
-    document.getElementById('form-title').textContent = 'New analysis';
-  }
-
   async function selectRecord(id) {
     state.currentId = id;
     const rec = state.records.find(r => r.id === id);
@@ -352,13 +316,12 @@
   }
 
   async function showFormFor(type, rec) {
-    ['p0','p1','p2','p3'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
-    const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration', p3: 'Analysis' };
+    ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
+    const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration' };
     document.getElementById('form-subtitle').textContent = labels[type] || '';
     if (type === 'p0') await fillP0(rec);
     if (type === 'p1') fillP1(rec);
     if (type === 'p2') fillP2(rec);
-    if (type === 'p3') fillP3(rec);
   }
 
   // ── Fill forms ────────────────────────────────────────────────────────────
@@ -715,133 +678,7 @@
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
-  function fillP3(rec) {
-    document.getElementById('form-title').textContent = rec.uploaded_filename || 'Analysis';
-    if (rec.uploaded_filename) {
-      setVal('p3-filename-display', rec.uploaded_filename);
-      setVal('p3-filesize-display', rec.filesize || '');
-      setVal('p3-dims-display', rec.dims || '');
-      setVal('p3-linked-display', rec.linked_record || 'Standalone');
-      document.getElementById('p3-file-info').style.display = '';
-      document.getElementById('an-p3-results').style.display = '';
-      document.getElementById('p3-notes-card').style.display = '';
-      document.getElementById('p3-form-actions').style.display = '';
-      document.getElementById('p3-empty').style.display = 'none';
 
-      _fillIndicatorsSection('p3', rec);
-      setVal('an-p3-artifact-notes', rec.artifact_notes);
-      setVal('p3-analysis-notes', rec.analysis_notes);
-
-      const listEl = document.getElementById('an-p3-artifact-list');
-      if (listEl) {
-        listEl.innerHTML = '';
-        (rec.artifacts || []).forEach(a => {
-          const tag = document.createElement('span');
-          tag.className = 'artifact-tag';
-          tag.textContent = a;
-          listEl.appendChild(tag);
-        });
-      }
-
-      fillViewerSection('p3', rec);
-      _renderElaPreview('an-p3-ela-preview', 'an-p3-ela-img', rec.ela_image_b64);
-    } else {
-      document.getElementById('p3-file-info').style.display = 'none';
-      document.getElementById('an-p3-results').style.display = 'none';
-      document.getElementById('p3-notes-card').style.display = 'none';
-      document.getElementById('p3-form-actions').style.display = 'none';
-      document.getElementById('p3-empty').style.display = 'none';
-    }
-  }
-
-  async function uploadAndAnalyze() {
-    const fileInput = document.getElementById('p3-file-input');
-    if (!fileInput.files.length) {
-      showStatus('p3-status', 'Select a file first', 'warning');
-      return;
-    }
-    const file = fileInput.files[0];
-    const btn = document.getElementById('p3-upload-btn');
-    btn.disabled = true;
-    showStatus('p3-status', 'Uploading…', '');
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const resp = await fetch('/api/upload_and_analyze', { method: 'POST', body: formData });
-      const result = await resp.json();
-      if (!resp.ok) {
-        showStatus('p3-status', result.error || 'Upload failed', 'warning');
-        return;
-      }
-
-      // Try to match filename against existing records
-      const fn = result.filename;
-      const matched = state.records.find(r =>
-        r.original_filename === fn || r.renamed_filename === fn ||
-        r.mod_filename === fn || r.altered_filename === fn ||
-        r.ai_assigned_filename === fn || r.uploaded_filename === fn
-      );
-
-      if (matched) {
-        // Attach analysis to existing record and navigate to it
-        Object.assign(matched, {
-          exif_anomalies:  result.exif_anomalies,
-          c2pa_status:     result.c2pa_status,
-          c2pa_details:    result.c2pa_details,
-          artifacts:       result.artifacts,
-          artifact_notes:  result.artifact_notes,
-          ela_image_b64:   result.ela_image_b64,
-          ela_max_diff:    result.ela_max_diff,
-          ela_mean_diff:   result.ela_mean_diff,
-          ela_std_diff:    result.ela_std_diff,
-          ela_source:      result.ela_source,
-          block_noise_std: result.block_noise_std,
-          noise_skewness:  result.noise_skewness,
-          noise_kurtosis:  result.noise_kurtosis,
-        });
-        // Remove the blank p3 placeholder we created in newAnalysis()
-        const placeholderId = state.currentId;
-        state.records = state.records.filter(r => r.id !== placeholderId);
-        await fetch('/api/records/' + encodeURIComponent(placeholderId), { method: 'DELETE' });
-        await persistRecord(matched);
-        selectRecord(matched.id);
-        showStatus('header-status', 'Analysis linked to ' + getRecordName(matched), 'success');
-      } else {
-        // Save as standalone p3 record
-        const rec = state.records.find(r => r.id === state.currentId);
-        Object.assign(rec, {
-          uploaded_filename: result.filename,
-          filesize:          result.filesize,
-          dims:              result.dims,
-          uploaded_at:       new Date().toISOString(),
-          exif_anomalies:    result.exif_anomalies,
-          c2pa_status:       result.c2pa_status,
-          c2pa_details:      result.c2pa_details,
-          artifacts:         result.artifacts,
-          artifact_notes:    result.artifact_notes,
-          ela_image_b64:     result.ela_image_b64,
-          ela_max_diff:      result.ela_max_diff,
-          ela_mean_diff:     result.ela_mean_diff,
-          ela_std_diff:      result.ela_std_diff,
-          ela_source:        result.ela_source,
-          block_noise_std:   result.block_noise_std,
-          noise_skewness:    result.noise_skewness,
-          noise_kurtosis:    result.noise_kurtosis,
-          analysis_notes:    '',
-          linked_record:     ''
-        });
-        renderSidebar();
-        fillP3(rec);
-        await persistCurrentRecord();
-        showStatus('p3-status', 'Analysis complete', 'success');
-      }
-    } catch (err) {
-      showStatus('p3-status', 'Error: ' + err.message, 'warning');
-    } finally {
-      btn.disabled = false;
-    }
-  }
 
   // ── Analyze ───────────────────────────────────────────────────────────────
 
@@ -1002,11 +839,6 @@
       showStatus('status-p2a', 'Saved', 'success');
     }
 
-    if (rec.type === 'p3') {
-      Object.assign(rec, { analysis_notes: getVal('p3-analysis-notes'), ...getViewerFields('p3') });
-      showStatus('status-p3', 'Saved', 'success');
-    }
-
     renderSidebar();
     await persistCurrentRecord();
   }
@@ -1147,7 +979,6 @@
     if (state.currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
     if (state.currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
     if (state.currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
-    if (state.currentType === 'p3') { const rec = state.records.find(r => r.id === state.currentId); title = rec?.uploaded_filename || 'New analysis'; }
     document.getElementById('form-title').textContent = title;
   }
 
