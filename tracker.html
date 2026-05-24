@@ -59,6 +59,10 @@
           <option value="no">No analysis</option>
         </select>
       </div>
+      <div class="filter-row">
+        <label class="filter-label">Search</label>
+        <input type="text" id="filter-search" placeholder="filename or study ID…" oninput="setFilter('search', this.value)">
+      </div>
     </div>
     <div id="study-tree"></div>
   </aside>

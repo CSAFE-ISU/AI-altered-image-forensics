@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '' },
+    filters:           { type: '', model: '', blankOnly: '', analysis: '', search: '' },
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -134,7 +134,7 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis } = state.filters;
+    const { type, model, blankOnly, analysis, search } = state.filters;
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
@@ -142,6 +142,14 @@
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        const searchable = [
+          r.study_id, r.original_filename, r.renamed_filename,
+          r.mod_filename, r.altered_filename, r.ai_assigned_filename,
+        ];
+        if (!searchable.some(f => f && f.toLowerCase().includes(q))) return false;
+      }
       return true;
     });
   }
