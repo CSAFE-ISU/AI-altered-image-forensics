@@ -1,5 +1,4 @@
-"""API tests for /api/analyze_file and /api/upload_and_analyze."""
-import io
+"""API tests for /api/analyze_file."""
 import pytest
 from PIL import Image
 import app as flask_app
@@ -40,65 +39,4 @@ class TestAnalyzeFile:
         dest = tmp_base / "analyzed images" / "test.jpg"
         Image.new("RGB", (8, 8)).save(str(dest), format="JPEG")
         resp = client.post("/api/analyze_file", json={"filename": "test.jpg"})
-        assert resp.status_code == 500
-
-
-# ── /api/upload_and_analyze ───────────────────────────────────────────────────
-
-class TestUploadAndAnalyze:
-    def test_no_file_returns_400(self, client):
-        resp = client.post("/api/upload_and_analyze")
-        assert resp.status_code == 400
-
-    def test_empty_filename_returns_400(self, client):
-        data = {"file": (io.BytesIO(b"data"), "")}
-        resp = client.post(
-            "/api/upload_and_analyze", data=data, content_type="multipart/form-data"
-        )
-        assert resp.status_code == 400
-
-    def test_invalid_filename_after_sanitize_returns_400(self, mocker, client):
-        mocker.patch("app.secure_filename", return_value="")
-        data = {"file": (io.BytesIO(b"data"), "output.jpg")}
-        resp = client.post(
-            "/api/upload_and_analyze", data=data, content_type="multipart/form-data"
-        )
-        assert resp.status_code == 400
-
-    def test_non_image_file_returns_result_with_empty_dims(self, mocker, client, tmp_base):
-        mocker.patch.object(flask_app, "_run_analysis_pipeline", return_value=MOCK_RESULT)
-        data = {"file": (io.BytesIO(b"not an image at all"), "data.jpg")}
-        resp = client.post(
-            "/api/upload_and_analyze", data=data, content_type="multipart/form-data"
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["dims"] == ""
-
-    def test_valid_upload_returns_analysis(self, mocker, client, tmp_base):
-        mocker.patch.object(flask_app, "_run_analysis_pipeline", return_value=MOCK_RESULT)
-        buf = io.BytesIO()
-        Image.new("RGB", (8, 8)).save(buf, format="JPEG")
-        buf.seek(0)
-        data = {"file": (buf, "upload.jpg")}
-        resp = client.post(
-            "/api/upload_and_analyze", data=data, content_type="multipart/form-data"
-        )
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert "filename" in body
-        assert "filesize" in body
-        assert "dims" in body
-        for key in MOCK_RESULT:
-            assert key in body
-
-    def test_pipeline_exception_returns_500(self, mocker, client, tmp_base):
-        mocker.patch.object(flask_app, "_run_analysis_pipeline", side_effect=RuntimeError("boom"))
-        buf = io.BytesIO()
-        Image.new("RGB", (8, 8)).save(buf, format="JPEG")
-        buf.seek(0)
-        data = {"file": (buf, "upload.jpg")}
-        resp = client.post(
-            "/api/upload_and_analyze", data=data, content_type="multipart/form-data"
-        )
         assert resp.status_code == 500

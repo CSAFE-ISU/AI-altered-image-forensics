@@ -96,7 +96,7 @@ Rename the original image with a unique study ID and record details about the im
 3. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
 4. Click **Save record**.
 
-Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
+To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
 
 ### (Optional) Upload a modified image
 
@@ -111,7 +111,7 @@ If a modified version (cropping, resizing, recompression, etc.) of the original 
 7. Optionally, add additional context in **Notes**.
 8. Click **Save record**.
 
-Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
+To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
 
 ### Upload an AI altered image
 
@@ -135,29 +135,20 @@ Record details about an AI altered image:
 14. Record any observations about the result or the reason for your subjective quality rating in **Notes**.
 14. Click **Save record**.
 
-Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
+To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
 
-### (Under Construction) Analyze an image
+### Analyze an image
 
-Choose an image and perform basic forensic analysis.
+Each record has an **Analysis results** section at the bottom. Click **Analyze** to run the full forensic pipeline on the image associated with that record. Results appear immediately and are saved with the record.
 
-1. Click **+ New analysis** in the sidebar.
-2. Click **Choose File** and select the image to analyze.
-3. Click **Upload & Analyze**. The app will run the full analysis pipeline and attempt to match the filename against existing records:
-   - **Match found** — results are attached to that record and shown in its **Analysis results** section.
-   - **No match** — a standalone analysis record is created and listed under **Analyses** in the sidebar.
-4. Review the results for each check:
-
-   | Check | Method | What triggers a flag |
-   |---|---|---|
-   | EXIF / metadata anomalies | `exiftool` | Known AI software strings, missing camera fields, absent GPS |
-   | C2PA / Content Credentials | JUMBF block detection via `exiftool` | Embedded C2PA manifest; shows claim generator, actions, validation status |
-   | Metadata diff vs. input | `exiftool` on both images | Added / removed / changed fields (only when an input image is known) |
-   | ELA anomaly | Re-compress at quality=90, pixel diff | Max pixel difference > 15 |
-   | Noise inconsistency | Block-level noise variance (`numpy`) | Uneven noise across 64×64 blocks |
-   | Compression blocking | DCT boundary analysis | Visible 8×8 block boundaries (JPEG only) |
-
-5. Click **Save record** to store the analysis results.
+| Check | Method | What triggers a flag |
+|---|---|---|
+| EXIF / metadata anomalies | `exiftool` | Known AI software strings, missing camera fields, absent GPS |
+| C2PA / Content Credentials | JUMBF block detection via `exiftool` | Embedded C2PA manifest; shows claim generator, actions, validation status |
+| Metadata diff vs. input | `exiftool` on both images | Added / removed / changed fields (only when an input image is known) |
+| ELA anomaly | Re-compress at quality=90, pixel diff | Max pixel difference > 15 |
+| Noise inconsistency | Block-level noise variance (`numpy`) | Uneven noise across 64×64 blocks |
+| Compression blocking | DCT boundary analysis | Visible 8×8 block boundaries (JPEG only) |
 
 
 ## File naming conventions
@@ -194,5 +185,4 @@ The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the 
 │   └── ...
 │       ├── downloaded/             # Files as downloaded from the AI tool
 │       └── renamed/                # Renamed copies (csafe-001-recomp-b001.png, etc.)
-└── analyzed images/                # Images uploaded for analysis
 ```
