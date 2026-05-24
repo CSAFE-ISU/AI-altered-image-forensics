@@ -353,7 +353,7 @@
 
   async function showFormFor(type, rec) {
     ['p0','p1','p2','p3'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
-    const labels = { p0: 'Page 0 — Original image', p1: 'Page 1 — Modification', p2: 'Page 2 — AI alteration', p3: 'Page 3 — Analysis' };
+    const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration', p3: 'Analysis' };
     document.getElementById('form-subtitle').textContent = labels[type] || '';
     if (type === 'p0') await fillP0(rec);
     if (type === 'p1') fillP1(rec);
