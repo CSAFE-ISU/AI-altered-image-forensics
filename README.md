@@ -71,7 +71,9 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
 
    > NOTE: Port 5000 is blocked by macOS AirPlay Receiver; use 5001 or any other available port.
    
-   > NOTE: Depending on how python is installed on your computer, you might need to call `python` instead of `python3` to launch the app. 
+   > NOTE: Depending on how python is installed on your computer, you might need to call `python` instead of `python3` to launch the app.
+
+   To stop the server, press **Ctrl+C** in the terminal where it is running.
 
 
 ## Using the Tracking Tool
