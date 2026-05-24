@@ -96,7 +96,7 @@ Rename the original image with a unique study ID and record details about the im
 3. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
 4. Click **Save record**.
 
-Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
+Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
 ### (Optional) Upload a modified image
 
@@ -111,7 +111,7 @@ If a modified version (cropping, resizing, recompression, etc.) of the original 
 7. Optionally, add additional context in **Notes**.
 8. Click **Save record**.
 
-Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
+Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
 ### Upload an AI altered image
 
@@ -135,7 +135,7 @@ Record details about an AI altered image:
 14. Record any observations about the result or the reason for your subjective quality rating in **Notes**.
 14. Click **Save record**.
 
-Any forensic analysis run on this image (see Page 3) will appear in the **Analysis results** collapsible section at the bottom of the page.
+Any forensic analysis run on this image (see **Analyze an image**) will appear in the **Analysis results** collapsible section at the bottom of the page.
 
 ### (Under Construction) Analyze an image
 
@@ -165,12 +165,12 @@ Choose an image and perform basic forensic analysis.
 | Pattern | Meaning |
 |---|---|
 | `csafe-001.jpg` | Renamed original (study ID) |
-| `csafe-001-recomp.jpg` | Page 1 modification — recompressed |
-| `csafe-001-cropped.jpg` | Page 1 modification — cropped |
-| `csafe-001-recomp-b001.png` | Page 2 alteration — first altered version of the recompressed original |
-| `csafe-001-recomp-b002.png` | Page 2 alteration — second altered version |
+| `csafe-001-recomp.jpg` | Modification — recompressed |
+| `csafe-001-cropped.jpg` | Modification — cropped |
+| `csafe-001-recomp-b001.png` | AI alteration — first altered version of the recompressed original |
+| `csafe-001-recomp-b002.png` | AI alteration — second altered version |
 
-The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the next sequential number when you create a new Page 2 record.
+The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the next sequential number when you create a new alteration record.
 
 
 ## Repository structure
@@ -194,5 +194,5 @@ The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the 
 │   └── ...
 │       ├── downloaded/             # Files as downloaded from the AI tool
 │       └── renamed/                # Renamed copies (csafe-001-recomp-b001.png, etc.)
-└── analyzed images/                # Images uploaded via Page 3 — Analysis
+└── analyzed images/                # Images uploaded for analysis
 ```
