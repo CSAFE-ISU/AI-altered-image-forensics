@@ -1,8 +1,16 @@
 """Unit tests for pure helper functions: _format_filesize, _analyze_exif, _extract_c2pa_details,
-_detect_c2pa_from_tags, _detect_indicators."""
+_extract_c2pa_details_from_c2patool, _detect_c2pa_from_tags, _detect_indicators,
+_extract_indicator_vals."""
+import json
+import pathlib
+import subprocess
 import pytest
 from app import _format_filesize
-from analysis import _analyze_exif, _extract_c2pa_details, _detect_c2pa_from_tags, _detect_indicators
+from analysis import (
+    _analyze_exif, _extract_c2pa_details, _extract_c2pa_details_from_c2patool,
+    _detect_c2pa_from_tags, _detect_indicators,
+)
+from classifier import _extract_indicator_vals
 
 
 # ── _format_filesize ──────────────────────────────────────────────────────────
@@ -422,3 +430,142 @@ class TestDetectIndicators:
         assert "Photoshop/Adobe markers detected" in result["summary"]
         assert "ICC measurement/viewing conditions detected" in result["summary"]
         assert "C2PA manifest detected" in result["summary"]
+
+
+# ── _extract_c2pa_details_from_c2patool ───────────────────────────────────────
+
+_C2PATOOL_DATA = {
+    "active_manifest": "m1",
+    "manifests": {
+        "m1": {
+            "claim_generator_info": [{"name": "TestGenerator"}],
+            "signature_info": {"issuer": "TestIssuer"},
+            "assertions": [
+                {"label": "c2pa.actions", "data": {"actions": [{"action": "c2pa.edited"}]}}
+            ],
+        }
+    },
+}
+
+
+class TestExtractC2paDetailsFromC2patool:
+    def _mock_run(self, mocker, data=None, returncode=0, stdout=None):
+        if stdout is None:
+            stdout = json.dumps(data) if data is not None else ""
+        from unittest.mock import MagicMock
+        mocker.patch("analysis.subprocess.run", return_value=MagicMock(returncode=returncode, stdout=stdout))
+
+    def test_tool_not_found_returns_none(self, mocker):
+        mocker.patch("analysis.subprocess.run", side_effect=FileNotFoundError)
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_timeout_returns_none(self, mocker):
+        mocker.patch("analysis.subprocess.run", side_effect=subprocess.TimeoutExpired("c2patool", 15))
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_nonzero_returncode_returns_none(self, mocker):
+        self._mock_run(mocker, returncode=1, stdout="error")
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_empty_stdout_returns_none(self, mocker):
+        self._mock_run(mocker, returncode=0, stdout="   ")
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_invalid_json_returns_none(self, mocker):
+        self._mock_run(mocker, returncode=0, stdout="not json")
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_no_manifests_returns_none(self, mocker):
+        self._mock_run(mocker, data={"manifests": {}})
+        assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
+
+    def test_valid_manifest_returns_dict(self, mocker):
+        self._mock_run(mocker, data=_C2PATOOL_DATA)
+        result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
+        assert result is not None
+        assert result["claim_generator"] == "TestGenerator"
+        assert result["software_agent"] == "TestIssuer"
+        assert result["actions"] == ["edited"]
+        assert result["manifest_id"] == "m1"
+
+    def test_no_claim_generator_info_falls_back_to_field(self, mocker):
+        data = {
+            "active_manifest": "m1",
+            "manifests": {"m1": {"claim_generator": "Fallback", "signature_info": {}, "assertions": []}},
+        }
+        self._mock_run(mocker, data=data)
+        result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
+        assert result["claim_generator"] == "Fallback"
+
+    def test_no_active_manifest_key_falls_back_to_first_manifest(self, mocker):
+        data = {
+            "manifests": {"m1": {"claim_generator_info": [{"name": "First"}], "signature_info": {}, "assertions": []}},
+        }
+        self._mock_run(mocker, data=data)
+        result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
+        assert result["claim_generator"] == "First"
+
+    def test_no_assertions_gives_none_actions(self, mocker):
+        data = {
+            "active_manifest": "m1",
+            "manifests": {"m1": {"claim_generator_info": [], "signature_info": {}, "assertions": []}},
+        }
+        self._mock_run(mocker, data=data)
+        result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
+        assert result["actions"] is None
+
+    def test_c2pa_prefix_stripped_from_actions(self, mocker):
+        self._mock_run(mocker, data=_C2PATOOL_DATA)
+        result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
+        assert "edited" in result["actions"]
+        assert "c2pa.edited" not in result["actions"]
+
+
+# ── _extract_indicator_vals ───────────────────────────────────────────────────
+
+class TestExtractIndicatorVals:
+    def test_no_indicators_key_returns_none(self):
+        assert _extract_indicator_vals({}) is None
+
+    def test_indicators_none_returns_none(self):
+        assert _extract_indicator_vals({"indicators": None}) is None
+
+    def test_all_present_returns_correct_values(self):
+        rec = {"indicators": {
+            "camera_exif":    {"present": {"Make": "Canon", "Model": "EOS"}},
+            "photoshop_adobe": True,
+            "icc_meas_view":   True,
+            "grok_signatures": True,
+            "c2pa":            True,
+        }}
+        assert _extract_indicator_vals(rec) == [1, 2, 1, 1, 1, 1]
+
+    def test_all_absent_returns_zeros(self):
+        rec = {"indicators": {
+            "camera_exif":    {"present": {}},
+            "photoshop_adobe": False,
+            "icc_meas_view":   False,
+            "grok_signatures": False,
+            "c2pa":            False,
+        }}
+        assert _extract_indicator_vals(rec) == [0, 0, 0, 0, 0, 0]
+
+    def test_partial_indicators(self):
+        rec = {"indicators": {
+            "camera_exif":    {"present": {"Make": "Sony"}},
+            "photoshop_adobe": False,
+            "icc_meas_view":   True,
+            "grok_signatures": False,
+            "c2pa":            False,
+        }}
+        assert _extract_indicator_vals(rec) == [1, 1, 0, 1, 0, 0]
+
+    def test_camera_exif_field_count(self):
+        rec = {"indicators": {
+            "camera_exif": {"present": {"Make": "A", "Model": "B", "ISO": "100"}},
+            "photoshop_adobe": False, "icc_meas_view": False,
+            "grok_signatures": False, "c2pa": False,
+        }}
+        vals = _extract_indicator_vals(rec)
+        assert vals[0] == 1   # has_camera_exif
+        assert vals[1] == 3   # n_camera_exif_fields
