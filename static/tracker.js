@@ -115,12 +115,7 @@
     if (type === 'p2') {
       flag('p2_input_select');
       const modelSel = document.getElementById('p2_model');
-      const isOther = modelSel && modelSel.value === '__other__';
       if (modelSel && !modelSel.value) modelSel.classList.add('field-blank');
-      if (isOther) {
-        const custom = document.getElementById('p2_model_custom');
-        if (custom && !custom.value.trim()) custom.classList.add('field-blank');
-      }
       flag('p2_ai_filename');
       flag('p2_prompt');
       flag('p2_prompt_type');
@@ -406,10 +401,19 @@
     if (rec.altered_filename) {
       state.copyPerformed = true;
       lockField('p2_altered_filename');
-      document.getElementById('btn-browse-p2-ai').disabled = true;
+      if (rec.ai_assigned_filename) {
+        // Both filenames recorded — lock everything
+        lockField('p2_ai_filename');
+        document.getElementById('btn-browse-p2-ai').disabled = true;
+      } else {
+        // Copy done but AI filename missing — let the user fill it in
+        unlockField('p2_ai_filename');
+        document.getElementById('btn-browse-p2-ai').disabled = false;
+      }
     } else {
       state.copyPerformed = false;
       clearCopyRenameStatus();
+      lockField('p2_ai_filename');
       document.getElementById('btn-browse-p2-ai').disabled = false;
     }
 
@@ -826,7 +830,7 @@
       Object.assign(rec, {
         input_image: inputVal,
         study_id: deriveStudyId(inputVal),
-        model: document.getElementById('p2_model').value === '__other__' ? getVal('p2_model_custom') : getVal('p2_model'),
+        model: getVal('p2_model'),
         model_version: getVal('p2_version'),
         prompt: getVal('p2_prompt'),
         prompt_strategy: getVal('p2_prompt_type'),
@@ -1000,9 +1004,6 @@
   }
 
   function handleModelSelect(sel) {
-    const custom = document.getElementById('p2_model_custom');
-    custom.style.display = sel.value === '__other__' ? 'block' : 'none';
-    if (sel.value !== '__other__') custom.value = '';
     // If the file was already uploaded (pendingAiFile cleared), the destination folder
     // was model-specific — must re-browse. If still pending, keep the file reference.
     if (!state.pendingAiFile) {
@@ -1069,7 +1070,6 @@
       const res = await fetch('/api/models');
       const models = await res.json();
       const sel = document.getElementById('p2_model');
-      const otherOpt = sel.querySelector('option[value="__other__"]');
       sel.innerHTML = '';
       const blank = document.createElement('option');
       blank.value = ''; blank.textContent = '— select —';
@@ -1079,36 +1079,28 @@
         opt.value = m; opt.textContent = m;
         sel.appendChild(opt);
       });
-      sel.appendChild(otherOpt);
     } catch { /* keep existing options */ }
   }
 
   function setModelSelectValue(model) {
     const sel = document.getElementById('p2_model');
-    const custom = document.getElementById('p2_model_custom');
-    if (!model) {
-      sel.value = ''; custom.style.display = 'none'; custom.value = ''; return;
-    }
+    if (!model) { sel.value = ''; return; }
     const modelLower = model.toLowerCase();
     // Exact match first, then case-insensitive
     for (const opt of sel.options) {
-      if (opt.value === model) { sel.value = model; custom.style.display = 'none'; custom.value = ''; return; }
+      if (opt.value === model) { sel.value = model; return; }
     }
     for (const opt of sel.options) {
-      if (opt.value !== '__other__' && opt.value.toLowerCase() === modelLower) {
-        sel.value = opt.value; custom.style.display = 'none'; custom.value = ''; return;
-      }
+      if (opt.value.toLowerCase() === modelLower) { sel.value = opt.value; return; }
     }
-    // Fall back to custom
-    sel.value = '__other__'; custom.style.display = 'block'; custom.value = model;
+    // No match — leave blank
+    sel.value = '';
   }
 
   // ── Copy and Rename ───────────────────────────────────────────────────────
 
   function getP2Model() {
-    const sel = document.getElementById('p2_model');
-    if (sel.value === '__other__') return document.getElementById('p2_model_custom').value.trim();
-    return sel.value;
+    return document.getElementById('p2_model').value;
   }
 
   function clearCopyRenameStatus() {
