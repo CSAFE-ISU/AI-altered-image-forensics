@@ -369,6 +369,32 @@
   }
   .lightbox-close:hover { color: #fff; border-color: #fff; }
 
+  /* ── Gallery action panel ── */
+  .gallery-actions-overlay {
+    position: fixed; inset: 0; z-index: 250;
+    background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gallery-actions-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem 1.5rem;
+    min-width: 280px; display: flex; flex-direction: column; gap: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  }
+  .gallery-actions-title {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    margin-bottom: 0.25rem; word-break: break-all;
+  }
+  .gallery-actions-panel .btn { text-align: left; justify-content: flex-start; }
+  .gallery-actions-cancel { color: var(--text-muted); margin-top: 0.25rem; }
+  .gallery-card { position: relative; }
+  .gallery-card-hint {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    font-size: 9px; color: var(--text-faint); text-align: center;
+    opacity: 0; transition: opacity 0.15s; pointer-events: none;
+  }
+  .gallery-card:hover .gallery-card-hint { opacity: 1; }
+
   aside::-webkit-scrollbar { width: 4px; }
   aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
