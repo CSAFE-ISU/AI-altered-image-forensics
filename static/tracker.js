@@ -1157,6 +1157,13 @@
     const model = getP2Model();
     if (!inputImage || !model || !getVal('p2_ai_filename')) return;
 
+    const aiFilename = getVal('p2_ai_filename');
+    const renamedFilename = getVal('p2_altered_filename');
+    const confirmMsg = renamedFilename
+      ? `Copy "${aiFilename}" to the study folder as "${renamedFilename}"?`
+      : `Copy "${aiFilename}" to the study folder?`;
+    if (!confirm(confirmMsg)) return;
+
     showPersistentStatus('status-copy-rename', 'Saving…', 'warning');
     try {
       if (state.pendingAiFile) {
@@ -1261,6 +1268,8 @@
         `This original image already exists in the database (study ID: ${dup.study_id}).`, 'warning');
       return;
     }
+    const studyId = getVal('p0_study_id');
+    if (!confirm(`Copy "${file.name}" to the study folder and rename it as the original for study ${studyId}?`)) return;
     showPersistentStatus('status-copy-rename-original', 'Copying…', 'warning');
     try {
       const uploadData = await uploadFile(file, '/api/upload_original');
@@ -1273,7 +1282,6 @@
       refreshP0Preview();
       populateP0ImageInfo();
 
-      const studyId = getVal('p0_study_id');
       const res = await fetch('/api/copy_rename_original', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1303,6 +1311,7 @@
       showStatus('status-p1-rename', 'Set the modification type first to generate a filename', 'warning');
       return;
     }
+    if (!confirm(`Copy "${file.name}" to the study folder as "${destFilename}"?`)) return;
     showPersistentStatus('status-p1-rename', 'Copying…', 'warning');
     try {
       const data = await uploadFile(file, '/api/upload_modified', { dest_filename: destFilename });
