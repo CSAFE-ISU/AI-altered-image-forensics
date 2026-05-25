@@ -9,6 +9,8 @@
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
     filters:           { type: '', model: '', blankOnly: '', analysis: '', search: '' },
+    dirty:             false,
+    loadingRecord:     false,
   };
 
   function lockField(id)   { const el = document.getElementById(id); if (el.tagName === 'SELECT') { el.disabled = true; } else { el.readOnly = true; } el.classList.add('auto-field'); }
@@ -287,6 +289,8 @@
   // ── New / Select record ───────────────────────────────────────────────────
 
   async function newRecord(type) {
+    if (state.dirty && !confirm('You have unsaved changes. Discard and create a new record?')) return;
+    state.dirty = false;
     const id = 'rec_' + Date.now();
     // p0 gets a new study ID immediately; p1/p2 derive theirs from the input image on save
     const study_id = type === 'p0' ? nextCsafeId() : '';
@@ -302,6 +306,8 @@
   }
 
   async function selectRecord(id) {
+    if (state.dirty && !confirm('You have unsaved changes. Switch records without saving?')) return;
+    state.dirty = false;
     state.currentId = id;
     const rec = state.records.find(r => r.id === id);
     state.currentType = rec.type;
@@ -322,9 +328,14 @@
     ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
     const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration' };
     document.getElementById('form-subtitle').textContent = labels[type] || '';
-    if (type === 'p0') await fillP0(rec);
-    if (type === 'p1') fillP1(rec);
-    if (type === 'p2') fillP2(rec);
+    state.loadingRecord = true;
+    try {
+      if (type === 'p0') await fillP0(rec);
+      if (type === 'p1') fillP1(rec);
+      if (type === 'p2') fillP2(rec);
+    } finally {
+      state.loadingRecord = false;
+    }
   }
 
   // ── Fill forms ────────────────────────────────────────────────────────────
@@ -853,6 +864,7 @@
 
     renderSidebar();
     await persistCurrentRecord();
+    state.dirty = false;
   }
 
   function deriveStudyId(filename) {
@@ -2525,8 +2537,10 @@
     if (e.key === 'Escape') { closeLightbox(); closeGallery(); closeDashboard(); }
   });
 
-  document.getElementById('form-area').addEventListener('input',  () => { if (state.currentType) highlightBlankFields(state.currentType); });
-  document.getElementById('form-area').addEventListener('change', () => { if (state.currentType) highlightBlankFields(state.currentType); });
+  document.getElementById('form-area').addEventListener('input',  () => { if (state.currentType) highlightBlankFields(state.currentType); if (!state.loadingRecord) state.dirty = true; });
+  document.getElementById('form-area').addEventListener('change', () => { if (state.currentType) highlightBlankFields(state.currentType); if (!state.loadingRecord) state.dirty = true; });
+
+  window.addEventListener('beforeunload', e => { if (state.dirty) e.preventDefault(); });
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   loadModels();
