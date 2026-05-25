@@ -91,7 +91,11 @@ def sklearn_mocks(monkeypatch):
 # ── /api/random_forest ────────────────────────────────────────────────────────
 
 class TestRandomForestRoute:
-    def test_sklearn_not_installed_returns_503(self, client):
+    def test_sklearn_not_installed_returns_503(self, monkeypatch, client):
+        monkeypatch.setitem(sys.modules, "sklearn", None)
+        monkeypatch.setitem(sys.modules, "sklearn.ensemble", None)
+        monkeypatch.setitem(sys.modules, "sklearn.model_selection", None)
+        monkeypatch.setitem(sys.modules, "sklearn.metrics", None)
         resp = client.post("/api/random_forest", json={})
         assert resp.status_code == 503
         assert "scikit-learn" in resp.get_json()["error"]
