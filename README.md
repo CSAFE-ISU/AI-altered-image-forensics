@@ -123,7 +123,7 @@ Record details about an AI altered image:
 1. Click **+ New alteration** in the sidebar.
 2. Click **Browse…** next to **Select input image** and select the *source image*, the renamed original or renamed modified image from which the new altered image was created.
 3. Fill in the model details:
-   - **Model** — select from the list of software and AI models: Grok, Gemini, Adobe Firefly, Photoshop, ChatGPT, Flux, Stable Diffusion, Other.
+   - **Model** — select from the list of software and AI models. The list is populated automatically from the `altered images/` subdirectories.
    - **Version / variant** — if you can find information about the version or setting chosen, record it (e.g. `Grok-2`, `Gemini 2.0 Flash`, `Grok: I chose Quality instead of Speed`)
 5. Click **Browse…** next to the **Filename as assigned by AI model** field and select the downloaded or saved altered image. The app copies the image into `altered images/<model>/downloaded/` automatically.
 6. The **Your assigned filename** field auto-suggests a new name for the altered image appending  `-b<###>` to the end of the source image's filename. The 3-digit number after the letter b is assigned sequentially per source image (e.g. `csafe-002-b001.png`, `csafe-002-b002.png`, `csafe-001-recomp-b001.png`).
@@ -166,6 +166,30 @@ Each record has an **Analysis results** section at the bottom. Click **Analyze**
 The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the next sequential number when you create a new alteration record.
 
 
+## Adding a new model
+
+The model dropdown in the alteration form is populated automatically from the subdirectories of `altered images/`. To add a new model:
+
+1. Create a folder for the model inside `altered images/`, using a short lowercase name (e.g. `comfyui`):
+
+   ```bash
+   mkdir -p "altered images/comfyui/downloaded"
+   mkdir -p "altered images/comfyui/renamed"
+   ```
+
+2. Commit the new folders to the repository so the model is available to all team members:
+
+   ```bash
+   git add "altered images/comfyui"
+   git commit -m "Add comfyui model folder"
+   git push
+   ```
+
+3. Restart the app (or reload the page if it is already running) — the new model will appear in the dropdown automatically.
+
+The `downloaded/` subfolder holds files as downloaded from the AI tool; the `renamed/` subfolder holds the renamed copies created by **Copy and Rename** in the tracker.
+
+
 ## Repository structure
 
 ```
@@ -182,6 +206,7 @@ The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the 
 │   └── 03-modified/                # Pre-processed versions (recompressed, cropped, etc.)
 ├── altered images/
 │   ├── chatgpt/
+│   ├── comfyui/
 │   ├── gemini/
 │   ├── grok/
 │   └── ...
