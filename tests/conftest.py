@@ -1,4 +1,3 @@
-import pathlib
 import pytest
 from PIL import Image
 
@@ -21,14 +20,22 @@ def app(tmp_base, monkeypatch):
     monkeypatch.setattr(flask_app, "_supabase", None)
     monkeypatch.setattr(flask_app, "BASE", tmp_base)
     monkeypatch.setattr(flask_app, "DATA_FILE", tmp_base / "records.json")
-    monkeypatch.setattr(flask_app, "IMAGE_ROOTS", [
-        tmp_base / "real images",
-        tmp_base / "altered images",
-        tmp_base / "analyzed images",
-    ])
-    monkeypatch.setattr(flask_app, "ORIG_SRC_DIR",  tmp_base / "real images" / "01-original")
-    monkeypatch.setattr(flask_app, "ORIG_DEST_DIR", tmp_base / "real images" / "02-original-renamed")
-    monkeypatch.setattr(flask_app, "MOD_DIR",       tmp_base / "real images" / "03-modified")
+    monkeypatch.setattr(
+        flask_app,
+        "IMAGE_ROOTS",
+        [
+            tmp_base / "real images",
+            tmp_base / "altered images",
+            tmp_base / "analyzed images",
+        ],
+    )
+    monkeypatch.setattr(
+        flask_app, "ORIG_SRC_DIR", tmp_base / "real images" / "01-original"
+    )
+    monkeypatch.setattr(
+        flask_app, "ORIG_DEST_DIR", tmp_base / "real images" / "02-original-renamed"
+    )
+    monkeypatch.setattr(flask_app, "MOD_DIR", tmp_base / "real images" / "03-modified")
     flask_app.app.config["TESTING"] = True
     return flask_app.app
 

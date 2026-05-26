@@ -1,19 +1,23 @@
-"""Unit tests for pure helper functions: _format_filesize, _analyze_exif, _extract_c2pa_details,
-_extract_c2pa_details_from_c2patool, _detect_c2pa_from_tags, _detect_indicators,
-_extract_indicator_vals."""
+"""Unit tests for pure helper functions:
+_format_filesize, _analyze_exif, _extract_c2pa_details,
+_extract_c2pa_details_from_c2patool, _detect_c2pa_from_tags,
+_detect_indicators, _extract_indicator_vals."""
+
 import json
 import pathlib
 import subprocess
-import pytest
 from app import _format_filesize
 from analysis import (
-    _analyze_exif, _extract_c2pa_details, _extract_c2pa_details_from_c2patool,
-    _detect_c2pa_from_tags, _detect_indicators,
+    _analyze_exif,
+    _extract_c2pa_details,
+    _extract_c2pa_details_from_c2patool,
+    _detect_c2pa_from_tags,
+    _detect_indicators,
 )
 from classifier import _extract_indicator_vals
 
-
 # ── _format_filesize ──────────────────────────────────────────────────────────
+
 
 class TestFormatFilesize:
     def test_zero(self):
@@ -126,7 +130,9 @@ JUMBF_TAGS = {
     "CBOR:ActionsSoftwareAgentName": "Adobe Photoshop",
     "CBOR:Claim_Generator_InfoOrgContentauthC2Pa_Rs": "1.3",
     "CBOR:ActionsAction": "c2pa.edited",
-    "CBOR:ActionsDigitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia/",
+    "CBOR:ActionsDigitalSourceType": (
+        "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia/"
+    ),
     "CBOR:ValidationResultsActiveManifestFailureCode": None,
     "CBOR:ValidationResultsActiveManifestFailureExplanation": None,
 }
@@ -172,8 +178,12 @@ class TestExtractC2paDetails:
 
     def test_validation_failures_present(self):
         tags = dict(JUMBF_TAGS)
-        tags["CBOR:ValidationResultsActiveManifestFailureCode"] = ["assertion.dataHash.mismatch"]
-        tags["CBOR:ValidationResultsActiveManifestFailureExplanation"] = ["Hash mismatch"]
+        tags["CBOR:ValidationResultsActiveManifestFailureCode"] = [
+            "assertion.dataHash.mismatch"
+        ]
+        tags["CBOR:ValidationResultsActiveManifestFailureExplanation"] = [
+            "Hash mismatch"
+        ]
         result = _extract_c2pa_details(tags)
         assert result["validation_failures"] == ["assertion.dataHash.mismatch"]
         assert result["validation_failure_explanations"] == ["Hash mismatch"]
@@ -184,7 +194,9 @@ class TestExtractC2paDetails:
 
     def test_validation_failures_as_strings_coerced_to_list(self):
         tags = dict(JUMBF_TAGS)
-        tags["CBOR:ValidationResultsActiveManifestFailureCode"] = "assertion.dataHash.mismatch"
+        tags["CBOR:ValidationResultsActiveManifestFailureCode"] = (
+            "assertion.dataHash.mismatch"
+        )
         tags["CBOR:ValidationResultsActiveManifestFailureExplanation"] = "Hash mismatch"
         result = _extract_c2pa_details(tags)
         assert result["validation_failures"] == ["assertion.dataHash.mismatch"]
@@ -197,7 +209,10 @@ class TestExtractC2paDetails:
         assert result["manifest_id"] == "urn:c2pa:abcdef-1234"
 
     def test_no_jumbf_with_path_calls_c2patool(self, mocker, tmp_path):
-        mock = mocker.patch("analysis._extract_c2pa_details_from_c2patool", return_value={"signed_by": "Adobe"})
+        mock = mocker.patch(
+            "analysis._extract_c2pa_details_from_c2patool",
+            return_value={"signed_by": "Adobe"},
+        )
         result = _extract_c2pa_details({}, path=tmp_path / "img.jpg")
         mock.assert_called_once_with(tmp_path / "img.jpg")
         assert result == {"signed_by": "Adobe"}
@@ -211,7 +226,9 @@ CBOR_TAGS = {
     "CBOR:ActionsSoftwareAgent": "Flux.2",
     "CBOR:Claim_Generator_InfoOrgContentauthC2Pa_Rs": "0.67.0",
     "CBOR:ActionsAction": "c2pa.created",
-    "CBOR:ActionsDigitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+    "CBOR:ActionsDigitalSourceType": (
+        "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+    ),
     "CBOR:InstanceID": "xmp:iid:4a11d9bc-2ea9-47d8-a64a-a04f83610fad",
 }
 
@@ -265,12 +282,24 @@ class TestDetectC2paFromTags:
         assert result["digital_source_type"] == "trainedAlgorithmicMedia"
 
     def test_digital_source_type_trailing_slash_stripped(self):
-        tags = {**CBOR_TAGS, "CBOR:ActionsDigitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture/"}
+        tags = {
+            **CBOR_TAGS,
+            "CBOR:ActionsDigitalSourceType": (
+                "http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture/"
+            ),
+        }
         result = _detect_c2pa_from_tags(tags)
         assert result["digital_source_type"] == "digitalCapture"
 
     def test_digital_source_type_as_list_uses_first(self):
-        tags = {**CBOR_TAGS, "CBOR:ActionsDigitalSourceType": ["http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia", "http://example.com/other"]}
+        tags = {
+            **CBOR_TAGS,
+            "CBOR:ActionsDigitalSourceType": [
+                "http://cv.iptc.org/newscodes/digitalsourcetype/"
+                "trainedAlgorithmicMedia",
+                "http://example.com/other",
+            ],
+        }
         result = _detect_c2pa_from_tags(tags)
         assert result["digital_source_type"] == "trainedAlgorithmicMedia"
 
@@ -283,23 +312,37 @@ class TestDetectC2paFromTags:
         assert "validation_failures" not in result
 
     def test_validation_failures_as_string_wrapped_in_list(self):
-        tags = {**CBOR_TAGS, "CBOR:ValidationResultsActiveManifestFailureCode": "signingCredential.untrusted"}
+        tags = {
+            **CBOR_TAGS,
+            "CBOR:ValidationResultsActiveManifestFailureCode": (
+                "signingCredential.untrusted"
+            ),
+        }
         result = _detect_c2pa_from_tags(tags)
         assert result["validation_failures"] == ["signingCredential.untrusted"]
 
     def test_validation_failures_as_list_preserved(self):
-        tags = {**CBOR_TAGS, "CBOR:ValidationResultsActiveManifestFailureCode": ["err.a", "err.b"]}
+        tags = {
+            **CBOR_TAGS,
+            "CBOR:ValidationResultsActiveManifestFailureCode": ["err.a", "err.b"],
+        }
         result = _detect_c2pa_from_tags(tags)
         assert result["validation_failures"] == ["err.a", "err.b"]
 
     def test_validation_failure_explanations_included(self):
         tags = {
             **CBOR_TAGS,
-            "CBOR:ValidationResultsActiveManifestFailureCode": "signingCredential.untrusted",
-            "CBOR:ValidationResultsActiveManifestFailureExplanation": "signing certificate untrusted",
+            "CBOR:ValidationResultsActiveManifestFailureCode": (
+                "signingCredential.untrusted"
+            ),
+            "CBOR:ValidationResultsActiveManifestFailureExplanation": (
+                "signing certificate untrusted"
+            ),
         }
         result = _detect_c2pa_from_tags(tags)
-        assert result["validation_failure_explanations"] == ["signing certificate untrusted"]
+        assert result["validation_failure_explanations"] == [
+            "signing certificate untrusted"
+        ]
 
     def test_missing_optional_fields_absent_from_result(self):
         result = _detect_c2pa_from_tags({"JUMBF:JUMDLabel": "c2pa"})
@@ -360,7 +403,11 @@ class TestDetectIndicators:
         assert len(result["camera_exif"]["absent"]) == 13
 
     def test_photoshop_tags_detected(self):
-        tags = {**CAMERA_TAGS, "Photoshop:ColorMode": "3", "Photoshop:IPTCDigest": "abc"}
+        tags = {
+            **CAMERA_TAGS,
+            "Photoshop:ColorMode": "3",
+            "Photoshop:IPTCDigest": "abc",
+        }
         result = _detect_indicators(tags)
         assert "Photoshop/Adobe markers detected" in result["summary"]
         assert result["photoshop_adobe"] is not None
@@ -413,7 +460,11 @@ class TestDetectIndicators:
         assert result["grok_signatures"] is None
 
     def test_c2pa_tags_detected(self):
-        tags = {**CAMERA_TAGS, "JUMBF:JUMDLabel": "c2pa", "CBOR:Claim_Generator_InfoName": "Adobe"}
+        tags = {
+            **CAMERA_TAGS,
+            "JUMBF:JUMDLabel": "c2pa",
+            "CBOR:Claim_Generator_InfoName": "Adobe",
+        }
         result = _detect_indicators(tags)
         assert "C2PA manifest detected" in result["summary"]
         assert result["c2pa"] is not None
@@ -447,7 +498,10 @@ _C2PATOOL_DATA = {
             "claim_generator_info": [{"name": "TestGenerator"}],
             "signature_info": {"issuer": "TestIssuer"},
             "assertions": [
-                {"label": "c2pa.actions", "data": {"actions": [{"action": "c2pa.edited"}]}}
+                {
+                    "label": "c2pa.actions",
+                    "data": {"actions": [{"action": "c2pa.edited"}]},
+                }
             ],
         }
     },
@@ -459,14 +513,21 @@ class TestExtractC2paDetailsFromC2patool:
         if stdout is None:
             stdout = json.dumps(data) if data is not None else ""
         from unittest.mock import MagicMock
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(returncode=returncode, stdout=stdout))
+
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=returncode, stdout=stdout),
+        )
 
     def test_tool_not_found_returns_none(self, mocker):
         mocker.patch("analysis.subprocess.run", side_effect=FileNotFoundError)
         assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
 
     def test_timeout_returns_none(self, mocker):
-        mocker.patch("analysis.subprocess.run", side_effect=subprocess.TimeoutExpired("c2patool", 15))
+        mocker.patch(
+            "analysis.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("c2patool", 15),
+        )
         assert _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg")) is None
 
     def test_nonzero_returncode_returns_none(self, mocker):
@@ -497,7 +558,13 @@ class TestExtractC2paDetailsFromC2patool:
     def test_no_claim_generator_info_falls_back_to_field(self, mocker):
         data = {
             "active_manifest": "m1",
-            "manifests": {"m1": {"claim_generator": "Fallback", "signature_info": {}, "assertions": []}},
+            "manifests": {
+                "m1": {
+                    "claim_generator": "Fallback",
+                    "signature_info": {},
+                    "assertions": [],
+                }
+            },
         }
         self._mock_run(mocker, data=data)
         result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
@@ -505,7 +572,13 @@ class TestExtractC2paDetailsFromC2patool:
 
     def test_no_active_manifest_key_falls_back_to_first_manifest(self, mocker):
         data = {
-            "manifests": {"m1": {"claim_generator_info": [{"name": "First"}], "signature_info": {}, "assertions": []}},
+            "manifests": {
+                "m1": {
+                    "claim_generator_info": [{"name": "First"}],
+                    "signature_info": {},
+                    "assertions": [],
+                }
+            },
         }
         self._mock_run(mocker, data=data)
         result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
@@ -514,7 +587,13 @@ class TestExtractC2paDetailsFromC2patool:
     def test_no_assertions_gives_none_actions(self, mocker):
         data = {
             "active_manifest": "m1",
-            "manifests": {"m1": {"claim_generator_info": [], "signature_info": {}, "assertions": []}},
+            "manifests": {
+                "m1": {
+                    "claim_generator_info": [],
+                    "signature_info": {},
+                    "assertions": [],
+                }
+            },
         }
         self._mock_run(mocker, data=data)
         result = _extract_c2pa_details_from_c2patool(pathlib.Path("img.jpg"))
@@ -529,6 +608,7 @@ class TestExtractC2paDetailsFromC2patool:
 
 # ── _extract_indicator_vals ───────────────────────────────────────────────────
 
+
 class TestExtractIndicatorVals:
     def test_no_indicators_key_returns_none(self):
         assert _extract_indicator_vals({}) is None
@@ -537,41 +617,51 @@ class TestExtractIndicatorVals:
         assert _extract_indicator_vals({"indicators": None}) is None
 
     def test_all_present_returns_correct_values(self):
-        rec = {"indicators": {
-            "camera_exif":    {"present": {"Make": "Canon", "Model": "EOS"}},
-            "photoshop_adobe": True,
-            "icc_meas_view":   True,
-            "grok_signatures": True,
-            "c2pa":            True,
-        }}
+        rec = {
+            "indicators": {
+                "camera_exif": {"present": {"Make": "Canon", "Model": "EOS"}},
+                "photoshop_adobe": True,
+                "icc_meas_view": True,
+                "grok_signatures": True,
+                "c2pa": True,
+            }
+        }
         assert _extract_indicator_vals(rec) == [1, 2, 1, 1, 1, 1]
 
     def test_all_absent_returns_zeros(self):
-        rec = {"indicators": {
-            "camera_exif":    {"present": {}},
-            "photoshop_adobe": False,
-            "icc_meas_view":   False,
-            "grok_signatures": False,
-            "c2pa":            False,
-        }}
+        rec = {
+            "indicators": {
+                "camera_exif": {"present": {}},
+                "photoshop_adobe": False,
+                "icc_meas_view": False,
+                "grok_signatures": False,
+                "c2pa": False,
+            }
+        }
         assert _extract_indicator_vals(rec) == [0, 0, 0, 0, 0, 0]
 
     def test_partial_indicators(self):
-        rec = {"indicators": {
-            "camera_exif":    {"present": {"Make": "Sony"}},
-            "photoshop_adobe": False,
-            "icc_meas_view":   True,
-            "grok_signatures": False,
-            "c2pa":            False,
-        }}
+        rec = {
+            "indicators": {
+                "camera_exif": {"present": {"Make": "Sony"}},
+                "photoshop_adobe": False,
+                "icc_meas_view": True,
+                "grok_signatures": False,
+                "c2pa": False,
+            }
+        }
         assert _extract_indicator_vals(rec) == [1, 1, 0, 1, 0, 0]
 
     def test_camera_exif_field_count(self):
-        rec = {"indicators": {
-            "camera_exif": {"present": {"Make": "A", "Model": "B", "ISO": "100"}},
-            "photoshop_adobe": False, "icc_meas_view": False,
-            "grok_signatures": False, "c2pa": False,
-        }}
+        rec = {
+            "indicators": {
+                "camera_exif": {"present": {"Make": "A", "Model": "B", "ISO": "100"}},
+                "photoshop_adobe": False,
+                "icc_meas_view": False,
+                "grok_signatures": False,
+                "c2pa": False,
+            }
+        }
         vals = _extract_indicator_vals(rec)
-        assert vals[0] == 1   # has_camera_exif
-        assert vals[1] == 3   # n_camera_exif_fields
+        assert vals[0] == 1  # has_camera_exif
+        assert vals[1] == 3  # n_camera_exif_fields

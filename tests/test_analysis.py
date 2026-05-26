@@ -1,9 +1,7 @@
 """Unit tests for forensic analysis helpers."""
+
 import json
-import pathlib
 from unittest.mock import MagicMock
-import pytest
-import app as flask_app
 import analysis
 from analysis import (
     _run_exiftool,
@@ -14,8 +12,8 @@ from analysis import (
     _run_analysis_pipeline,
 )
 
-
 # ── _run_exiftool ─────────────────────────────────────────────────────────────
+
 
 class TestRunExiftool:
     def test_not_installed_returns_empty(self, mocker, sample_jpeg):
@@ -23,30 +21,40 @@ class TestRunExiftool:
         assert _run_exiftool(sample_jpeg) == {}
 
     def test_nonzero_returncode_returns_empty(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(returncode=1, stdout="", stderr="error"))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=1, stdout="", stderr="error"),
+        )
         assert _run_exiftool(sample_jpeg) == {}
 
     def test_valid_json_returned(self, mocker, sample_jpeg):
         payload = [{"SourceFile": str(sample_jpeg), "EXIF:Make": "Canon"}]
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0, stdout=json.dumps(payload), stderr=""
-        ))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=0, stdout=json.dumps(payload), stderr=""),
+        )
         result = _run_exiftool(sample_jpeg)
         assert result["EXIF:Make"] == "Canon"
 
     def test_empty_json_array_returns_empty(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0, stdout="[]", stderr=""
-        ))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=0, stdout="[]", stderr=""),
+        )
         assert _run_exiftool(sample_jpeg) == {}
 
     def test_timeout_returns_empty(self, mocker, sample_jpeg):
         import subprocess
-        mocker.patch("analysis.subprocess.run", side_effect=subprocess.TimeoutExpired("exiftool", 15))
+
+        mocker.patch(
+            "analysis.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("exiftool", 15),
+        )
         assert _run_exiftool(sample_jpeg) == {}
 
 
 # ── _check_c2pa ───────────────────────────────────────────────────────────────
+
 
 class TestCheckC2pa:
     def test_no_tools_no_tags_returns_no(self, mocker, sample_jpeg):
@@ -54,11 +62,14 @@ class TestCheckC2pa:
         assert _check_c2pa(sample_jpeg, {}) == "No"
 
     def test_c2patool_ingredient_returns_yes(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0,
-            stdout='{"ingredient": true, "claim_generator": "Adobe Firefly"}',
-            stderr=""
-        ))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(
+                returncode=0,
+                stdout='{"ingredient": true, "claim_generator": "Adobe Firefly"}',
+                stderr="",
+            ),
+        )
         result = _check_c2pa(sample_jpeg, {})
         assert result == "Yes — with provenance data"
 
@@ -68,27 +79,40 @@ class TestCheckC2pa:
         assert _check_c2pa(sample_jpeg, tags) == "Yes — with provenance data"
 
     def test_c2patool_no_claim_returns_no(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0, stdout="no claim found", stderr=""
-        ))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=0, stdout="no claim found", stderr=""),
+        )
         assert _check_c2pa(sample_jpeg, {}) == "No"
 
     def test_c2patool_empty_output_no_tags_returns_no(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0, stdout="", stderr=""
-        ))
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(returncode=0, stdout="", stderr=""),
+        )
         assert _check_c2pa(sample_jpeg, {}) == "No"
 
-    def test_c2patool_unrecognised_output_returns_empty_stripped(self, mocker, sample_jpeg):
-        mocker.patch("analysis.subprocess.run", return_value=MagicMock(
-            returncode=0, stdout="manifest present but no recognised keys", stderr=""
-        ))
+    def test_c2patool_unrecognised_output_returns_empty_stripped(
+        self, mocker, sample_jpeg
+    ):
+        mocker.patch(
+            "analysis.subprocess.run",
+            return_value=MagicMock(
+                returncode=0,
+                stdout="manifest present but no recognised keys",
+                stderr="",
+            ),
+        )
         result = _check_c2pa(sample_jpeg, {})
         assert result == "Yes — but empty / stripped"
 
     def test_c2patool_timeout_falls_through_to_no(self, mocker, sample_jpeg):
         import subprocess
-        mocker.patch("analysis.subprocess.run", side_effect=subprocess.TimeoutExpired("c2patool", 15))
+
+        mocker.patch(
+            "analysis.subprocess.run",
+            side_effect=subprocess.TimeoutExpired("c2patool", 15),
+        )
         assert _check_c2pa(sample_jpeg, {}) == "No"
 
     def test_xmp_c2pa_fallback_returns_yes(self, mocker, sample_jpeg):
@@ -107,6 +131,7 @@ class TestCheckC2pa:
 
 
 # ── _run_ela ──────────────────────────────────────────────────────────────────
+
 
 class TestRunEla:
     def test_jpeg_returns_tuple(self, sample_jpeg):
@@ -127,7 +152,9 @@ class TestRunEla:
         assert isinstance(b64, str)
 
     def test_nonexistent_file_returns_safe_default(self, tmp_path):
-        flagged, max_diff, mean_diff, std_diff, ela_source, b64 = _run_ela(tmp_path / "missing.jpg")
+        flagged, max_diff, mean_diff, std_diff, ela_source, b64 = _run_ela(
+            tmp_path / "missing.jpg"
+        )
         assert flagged is False
         assert max_diff == 0
         assert mean_diff == 0.0
@@ -137,9 +164,12 @@ class TestRunEla:
 
 # ── _check_noise_inconsistency ────────────────────────────────────────────────
 
+
 class TestCheckNoiseInconsistency:
     def test_jpeg_returns_tuple(self, sample_jpeg):
-        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(sample_jpeg)
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(
+            sample_jpeg
+        )
         assert isinstance(flagged, bool)
         assert isinstance(noise_std, float)
         assert isinstance(noise_skew, float)
@@ -147,14 +177,18 @@ class TestCheckNoiseInconsistency:
         assert isinstance(note, str)
 
     def test_png_returns_tuple(self, sample_png):
-        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(sample_png)
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(
+            sample_png
+        )
         assert isinstance(flagged, bool)
         assert isinstance(noise_std, float)
         assert isinstance(noise_skew, float)
         assert isinstance(noise_kurt, float)
 
     def test_nonexistent_file_returns_safe_default(self, tmp_path):
-        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(tmp_path / "missing.jpg")
+        flagged, noise_std, noise_skew, noise_kurt, note = _check_noise_inconsistency(
+            tmp_path / "missing.jpg"
+        )
         assert flagged is False
         assert noise_std == 0.0
         assert noise_skew == 0.0
@@ -162,8 +196,8 @@ class TestCheckNoiseInconsistency:
         assert note == ""
 
     def test_flagged_note_is_not_empty(self, tmp_path):
-        from PIL import Image, ImageFilter
-        import numpy as np
+        from PIL import Image
+
         # Create a larger image where noise std is more likely to exceed threshold
         img = Image.new("RGB", (256, 256))
         pixels = img.load()
@@ -180,6 +214,7 @@ class TestCheckNoiseInconsistency:
 
 
 # ── _check_compression_blocking ───────────────────────────────────────────────
+
 
 class TestCheckCompressionBlocking:
     def test_jpeg_returns_tuple(self, sample_jpeg):
@@ -199,6 +234,7 @@ class TestCheckCompressionBlocking:
 
     def test_larger_jpeg_exercises_block_loop(self, tmp_path):
         from PIL import Image
+
         img = Image.new("RGB", (64, 64), color=(128, 128, 128))
         p = tmp_path / "large.jpg"
         img.save(p, format="JPEG", quality=50)
@@ -209,6 +245,7 @@ class TestCheckCompressionBlocking:
     def test_gradient_jpeg_reaches_ratio_calculation(self, tmp_path):
         import numpy as np
         from PIL import Image
+
         arr = np.tile(np.arange(64, dtype=np.uint8), (64, 1))
         img = Image.fromarray(np.stack([arr, arr, arr], axis=2))
         p = tmp_path / "gradient.jpg"
@@ -219,13 +256,21 @@ class TestCheckCompressionBlocking:
 
 # ── _run_analysis_pipeline ────────────────────────────────────────────────────
 
+
 class TestRunAnalysisPipeline:
     def test_returns_required_keys(self, mocker, sample_jpeg):
         mocker.patch.object(analysis, "_run_exiftool", return_value={})
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
-        for key in ("exif_anomalies", "c2pa_status", "c2pa_details", "artifacts", "artifact_notes", "ela_image_b64"):
+        for key in (
+            "exif_anomalies",
+            "c2pa_status",
+            "c2pa_details",
+            "artifacts",
+            "artifact_notes",
+            "ela_image_b64",
+        ):
             assert key in result
 
     def test_ela_b64_is_nonempty_string(self, mocker, sample_jpeg):
@@ -240,9 +285,17 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(analysis, "_run_exiftool", return_value={})
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(analysis, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc"))
-        mocker.patch.object(analysis, "_check_noise_inconsistency", return_value=(True, 2.5, 0.0, 0.0, "Noise note"))
-        mocker.patch.object(analysis, "_check_compression_blocking", return_value=(False, ""))
+        mocker.patch.object(
+            analysis, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc")
+        )
+        mocker.patch.object(
+            analysis,
+            "_check_noise_inconsistency",
+            return_value=(True, 2.5, 0.0, 0.0, "Noise note"),
+        )
+        mocker.patch.object(
+            analysis, "_check_compression_blocking", return_value=(False, "")
+        )
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Noise inconsistency" in result["artifacts"]
         assert "Noise note" in result["artifact_notes"]
@@ -251,9 +304,19 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(analysis, "_run_exiftool", return_value={})
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(analysis, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc"))
-        mocker.patch.object(analysis, "_check_noise_inconsistency", return_value=(False, 0.0, 0.0, 0.0, ""))
-        mocker.patch.object(analysis, "_check_compression_blocking", return_value=(True, "Blocking note"))
+        mocker.patch.object(
+            analysis, "_run_ela", return_value=(False, 0, 0.0, 0.0, "jpeg", "abc")
+        )
+        mocker.patch.object(
+            analysis,
+            "_check_noise_inconsistency",
+            return_value=(False, 0.0, 0.0, 0.0, ""),
+        )
+        mocker.patch.object(
+            analysis,
+            "_check_compression_blocking",
+            return_value=(True, "Blocking note"),
+        )
         result = _run_analysis_pipeline(sample_jpeg)
         assert "Compression blocking" in result["artifacts"]
         assert "Blocking note" in result["artifact_notes"]
@@ -263,23 +326,34 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
-        # Empty dict is falsy — pipeline uses the "exiftool not available" fallback message
+        # Empty dict is falsy — pipeline uses the "exiftool not available"
+        # fallback message
         assert result["exif_anomalies"] == "(exiftool not available)"
 
     def test_artifacts_list_when_ela_flagged(self, mocker, sample_jpeg):
         mocker.patch.object(analysis, "_run_exiftool", return_value={})
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
-        mocker.patch.object(analysis, "_run_ela", return_value=(True, 20, 5.0, 2.0, "jpeg", "abc"))
-        mocker.patch.object(analysis, "_check_noise_inconsistency", return_value=(False, 0.0, 0.0, 0.0, ""))
-        mocker.patch.object(analysis, "_check_compression_blocking", return_value=(False, ""))
+        mocker.patch.object(
+            analysis, "_run_ela", return_value=(True, 20, 5.0, 2.0, "jpeg", "abc")
+        )
+        mocker.patch.object(
+            analysis,
+            "_check_noise_inconsistency",
+            return_value=(False, 0.0, 0.0, 0.0, ""),
+        )
+        mocker.patch.object(
+            analysis, "_check_compression_blocking", return_value=(False, "")
+        )
         result = _run_analysis_pipeline(sample_jpeg)
         assert "ELA anomaly" in result["artifacts"]
         assert "ELA" in result["artifact_notes"]
 
     def test_c2pa_status_passed_through(self, mocker, sample_jpeg):
         mocker.patch.object(analysis, "_run_exiftool", return_value={})
-        mocker.patch.object(analysis, "_check_c2pa", return_value="Yes — with provenance data")
+        mocker.patch.object(
+            analysis, "_check_c2pa", return_value="Yes — with provenance data"
+        )
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
         assert result["c2pa_status"] == "Yes — with provenance data"
@@ -289,7 +363,13 @@ class TestRunAnalysisPipeline:
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
         result = _run_analysis_pipeline(sample_jpeg)
-        for key in ("ela_mean_diff", "ela_std_diff", "ela_source", "noise_skewness", "noise_kurtosis"):
+        for key in (
+            "ela_mean_diff",
+            "ela_std_diff",
+            "ela_source",
+            "noise_skewness",
+            "noise_kurtosis",
+        ):
             assert key in result
 
     def test_ela_source_is_string(self, mocker, sample_jpeg):
@@ -300,7 +380,9 @@ class TestRunAnalysisPipeline:
         assert result["ela_source"] in ("jpeg", "png", "unknown")
 
     def test_exiftool_tags_written_to_metadata_dir(self, mocker, sample_jpeg, tmp_path):
-        mocker.patch.object(analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"})
+        mocker.patch.object(
+            analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"}
+        )
         mocker.patch.object(analysis, "_check_c2pa", return_value="No")
         mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
         mocker.patch.object(analysis, "_detect_indicators", return_value=None)
@@ -311,10 +393,20 @@ class TestRunAnalysisPipeline:
         assert json.loads(meta_file.read_text())["EXIF:Make"] == "Canon"
 
     def test_c2pa_status_merged_into_indicators(self, mocker, sample_jpeg, tmp_path):
-        mocker.patch.object(analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"})
-        mocker.patch.object(analysis, "_detect_indicators", return_value={"summary": "Camera EXIF present", "c2pa": None})
+        mocker.patch.object(
+            analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"}
+        )
+        mocker.patch.object(
+            analysis,
+            "_detect_indicators",
+            return_value={"summary": "Camera EXIF present", "c2pa": None},
+        )
         mocker.patch.object(analysis, "_check_c2pa", return_value="Yes")
-        mocker.patch.object(analysis, "_extract_c2pa_details", return_value={"signed_by": "Adobe", "issued": None})
+        mocker.patch.object(
+            analysis,
+            "_extract_c2pa_details",
+            return_value={"signed_by": "Adobe", "issued": None},
+        )
         mocker.patch.object(analysis, "METADATA_DIR", tmp_path)
         result = _run_analysis_pipeline(sample_jpeg)
         c2pa_ind = result["indicators"]["c2pa"]
@@ -322,4 +414,3 @@ class TestRunAnalysisPipeline:
         assert c2pa_ind["signed_by"] == "Adobe"
         assert "issued" not in c2pa_ind  # None values are excluded
         assert "C2PA: Yes" in result["indicators"]["summary"]
-

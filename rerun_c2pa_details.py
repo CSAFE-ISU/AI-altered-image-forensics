@@ -25,8 +25,14 @@ from app import find_image, _run_exiftool, _extract_c2pa_details  # noqa: E402
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backfill c2pa_details for records missing them.")
-    parser.add_argument("--dry-run", action="store_true", help="Print what would be updated without writing.")
+    parser = argparse.ArgumentParser(
+        description="Backfill c2pa_details for records missing them."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be updated without writing.",
+    )
     args = parser.parse_args()
 
     url = os.environ.get("SUPABASE_URL", "")
@@ -35,6 +41,7 @@ def main():
         sys.exit("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
 
     from supabase import create_client
+
     sb = create_client(url, key)
 
     print("Fetching records from Supabase…")
@@ -79,11 +86,17 @@ def main():
         tags = _run_exiftool(path)
         details = _extract_c2pa_details(tags, path)
         if details is None:
-            print(f"  [SKIP] {filename} — could not extract C2PA details (no JUMBF tags, c2patool unavailable)")
+            print(
+                f"  [SKIP] {filename} — could not extract C2PA details"
+                f" (no JUMBF tags, c2patool unavailable)"
+            )
             skipped += 1
             continue
 
-        print(f"  [UPDATE] {filename} — claim_generator={details.get('claim_generator')!r}")
+        print(
+            f"  [UPDATE] {filename} —"
+            f" claim_generator={details.get('claim_generator')!r}"
+        )
 
         if not args.dry_run:
             updated_rec = dict(rec)

@@ -37,9 +37,17 @@ def get_filename(rec):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Save exiftool metadata for all images in the database.")
-    parser.add_argument("--dry-run",   action="store_true", help="Print what would be saved without writing.")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing metadata files.")
+    parser = argparse.ArgumentParser(
+        description="Save exiftool metadata for all images in the database."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be saved without writing.",
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing metadata files."
+    )
     args = parser.parse_args()
 
     url = os.environ.get("SUPABASE_URL", "")
@@ -48,6 +56,7 @@ def main():
         sys.exit("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
 
     from supabase import create_client
+
     sb = create_client(url, key)
 
     print("Fetching records from Supabase…")

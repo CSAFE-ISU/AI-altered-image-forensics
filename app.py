@@ -32,7 +32,10 @@ from flask import Flask, abort, jsonify, request, send_file
 
 from analysis import _run_analysis_pipeline
 from classifier import (
-    _RF_FEATURES, _RF_FEATURE_LABELS, _INDICATOR_FEATURES, _extract_indicator_vals,
+    _RF_FEATURES,
+    _RF_FEATURE_LABELS,
+    _INDICATOR_FEATURES,
+    _extract_indicator_vals,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +51,7 @@ _SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 _SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 if _SUPABASE_URL and _SUPABASE_KEY:
     from supabase import create_client
+
     _supabase = create_client(_SUPABASE_URL, _SUPABASE_KEY)
 
 # All directories that may contain images.
@@ -59,13 +63,19 @@ IMAGE_ROOTS = [
 
 app = Flask(__name__, static_folder=str(BASE / "static"))
 
+
 @app.errorhandler(404)
-def not_found(e):    return jsonify(error=str(e)), 404
+def not_found(e):
+    return jsonify(error=str(e)), 404
+
+
 @app.errorhandler(500)
-def server_error(e): return jsonify(error="Internal server error"), 500
+def server_error(e):
+    return jsonify(error="Internal server error"), 500
 
 
 # ── Image search ──────────────────────────────────────────────────────────────
+
 
 def find_image(filename: str) -> pathlib.Path | None:
     """Return the first file matching `filename` found under any IMAGE_ROOT.
@@ -88,6 +98,7 @@ def find_image(filename: str) -> pathlib.Path | None:
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @app.route("/")
 def index():
     """Serve the single-page tracker UI."""
@@ -105,14 +116,15 @@ def get_records():
             result = _supabase.table("records").select("data").execute()
             records = [row["data"] for row in result.data]
             for r in records:
-                r.pop("ela_image_b64", None)  # strip legacy records that were stored before write-time stripping
+                r.pop(
+                    "ela_image_b64", None
+                )  # strip legacy records that were stored before write-time stripping
             return jsonify(records)
         except Exception as e:
             return jsonify({"error": str(e)}), 503
     if DATA_FILE.exists():
         return jsonify(json.loads(DATA_FILE.read_text(encoding="utf-8")))
     return jsonify([])
-
 
 
 @app.route("/api/records/<record_id>", methods=["POST"])
@@ -124,7 +136,9 @@ def set_record(record_id: str):
     if _supabase:
         try:
             storable = {k: v for k, v in rec.items() if k != "ela_image_b64"}
-            _supabase.table("records").upsert({"id": record_id, "data": storable}).execute()
+            _supabase.table("records").upsert(
+                {"id": record_id, "data": storable}
+            ).execute()
         except Exception as e:
             return jsonify({"error": str(e)}), 503
         return jsonify({"ok": True, "id": record_id})
@@ -134,7 +148,9 @@ def set_record(record_id: str):
     else:
         data = []
     data.append(rec)
-    DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    DATA_FILE.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     return jsonify({"ok": True, "id": record_id})
 
 
@@ -147,7 +163,9 @@ def delete_record(record_id: str):
         if DATA_FILE.exists():
             data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
             data = [r for r in data if r.get("id") != record_id]
-            DATA_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+            DATA_FILE.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+            )
     return jsonify({"ok": True, "id": record_id})
 
 
@@ -162,8 +180,10 @@ def serve_image(filename: str):
 
 # ── Model / file discovery ────────────────────────────────────────────────────
 
+
 def find_model_folder(model: str) -> pathlib.Path | None:
-    """Return the subfolder of 'altered images/' whose name matches model (case-insensitive)."""
+    """Return the subfolder of 'altered images/' whose name matches model
+    (case-insensitive)."""
     altered_root = BASE / "altered images"
     if not altered_root.exists():
         return None
@@ -181,7 +201,8 @@ def get_models():
     if not altered_root.exists():
         return jsonify([])
     models = sorted(
-        d.name for d in altered_root.iterdir()
+        d.name
+        for d in altered_root.iterdir()
         if d.is_dir() and not d.name.startswith(".")
     )
     return jsonify(models)
@@ -216,7 +237,8 @@ def original_image_info():
 
 @app.route("/api/image_info")
 def image_info():
-    """Return pixel format and dimensions for a file in 'altered images/<model>/downloaded/'."""
+    """Return pixel format and dimensions for a file in
+    'altered images/<model>/downloaded/'."""
     model = request.args.get("model", "").strip()
     filename = request.args.get("filename", "").strip()
     if not model or not filename:
@@ -237,25 +259,28 @@ def image_info():
         return jsonify({"error": str(e)}), 500
 
 
-
 @app.route("/api/input_images")
 def get_input_images():
     """Return original-renamed and modified images grouped by type."""
     orig_dir = BASE / "real images" / "02-original-renamed"
-    mod_dir  = BASE / "real images" / "03-modified"
+    mod_dir = BASE / "real images" / "03-modified"
 
     def list_files(d):
         if not d.is_dir():
             return []
-        return sorted(f.name for f in d.iterdir() if f.is_file() and not f.name.startswith("."))
+        return sorted(
+            f.name for f in d.iterdir() if f.is_file() and not f.name.startswith(".")
+        )
 
     return jsonify({"original": list_files(orig_dir), "modified": list_files(mod_dir)})
 
 
-
 # ── Rename helpers ────────────────────────────────────────────────────────────
 
-def _compute_renamed(input_image: str, ai_filename: str, model: str) -> tuple[str, bool]:
+
+def _compute_renamed(
+    input_image: str, ai_filename: str, model: str
+) -> tuple[str, bool]:
     """Return (dest_filename, already_exists).
 
     dest_filename follows the pattern  <input_stem>-b<NNN>.<ai_ext>  where NNN
@@ -266,9 +291,7 @@ def _compute_renamed(input_image: str, ai_filename: str, model: str) -> tuple[st
     ai_ext = ("." + ai_filename.rsplit(".", 1)[1]) if "." in ai_filename else ""
 
     # Find the highest existing sequence number for this stem (any extension).
-    pattern = re.compile(
-        r"^" + re.escape(stem) + r"-b(\d+)\.[^.]+$", re.IGNORECASE
-    )
+    pattern = re.compile(r"^" + re.escape(stem) + r"-b(\d+)\.[^.]+$", re.IGNORECASE)
     max_num = 0
     altered_root = BASE / "altered images"
     if altered_root.exists():
@@ -290,7 +313,8 @@ def _compute_renamed(input_image: str, ai_filename: str, model: str) -> tuple[st
 
 @app.route("/api/compute_renamed")
 def compute_renamed_route():
-    """HTTP wrapper for _compute_renamed — previews the destination filename without copying the file."""
+    """HTTP wrapper for _compute_renamed — previews the destination filename
+    without copying the file."""
     input_image = request.args.get("input_image", "").strip()
     ai_filename = request.args.get("ai_filename", "").strip()
     model = request.args.get("model", "").strip()
@@ -302,7 +326,8 @@ def compute_renamed_route():
 
 @app.route("/api/copy_rename_image", methods=["POST"])
 def copy_rename_image():
-    """Copy an AI-generated image from downloaded/ to renamed/ with the next sequential b-number filename."""
+    """Copy an AI-generated image from downloaded/ to renamed/ with the next
+    sequential b-number filename."""
     data = request.get_json(force=True)
     input_image = (data.get("input_image") or "").strip()
     ai_filename = (data.get("ai_filename") or "").strip()
@@ -313,11 +338,13 @@ def copy_rename_image():
     dest_filename, already_exists = _compute_renamed(input_image, ai_filename, model)
 
     if already_exists:
-        return jsonify({
-            "ok": False,
-            "warning": f"File already exists: {dest_filename}",
-            "filename": dest_filename,
-        })
+        return jsonify(
+            {
+                "ok": False,
+                "warning": f"File already exists: {dest_filename}",
+                "filename": dest_filename,
+            }
+        )
 
     model_dir = find_model_folder(model)
     if not model_dir:
@@ -325,9 +352,17 @@ def copy_rename_image():
 
     src_path = model_dir / "downloaded" / ai_filename
     if not src_path.is_file():
-        return jsonify({
-            "error": f"Source file not found: {model_dir.name}/downloaded/{ai_filename}"
-        }), 404
+        return (
+            jsonify(
+                {
+                    "error": (
+                        f"Source file not found: "
+                        f"{model_dir.name}/downloaded/{ai_filename}"
+                    )
+                }
+            ),
+            404,
+        )
 
     dest_dir = model_dir / "renamed"
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -338,17 +373,21 @@ def copy_rename_image():
 
 # ── Original image rename helpers ────────────────────────────────────────────
 
-ORIG_SRC_DIR  = BASE / "real images" / "01-original"
+ORIG_SRC_DIR = BASE / "real images" / "01-original"
 ORIG_DEST_DIR = BASE / "real images" / "02-original-renamed"
 
 
-def _compute_original_renamed(original_filename: str, study_id: str) -> tuple[str, bool]:
+def _compute_original_renamed(
+    original_filename: str, study_id: str
+) -> tuple[str, bool]:
     """Return (dest_filename, already_exists) for an original image rename.
 
     dest_filename is  <study_id>.<original_ext>  (e.g. csafe-001.jpg).
     already_exists is True if that file is already present in 02-original-renamed/.
     """
-    ext = ("." + original_filename.rsplit(".", 1)[1]) if "." in original_filename else ""
+    ext = (
+        ("." + original_filename.rsplit(".", 1)[1]) if "." in original_filename else ""
+    )
     dest_filename = f"{study_id}{ext}"
     dest_path = ORIG_DEST_DIR / dest_filename
     return dest_filename, dest_path.exists()
@@ -356,7 +395,8 @@ def _compute_original_renamed(original_filename: str, study_id: str) -> tuple[st
 
 @app.route("/api/compute_original_renamed")
 def compute_original_renamed_route():
-    """HTTP wrapper for _compute_original_renamed — previews the destination filename without copying the file."""
+    """HTTP wrapper for _compute_original_renamed — previews the destination
+    filename without copying the file."""
     original_filename = request.args.get("original_filename", "").strip()
     study_id = request.args.get("study_id", "").strip()
     if not (original_filename and study_id):
@@ -367,27 +407,35 @@ def compute_original_renamed_route():
 
 @app.route("/api/copy_rename_original", methods=["POST"])
 def copy_rename_original():
-    """Copy an original image from 01-original/ to 02-original-renamed/ using the study ID as the filename."""
+    """Copy an original image from 01-original/ to 02-original-renamed/
+    using the study ID as the filename."""
     data = request.get_json(force=True)
     original_filename = (data.get("original_filename") or "").strip()
     study_id = (data.get("study_id") or "").strip()
     if not (original_filename and study_id):
         return jsonify({"error": "Missing required parameters"}), 400
 
-    dest_filename, already_exists = _compute_original_renamed(original_filename, study_id)
+    dest_filename, already_exists = _compute_original_renamed(
+        original_filename, study_id
+    )
 
     if already_exists:
-        return jsonify({
-            "ok": False,
-            "warning": f"File already exists: {dest_filename}",
-            "filename": dest_filename,
-        })
+        return jsonify(
+            {
+                "ok": False,
+                "warning": f"File already exists: {dest_filename}",
+                "filename": dest_filename,
+            }
+        )
 
     src_path = ORIG_SRC_DIR / original_filename
     if not src_path.is_file():
-        return jsonify({
-            "error": f"Source file not found: 01-original/{original_filename}"
-        }), 404
+        return (
+            jsonify(
+                {"error": f"Source file not found: 01-original/{original_filename}"}
+            ),
+            404,
+        )
 
     ORIG_DEST_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src_path, ORIG_DEST_DIR / dest_filename)
@@ -401,9 +449,9 @@ MOD_DIR = BASE / "real images" / "03-modified"
 @app.route("/api/upload_original", methods=["POST"])
 def upload_original():
     """Save an uploaded file to 'real images/01-original/'."""
-    if 'file' not in request.files:
+    if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
-    f = request.files['file']
+    f = request.files["file"]
     filename = secure_filename(f.filename)
     if not filename:
         return jsonify({"error": "Invalid filename"}), 400
@@ -415,10 +463,11 @@ def upload_original():
 
 @app.route("/api/upload_modified", methods=["POST"])
 def upload_modified():
-    """Save an uploaded modified image to 'real images/03-modified/', optionally renaming it via dest_filename."""
-    if 'file' not in request.files:
+    """Save an uploaded modified image to 'real images/03-modified/',
+    optionally renaming it via dest_filename."""
+    if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
-    f = request.files['file']
+    f = request.files["file"]
     f_filename = secure_filename(f.filename)
     dest_filename = (request.form.get("dest_filename") or f_filename).strip()
     if not dest_filename:
@@ -426,7 +475,13 @@ def upload_modified():
     MOD_DIR.mkdir(parents=True, exist_ok=True)
     dest = MOD_DIR / dest_filename
     if dest.exists():
-        return jsonify({"ok": False, "warning": f"File already exists: {dest_filename}", "filename": dest_filename})
+        return jsonify(
+            {
+                "ok": False,
+                "warning": f"File already exists: {dest_filename}",
+                "filename": dest_filename,
+            }
+        )
     f.save(str(dest))
     return jsonify({"ok": True, "filename": dest_filename})
 
@@ -434,9 +489,9 @@ def upload_modified():
 @app.route("/api/upload_downloaded", methods=["POST"])
 def upload_downloaded():
     """Save an AI-generated image to 'altered images/<model>/downloaded/'."""
-    if 'file' not in request.files:
+    if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
-    f = request.files['file']
+    f = request.files["file"]
     filename = secure_filename(f.filename)
     if not filename:
         return jsonify({"error": "Invalid filename"}), 400
@@ -449,8 +504,6 @@ def upload_downloaded():
     dest = downloaded / filename
     f.save(str(dest))
     return jsonify({"ok": True, "filename": filename})
-
-
 
 
 @app.route("/api/analyze_file", methods=["POST"])
@@ -475,6 +528,7 @@ def analyze_file():
 
 # ── Random Forest classifier ──────────────────────────────────────────────────
 
+
 @app.route("/api/random_forest", methods=["POST"])
 def random_forest_analysis():
     """Train and cross-validate a Random Forest classifier on analyzed records.
@@ -488,13 +542,18 @@ def random_forest_analysis():
         from sklearn.model_selection import StratifiedKFold
         from sklearn.metrics import accuracy_score, confusion_matrix as sk_cm
     except ImportError:
-        return jsonify({"error": "scikit-learn not installed — run: pip3 install scikit-learn"}), 503
+        return (
+            jsonify(
+                {"error": "scikit-learn not installed — run: pip3 install scikit-learn"}
+            ),
+            503,
+        )
 
     body = request.get_json(force=True) or {}
-    selected_models = body.get("models")                    # None = all; list = filter p2
-    stratify_by     = body.get("stratify_by", "class")     # "class" or "model"
-    feature_set     = body.get("feature_set",  "pixel")    # "pixel", "indicators", "both"
-    seed_param      = body.get("seed")                      # int or None (auto)
+    selected_models = body.get("models")  # None = all; list = filter p2
+    stratify_by = body.get("stratify_by", "class")  # "class" or "model"
+    feature_set = body.get("feature_set", "pixel")  # "pixel", "indicators", "both"
+    seed_param = body.get("seed")  # int or None (auto)
     seed = int(seed_param) if seed_param is not None else random.randint(0, 2**31 - 1)
 
     if _supabase:
@@ -553,24 +612,35 @@ def random_forest_analysis():
             if rec.get("type") == "p2":
                 m = (rec.get("model") or "").strip()
                 model_freq[m] = model_freq.get(m, 0) + 1
-        individual_strata  = sorted(m for m, c in model_freq.items() if c >= N_SPLITS)
-        grouped_models     = sorted(m for m, c in model_freq.items() if c <  N_SPLITS)
-        individual_set     = set(individual_strata)
-        strata = np.array([
-            "original" if rec.get("type") == "p0"
-            else ((rec.get("model") or "").strip() if (rec.get("model") or "").strip() in individual_set else "_other")
-            for rec in used_recs
-        ])
+        individual_strata = sorted(m for m, c in model_freq.items() if c >= N_SPLITS)
+        grouped_models = sorted(m for m, c in model_freq.items() if c < N_SPLITS)
+        individual_set = set(individual_strata)
+        strata = np.array(
+            [
+                (
+                    "original"
+                    if rec.get("type") == "p0"
+                    else (
+                        (rec.get("model") or "").strip()
+                        if (rec.get("model") or "").strip() in individual_set
+                        else "_other"
+                    )
+                )
+                for rec in used_recs
+            ]
+        )
     else:
-        strata            = y
+        strata = y
         individual_strata = []
-        grouped_models    = []
+        grouped_models = []
 
-    clf = RandomForestClassifier(n_estimators=500, random_state=seed, class_weight="balanced")
-    cv  = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=seed)
+    clf = RandomForestClassifier(
+        n_estimators=500, random_state=seed, class_weight="balanced"
+    )
+    cv = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=seed)
 
     fold_accs = []
-    y_pred    = np.empty_like(y)
+    y_pred = np.empty_like(y)
     for train_idx, test_idx in cv.split(X, strata):
         clf.fit(X[train_idx], y[train_idx])
         y_pred[test_idx] = clf.predict(X[test_idx])
@@ -580,26 +650,34 @@ def random_forest_analysis():
 
     clf.fit(X, y)
     importances = [
-        {"feature": n, "label": _RF_FEATURE_LABELS.get(n, n), "importance": round(float(imp), 4)}
-        for n, imp in sorted(zip(feature_names, clf.feature_importances_), key=lambda x: -x[1])
+        {
+            "feature": n,
+            "label": _RF_FEATURE_LABELS.get(n, n),
+            "importance": round(float(imp), 4),
+        }
+        for n, imp in sorted(
+            zip(feature_names, clf.feature_importances_), key=lambda x: -x[1]
+        )
     ]
 
-    return jsonify({
-        "n_original":          int((y == 0).sum()),
-        "n_altered":           int((y == 1).sum()),
-        "n_total":             int(len(y)),
-        "seed":                seed,
-        "selected_models":     selected_models,
-        "feature_set":         feature_set,
-        "stratify_by":         stratify_by,
-        "individual_strata":   individual_strata,
-        "grouped_models":      grouped_models,
-        "fold_accuracies":     [round(a, 4) for a in fold_accs],
-        "mean_accuracy":       round(float(np.mean(fold_accs)), 4),
-        "std_accuracy":        round(float(np.std(fold_accs)), 4),
-        "confusion_matrix":    cm,
-        "feature_importances": importances,
-    })
+    return jsonify(
+        {
+            "n_original": int((y == 0).sum()),
+            "n_altered": int((y == 1).sum()),
+            "n_total": int(len(y)),
+            "seed": seed,
+            "selected_models": selected_models,
+            "feature_set": feature_set,
+            "stratify_by": stratify_by,
+            "individual_strata": individual_strata,
+            "grouped_models": grouped_models,
+            "fold_accuracies": [round(a, 4) for a in fold_accs],
+            "mean_accuracy": round(float(np.mean(fold_accs)), 4),
+            "std_accuracy": round(float(np.std(fold_accs)), 4),
+            "confusion_matrix": cm,
+            "feature_importances": importances,
+        }
+    )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -613,7 +691,9 @@ if __name__ == "__main__":
             candidates = sorted(BASE.glob("ai_image_records_*.json"))
             if candidates:
                 source_file = candidates[-1]
-                DATA_FILE.write_text(source_file.read_text(encoding="utf-8"), encoding="utf-8")
+                DATA_FILE.write_text(
+                    source_file.read_text(encoding="utf-8"), encoding="utf-8"
+                )
                 print(f"  Seeded records.json from {source_file.name}")
             else:
                 DATA_FILE.write_text("[]", encoding="utf-8")

@@ -19,25 +19,58 @@ METADATA_DIR.mkdir(exist_ok=True)
 
 # Fields produced by exiftool that are file-level or derived, not embedded metadata.
 _SKIP_FIELDS = {
-    "SourceFile", "ExifToolVersion", "FileName", "Directory", "FileSize",
-    "FileModifyDate", "FileAccessDate", "FileInodeChangeDate", "FilePermissions",
-    "FileType", "FileTypeExtension", "MIMEType", "ImageWidth", "ImageHeight",
-    "EncodingProcess", "BitsPerSample", "ColorComponents", "YCbCrSubSampling",
-    "Megapixels", "ImageSize",
+    "SourceFile",
+    "ExifToolVersion",
+    "FileName",
+    "Directory",
+    "FileSize",
+    "FileModifyDate",
+    "FileAccessDate",
+    "FileInodeChangeDate",
+    "FilePermissions",
+    "FileType",
+    "FileTypeExtension",
+    "MIMEType",
+    "ImageWidth",
+    "ImageHeight",
+    "EncodingProcess",
+    "BitsPerSample",
+    "ColorComponents",
+    "YCbCrSubSampling",
+    "Megapixels",
+    "ImageSize",
 }
 
 # Tag key suffixes (after the "Group:" prefix) that should never be checked
 # for AI software strings, because they contain file paths or other values
 # that could cause false positives.
 _SKIP_KEY_SUFFIXES = {
-    "Directory", "FileName", "SourceFile", "FilePath", "FileModifyDate",
-    "FileAccessDate", "FileInodeChangeDate", "FilePermissions",
+    "Directory",
+    "FileName",
+    "SourceFile",
+    "FilePath",
+    "FileModifyDate",
+    "FileAccessDate",
+    "FileInodeChangeDate",
+    "FilePermissions",
 }
 
 _AI_SOFTWARE_STRINGS = [
-    "adobe firefly", "dall-e", "dall·e", "midjourney", "stable diffusion",
-    "imagen", "grok", "gemini", "chatgpt", "openai", "ideogram", "runway",
-    "leonardo", "adobe generative", "generative fill",
+    "adobe firefly",
+    "dall-e",
+    "dall·e",
+    "midjourney",
+    "stable diffusion",
+    "imagen",
+    "grok",
+    "gemini",
+    "chatgpt",
+    "openai",
+    "ideogram",
+    "runway",
+    "leonardo",
+    "adobe generative",
+    "generative fill",
 ]
 
 
@@ -46,7 +79,9 @@ def _run_exiftool(path: pathlib.Path) -> dict:
     try:
         result = subprocess.run(
             ["exiftool", "-json", "-a", "-G1", str(path)],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode != 0:
             return {}
@@ -107,14 +142,20 @@ def _check_c2pa(path: pathlib.Path, tags: dict) -> str:
     try:
         result = subprocess.run(
             ["c2patool", str(path)],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         output = result.stdout + result.stderr
         if result.returncode == 0 and output.strip():
             output_lower = output.lower()
             if "no claim" in output_lower or "no manifest" in output_lower:
                 return "No"
-            if "ingredient" in output_lower or "claim_generator" in output_lower or "assertions" in output_lower:
+            if (
+                "ingredient" in output_lower
+                or "claim_generator" in output_lower
+                or "assertions" in output_lower
+            ):
                 return "Yes — with provenance data"
             return "Yes — but empty / stripped"
     except FileNotFoundError:
@@ -147,7 +188,9 @@ def _extract_c2pa_details_from_c2patool(path: pathlib.Path) -> dict | None:
     try:
         result = subprocess.run(
             ["c2patool", str(path)],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode != 0 or not result.stdout.strip():
             return None
@@ -156,14 +199,16 @@ def _extract_c2pa_details_from_c2patool(path: pathlib.Path) -> dict | None:
         return None
 
     active_key = data.get("active_manifest")
-    manifests  = data.get("manifests", {})
-    manifest   = manifests.get(active_key) or (next(iter(manifests.values()), None) if manifests else None)
+    manifests = data.get("manifests", {})
+    manifest = manifests.get(active_key) or (
+        next(iter(manifests.values()), None) if manifests else None
+    )
     if not manifest:
         return None
 
-    sig      = manifest.get("signature_info") or {}
-    cg_info  = manifest.get("claim_generator_info") or []
-    cg_name  = cg_info[0].get("name") if cg_info else manifest.get("claim_generator")
+    sig = manifest.get("signature_info") or {}
+    cg_info = manifest.get("claim_generator_info") or []
+    cg_name = cg_info[0].get("name") if cg_info else manifest.get("claim_generator")
 
     raw_actions = []
     for assertion in manifest.get("assertions") or []:
@@ -173,14 +218,14 @@ def _extract_c2pa_details_from_c2patool(path: pathlib.Path) -> dict | None:
                 raw_actions.append(act.replace("c2pa.", ""))
 
     return {
-        "claim_generator":     cg_name,
-        "software_agent":      sig.get("issuer"),
-        "c2pa_version":        None,
-        "actions":             raw_actions or None,
+        "claim_generator": cg_name,
+        "software_agent": sig.get("issuer"),
+        "c2pa_version": None,
+        "actions": raw_actions or None,
         "digital_source_type": None,
         "validation_failures": None,
         "validation_failure_explanations": None,
-        "manifest_id":         active_key,
+        "manifest_id": active_key,
     }
 
 
@@ -227,14 +272,14 @@ def _extract_c2pa_details(tags: dict, path: pathlib.Path | None = None) -> dict 
             break
 
     return {
-        "claim_generator":      _get("Claim_Generator_InfoName"),
-        "software_agent":       _get("ActionsSoftwareAgentName"),
-        "c2pa_version":         _get("Claim_Generator_InfoOrgContentauthC2Pa_Rs"),
-        "actions":              actions or None,
-        "digital_source_type":  digital_source_type or None,
-        "validation_failures":  fail_codes or None,
+        "claim_generator": _get("Claim_Generator_InfoName"),
+        "software_agent": _get("ActionsSoftwareAgentName"),
+        "c2pa_version": _get("Claim_Generator_InfoOrgContentauthC2Pa_Rs"),
+        "actions": actions or None,
+        "digital_source_type": digital_source_type or None,
+        "validation_failures": fail_codes or None,
         "validation_failure_explanations": fail_explanations or None,
-        "manifest_id":          manifest_id,
+        "manifest_id": manifest_id,
     }
 
 
@@ -252,7 +297,7 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, float, float, str, str]:
 
     try:
         with Image.open(path) as img:
-            ela_source = 'png' if (img.format or '').upper() == 'PNG' else 'jpeg'
+            ela_source = "png" if (img.format or "").upper() == "PNG" else "jpeg"
             img_rgb = img.convert("RGB")
 
         buf = io.BytesIO()
@@ -262,9 +307,9 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, float, float, str, str]:
 
         diff = ImageChops.difference(img_rgb, recompressed)
         diff_arr = np.array(diff)
-        max_diff  = int(diff_arr.max())
+        max_diff = int(diff_arr.max())
         mean_diff = float(diff_arr.mean())
-        std_diff  = float(diff_arr.std())
+        std_diff = float(diff_arr.std())
 
         # Scale up for visibility.
         scaled = diff_arr * ELA_SCALE
@@ -277,10 +322,12 @@ def _run_ela(path: pathlib.Path) -> tuple[bool, int, float, float, str, str]:
 
         return max_diff > ELA_THRESHOLD, max_diff, mean_diff, std_diff, ela_source, b64
     except Exception:
-        return False, 0, 0.0, 0.0, 'unknown', ""
+        return False, 0, 0.0, 0.0, "unknown", ""
 
 
-def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, float, float, float, str]:
+def _check_noise_inconsistency(
+    path: pathlib.Path,
+) -> tuple[bool, float, float, float, str]:
     """Estimate per-block noise and flag regions with inconsistent levels.
 
     Returns (flagged, noise_std, noise_skewness, noise_kurtosis, note).
@@ -295,26 +342,31 @@ def _check_noise_inconsistency(path: pathlib.Path) -> tuple[bool, float, float, 
         h, w = gray.shape
         # Simple high-pass: subtract 3×3 mean.
         with Image.open(path) as img:
-            blurred = np.array(img.convert("L").filter(ImageFilter.BoxBlur(3)), dtype=float)
+            blurred = np.array(
+                img.convert("L").filter(ImageFilter.BoxBlur(3)), dtype=float
+            )
         hp = gray - blurred
 
         block_noises = []
         for y in range(0, h - BLOCK_SIZE + 1, BLOCK_SIZE):
             for x in range(0, w - BLOCK_SIZE + 1, BLOCK_SIZE):
-                block = hp[y:y + BLOCK_SIZE, x:x + BLOCK_SIZE]
+                block = hp[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE]
                 block_noises.append(float(np.std(block)))
 
         if not block_noises:
             return False, 0.0, 0.0, 0.0, ""
 
-        noise_arr  = np.array(block_noises)
-        noise_std  = float(np.std(noise_arr))
-        mean_bn    = float(np.mean(noise_arr))
-        diffs      = noise_arr - mean_bn
-        noise_skew = float(np.mean(diffs ** 3) / (noise_std ** 3 + 1e-9))
-        noise_kurt = float(np.mean(diffs ** 4) / (noise_std ** 4 + 1e-9)) - 3.0
-        flagged    = noise_std > THRESHOLD
-        note = f"Noise inconsistency: block noise std={noise_std:.2f} (threshold {THRESHOLD})."
+        noise_arr = np.array(block_noises)
+        noise_std = float(np.std(noise_arr))
+        mean_bn = float(np.mean(noise_arr))
+        diffs = noise_arr - mean_bn
+        noise_skew = float(np.mean(diffs**3) / (noise_std**3 + 1e-9))
+        noise_kurt = float(np.mean(diffs**4) / (noise_std**4 + 1e-9)) - 3.0
+        flagged = noise_std > THRESHOLD
+        note = (
+            f"Noise inconsistency: block noise std={noise_std:.2f}"
+            f" (threshold {THRESHOLD})."
+        )
         return flagged, noise_std, noise_skew, noise_kurt, note if flagged else ""
     except Exception:
         return False, 0.0, 0.0, 0.0, ""
@@ -356,7 +408,10 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
 
         ratio = avg_boundary / avg_interior
         flagged = ratio > RATIO_THRESHOLD
-        note = f"Compression blocking: boundary/interior diff ratio={ratio:.2f} (threshold {RATIO_THRESHOLD})."
+        note = (
+            f"Compression blocking: boundary/interior diff ratio={ratio:.2f}"
+            f" (threshold {RATIO_THRESHOLD})."
+        )
         return flagged, note if flagged else ""
     except Exception:
         return False, ""
@@ -364,44 +419,56 @@ def _check_compression_blocking(path: pathlib.Path) -> tuple[bool, str]:
 
 def _detect_c2pa_from_tags(tags: dict) -> dict | None:
     """Extract C2PA data from exiftool CBOR/JUMBF tags."""
-    has_jumbf = tags.get('JUMBF:JUMDLabel') == 'c2pa'
-    has_cbor  = any(k.startswith('CBOR:') for k in tags)
+    has_jumbf = tags.get("JUMBF:JUMDLabel") == "c2pa"
+    has_cbor = any(k.startswith("CBOR:") for k in tags)
     if not has_jumbf and not has_cbor:
         return None
 
-    result: dict = {'status': 'found'}
+    result: dict = {"status": "found"}
 
-    claim_gen = tags.get('CBOR:Claim_Generator_InfoName')
+    claim_gen = tags.get("CBOR:Claim_Generator_InfoName")
     if claim_gen:
-        result['claim_generator'] = str(claim_gen)
+        result["claim_generator"] = str(claim_gen)
 
-    agent = tags.get('CBOR:ActionsSoftwareAgent') or tags.get('CBOR:ActionsSoftwareAgentName')
+    agent = tags.get("CBOR:ActionsSoftwareAgent") or tags.get(
+        "CBOR:ActionsSoftwareAgentName"
+    )
     if agent:
-        result['software_agent'] = str(agent)
+        result["software_agent"] = str(agent)
 
-    c2pa_ver = tags.get('CBOR:Claim_Generator_InfoOrgContentauthC2Pa_Rs')
+    c2pa_ver = tags.get("CBOR:Claim_Generator_InfoOrgContentauthC2Pa_Rs")
     if c2pa_ver:
-        result['c2pa_version'] = str(c2pa_ver)
+        result["c2pa_version"] = str(c2pa_ver)
 
-    raw_actions = tags.get('CBOR:ActionsAction')
+    raw_actions = tags.get("CBOR:ActionsAction")
     if raw_actions is not None:
-        result['actions'] = [str(a) for a in (raw_actions if isinstance(raw_actions, list) else [raw_actions])]
+        result["actions"] = [
+            str(a)
+            for a in (raw_actions if isinstance(raw_actions, list) else [raw_actions])
+        ]
 
-    raw_dst = tags.get('CBOR:ActionsDigitalSourceType')
+    raw_dst = tags.get("CBOR:ActionsDigitalSourceType")
     if raw_dst is not None:
         dst = raw_dst[0] if isinstance(raw_dst, list) else raw_dst
-        result['digital_source_type'] = str(dst).rstrip('/').split('/')[-1]
+        result["digital_source_type"] = str(dst).rstrip("/").split("/")[-1]
 
-    instance_id = tags.get('CBOR:InstanceID')
+    instance_id = tags.get("CBOR:InstanceID")
     if instance_id:
-        result['manifest_id'] = str(instance_id)
+        result["manifest_id"] = str(instance_id)
 
-    raw_failures = tags.get('CBOR:ValidationResultsActiveManifestFailureCode')
+    raw_failures = tags.get("CBOR:ValidationResultsActiveManifestFailureCode")
     if raw_failures is not None:
-        result['validation_failures'] = [str(f) for f in (raw_failures if isinstance(raw_failures, list) else [raw_failures])]
-        raw_expl = tags.get('CBOR:ValidationResultsActiveManifestFailureExplanation')
+        result["validation_failures"] = [
+            str(f)
+            for f in (
+                raw_failures if isinstance(raw_failures, list) else [raw_failures]
+            )
+        ]
+        raw_expl = tags.get("CBOR:ValidationResultsActiveManifestFailureExplanation")
         if raw_expl is not None:
-            result['validation_failure_explanations'] = [str(e) for e in (raw_expl if isinstance(raw_expl, list) else [raw_expl])]
+            result["validation_failure_explanations"] = [
+                str(e) for e in (raw_expl if isinstance(raw_expl, list) else [raw_expl])
+            ]
 
     return result
 
@@ -409,34 +476,46 @@ def _detect_c2pa_from_tags(tags: dict) -> dict | None:
 def _detect_indicators(tags: dict) -> dict:
     """Detect forensic indicators of AI generation from exiftool tags."""
     _CAMERA_KEYS = {
-        'Make':             'IFD0:Make',
-        'Model':            'IFD0:Model',
-        'Software':         'IFD0:Software',
-        'DateTimeOriginal': 'ExifIFD:DateTimeOriginal',
-        'CreateDate':       'ExifIFD:CreateDate',
-        'ISO':              'ExifIFD:ISO',
-        'FocalLength':      'ExifIFD:FocalLength',
-        'ExposureTime':     'ExifIFD:ExposureTime',
-        'FNumber':          'ExifIFD:FNumber',
-        'MeteringMode':     'ExifIFD:MeteringMode',
-        'WhiteBalance':     'ExifIFD:WhiteBalance',
-        'Flash':            'ExifIFD:Flash',
-        'SceneType':        'ExifIFD:SceneType',
-        'LensMake':         'ExifIFD:LensMake',
-        'LensModel':        'ExifIFD:LensModel',
+        "Make": "IFD0:Make",
+        "Model": "IFD0:Model",
+        "Software": "IFD0:Software",
+        "DateTimeOriginal": "ExifIFD:DateTimeOriginal",
+        "CreateDate": "ExifIFD:CreateDate",
+        "ISO": "ExifIFD:ISO",
+        "FocalLength": "ExifIFD:FocalLength",
+        "ExposureTime": "ExifIFD:ExposureTime",
+        "FNumber": "ExifIFD:FNumber",
+        "MeteringMode": "ExifIFD:MeteringMode",
+        "WhiteBalance": "ExifIFD:WhiteBalance",
+        "Flash": "ExifIFD:Flash",
+        "SceneType": "ExifIFD:SceneType",
+        "LensMake": "ExifIFD:LensMake",
+        "LensModel": "ExifIFD:LensModel",
     }
-    camera_present = {label: str(tags[key]) for label, key in _CAMERA_KEYS.items() if key in tags}
-    camera_absent  = [label for label, key in _CAMERA_KEYS.items() if key not in tags]
+    camera_present = {
+        label: str(tags[key]) for label, key in _CAMERA_KEYS.items() if key in tags
+    }
+    camera_absent = [label for label, key in _CAMERA_KEYS.items() if key not in tags]
 
-    photoshop_adobe = {k: str(v) for k, v in tags.items() if k.startswith(('Photoshop:', 'Adobe:'))}
+    photoshop_adobe = {
+        k: str(v) for k, v in tags.items() if k.startswith(("Photoshop:", "Adobe:"))
+    }
 
-    icc_meas_view = {k: str(v) for k, v in tags.items() if k.startswith(('ICC-meas:', 'ICC-view:'))}
+    icc_meas_view = {
+        k: str(v) for k, v in tags.items() if k.startswith(("ICC-meas:", "ICC-view:"))
+    }
 
-    artist       = str(tags.get('IFD0:Artist', ''))
-    user_comment = str(tags.get('ExifIFD:UserComment', ''))
-    grok_artist    = artist      if re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-', artist.lower())      else None
-    grok_signature = user_comment if user_comment.startswith('Signature:') else None
-    grok_signatures = {'artist': grok_artist, 'user_comment': grok_signature} if (grok_artist or grok_signature) else None
+    artist = str(tags.get("IFD0:Artist", ""))
+    user_comment = str(tags.get("ExifIFD:UserComment", ""))
+    grok_artist = (
+        artist if re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", artist.lower()) else None
+    )
+    grok_signature = user_comment if user_comment.startswith("Signature:") else None
+    grok_signatures = (
+        {"artist": grok_artist, "user_comment": grok_signature}
+        if (grok_artist or grok_signature)
+        else None
+    )
 
     c2pa = _detect_c2pa_from_tags(tags)
 
@@ -455,12 +534,12 @@ def _detect_indicators(tags: dict) -> dict:
         parts.append("C2PA manifest detected")
 
     return {
-        'summary':        ' | '.join(parts),
-        'camera_exif':    {'present': camera_present, 'absent': camera_absent},
-        'photoshop_adobe': photoshop_adobe or None,
-        'icc_meas_view':  icc_meas_view or None,
-        'grok_signatures': grok_signatures,
-        'c2pa':           c2pa,
+        "summary": " | ".join(parts),
+        "camera_exif": {"present": camera_present, "absent": camera_absent},
+        "photoshop_adobe": photoshop_adobe or None,
+        "icc_meas_view": icc_meas_view or None,
+        "grok_signatures": grok_signatures,
+        "c2pa": c2pa,
     }
 
 
@@ -474,21 +553,25 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
     if tags:
         meta_path = METADATA_DIR / (path.stem + ".json")
         meta_path.write_text(json.dumps(tags, indent=2))
-    ifd0_tags      = {k: v for k, v in tags.items() if k.startswith("IFD0:")}
-    indicators     = _detect_indicators(tags) if tags else None
+    ifd0_tags = {k: v for k, v in tags.items() if k.startswith("IFD0:")}
+    indicators = _detect_indicators(tags) if tags else None
     exif_anomalies = _analyze_exif(tags) if tags else "(exiftool not available)"
-    c2pa_status    = _check_c2pa(path, tags)
-    c2pa_details   = _extract_c2pa_details(tags, path)
+    c2pa_status = _check_c2pa(path, tags)
+    c2pa_details = _extract_c2pa_details(tags, path)
     if indicators is not None and c2pa_status:
-        c2pa_ind = {'status': c2pa_status}
+        c2pa_ind = {"status": c2pa_status}
         if c2pa_details:
             c2pa_ind.update({k: v for k, v in c2pa_details.items() if v is not None})
-        already_detected = indicators.get('c2pa') is not None
-        indicators['c2pa'] = c2pa_ind
+        already_detected = indicators.get("c2pa") is not None
+        indicators["c2pa"] = c2pa_ind
         if not already_detected:
-            indicators['summary'] += f' | C2PA: {c2pa_status}'
-    ela_flagged, ela_max_diff, ela_mean_diff, ela_std_diff, ela_source, ela_b64 = _run_ela(path)
-    noise_flagged, noise_std, noise_skewness, noise_kurtosis, noise_note = _check_noise_inconsistency(path)
+            indicators["summary"] += f" | C2PA: {c2pa_status}"
+    ela_flagged, ela_max_diff, ela_mean_diff, ela_std_diff, ela_source, ela_b64 = (
+        _run_ela(path)
+    )
+    noise_flagged, noise_std, noise_skewness, noise_kurtosis, noise_note = (
+        _check_noise_inconsistency(path)
+    )
     blocking_flagged, blocking_note = _check_compression_blocking(path)
     artifacts, notes = [], []
     if ela_flagged:
@@ -501,19 +584,19 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         artifacts.append("Compression blocking")
         notes.append(blocking_note)
     return {
-        "exif_anomalies":   exif_anomalies,
-        "ifd0_tags":        ifd0_tags,
-        "indicators":       indicators,
-        "c2pa_status":      c2pa_status,
-        "c2pa_details":     c2pa_details,
-        "artifacts":        artifacts,
-        "artifact_notes":   "\n".join(notes),
-        "ela_image_b64":    ela_b64,
-        "ela_max_diff":     ela_max_diff,
-        "ela_mean_diff":    round(ela_mean_diff, 4),
-        "ela_std_diff":     round(ela_std_diff, 4),
-        "ela_source":       ela_source,
-        "block_noise_std":  round(noise_std, 4),
-        "noise_skewness":   round(noise_skewness, 4),
-        "noise_kurtosis":   round(noise_kurtosis, 4),
+        "exif_anomalies": exif_anomalies,
+        "ifd0_tags": ifd0_tags,
+        "indicators": indicators,
+        "c2pa_status": c2pa_status,
+        "c2pa_details": c2pa_details,
+        "artifacts": artifacts,
+        "artifact_notes": "\n".join(notes),
+        "ela_image_b64": ela_b64,
+        "ela_max_diff": ela_max_diff,
+        "ela_mean_diff": round(ela_mean_diff, 4),
+        "ela_std_diff": round(ela_std_diff, 4),
+        "ela_source": ela_source,
+        "block_noise_std": round(noise_std, 4),
+        "noise_skewness": round(noise_skewness, 4),
+        "noise_kurtosis": round(noise_kurtosis, 4),
     }

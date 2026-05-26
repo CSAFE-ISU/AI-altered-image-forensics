@@ -22,7 +22,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 if not SUPABASE_URL or not SUPABASE_KEY:
     sys.exit("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
 
-from supabase import create_client
+from supabase import create_client  # noqa: E402
 
 client = create_client(SUPABASE_URL, SUPABASE_KEY)
 

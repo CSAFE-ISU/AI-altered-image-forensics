@@ -1,5 +1,6 @@
-"""Unit tests for filename-computation helpers: _compute_renamed, _compute_original_renamed."""
-import pathlib
+"""Unit tests for filename-computation helpers:
+_compute_renamed, _compute_original_renamed."""
+
 import pytest
 import app as flask_app
 from app import _compute_renamed, _compute_original_renamed
@@ -25,6 +26,7 @@ def orig_dest(tmp_path, monkeypatch):
 
 
 # ── _compute_renamed ──────────────────────────────────────────────────────────
+
 
 class TestComputeRenamed:
     def test_no_existing_files_starts_at_001(self, altered_root):
@@ -72,6 +74,7 @@ class TestComputeRenamed:
 
 
 # ── _compute_original_renamed ─────────────────────────────────────────────────
+
 
 class TestComputeOriginalRenamed:
     def test_basic_rename(self, orig_dest):

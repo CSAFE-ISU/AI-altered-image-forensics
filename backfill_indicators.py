@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BASE         = pathlib.Path(__file__).parent
+BASE = pathlib.Path(__file__).parent
 METADATA_DIR = BASE / "metadata"
 
 sys.path.insert(0, str(BASE))
@@ -51,9 +51,19 @@ def get_tags(filename):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backfill forensic indicators for all records in Supabase.")
-    parser.add_argument("--dry-run",   action="store_true", help="Print what would be updated without writing.")
-    parser.add_argument("--overwrite", action="store_true", help="Update records that already have indicators.")
+    parser = argparse.ArgumentParser(
+        description="Backfill forensic indicators for all records in Supabase."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be updated without writing.",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Update records that already have indicators.",
+    )
     args = parser.parse_args()
 
     url = os.environ.get("SUPABASE_URL", "")
@@ -62,6 +72,7 @@ def main():
         sys.exit("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
 
     from supabase import create_client
+
     sb = create_client(url, key)
 
     print("Fetching records from Supabase…")
@@ -71,7 +82,7 @@ def main():
     updated = skipped = errors = 0
 
     for row in rows:
-        rec    = row.get("data") or {}
+        rec = row.get("data") or {}
         rec_id = row["id"]
 
         if not args.overwrite and rec.get("indicators") is not None:
@@ -102,7 +113,9 @@ def main():
 
     print()
     if args.dry_run:
-        print(f"Dry run — {updated} would be updated, {skipped} skipped, {errors} errors.")
+        print(
+            f"Dry run — {updated} would be updated, {skipped} skipped, {errors} errors."
+        )
     else:
         print(f"Done — {updated} updated, {skipped} skipped, {errors} errors.")
 

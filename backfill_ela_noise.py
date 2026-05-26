@@ -36,9 +36,19 @@ def get_filename(rec):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backfill ela_max_diff and block_noise_std for analyzed records.")
-    parser.add_argument("--dry-run",   action="store_true", help="Print what would be updated without writing.")
-    parser.add_argument("--overwrite", action="store_true", help="Update records that already have these fields.")
+    parser = argparse.ArgumentParser(
+        description="Backfill ela_max_diff and block_noise_std for analyzed records."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print what would be updated without writing.",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Update records that already have these fields.",
+    )
     args = parser.parse_args()
 
     url = os.environ.get("SUPABASE_URL", "")
@@ -47,6 +57,7 @@ def main():
         sys.exit("Error: SUPABASE_URL and SUPABASE_KEY must be set in .env")
 
     from supabase import create_client
+
     sb = create_client(url, key)
 
     print("Fetching records from Supabase…")
@@ -56,7 +67,7 @@ def main():
     updated = skipped = errors = 0
 
     for row in rows:
-        rec    = row.get("data") or {}
+        rec = row.get("data") or {}
         rec_id = row["id"]
 
         # Only process records that have been through analysis
@@ -81,15 +92,20 @@ def main():
             continue
 
         try:
-            _, ela_max_diff, _       = _run_ela(path)
-            _, noise_std, _          = _check_noise_inconsistency(path)
-            print(f"  [UPDATE] {filename} — ela_max_diff={ela_max_diff}, block_noise_std={noise_std:.4f}")
+            _, ela_max_diff, _ = _run_ela(path)
+            _, noise_std, _ = _check_noise_inconsistency(path)
+            print(
+                f"  [UPDATE] {filename} — ela_max_diff={ela_max_diff},"
+                f" block_noise_std={noise_std:.4f}"
+            )
 
             if not args.dry_run:
                 updated_rec = dict(rec)
-                updated_rec["ela_max_diff"]    = ela_max_diff
+                updated_rec["ela_max_diff"] = ela_max_diff
                 updated_rec["block_noise_std"] = round(noise_std, 4)
-                sb.table("records").upsert({"id": rec_id, "data": updated_rec}).execute()
+                sb.table("records").upsert(
+                    {"id": rec_id, "data": updated_rec}
+                ).execute()
 
             updated += 1
         except Exception as e:
@@ -98,7 +114,9 @@ def main():
 
     print()
     if args.dry_run:
-        print(f"Dry run — {updated} would be updated, {skipped} skipped, {errors} errors.")
+        print(
+            f"Dry run — {updated} would be updated, {skipped} skipped, {errors} errors."
+        )
     else:
         print(f"Done — {updated} updated, {skipped} skipped, {errors} errors.")
 

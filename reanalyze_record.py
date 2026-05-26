@@ -42,7 +42,10 @@ def main():
     if record is None:
         print(f"ERROR: record {record_id!r} not found")
         sys.exit(1)
-    print(f"  Found: altered_filename={record.get('altered_filename')!r}, model={record.get('model')!r}")
+    print(
+        f"  Found: altered_filename={record.get('altered_filename')!r},"
+        f" model={record.get('model')!r}"
+    )
 
     # 2. Run the analysis pipeline via the app
     print(f"Running analysis on {filename!r}...")
@@ -57,24 +60,39 @@ def main():
 
     # 3. Merge analysis results into the record (analysis fields only)
     ANALYSIS_FIELDS = {
-        "ifd0_tags", "indicators", "exif_anomalies",
-        "c2pa_status", "c2pa_details",
-        "c2pa_viewer_found", "c2pa_viewer_algorithm", "c2pa_viewer_cert_status",
-        "c2pa_viewer_issued", "c2pa_viewer_json", "c2pa_viewer_notes",
-        "c2pa_viewer_signed_by", "c2pa_viewer_software",
-        "ela_source", "ela_mean_diff", "ela_std_diff", "ela_max_diff",
-        "block_noise_std", "noise_skewness", "noise_kurtosis", "hf_energy_ratio",
-        "artifacts", "artifact_notes",
+        "ifd0_tags",
+        "indicators",
+        "exif_anomalies",
+        "c2pa_status",
+        "c2pa_details",
+        "c2pa_viewer_found",
+        "c2pa_viewer_algorithm",
+        "c2pa_viewer_cert_status",
+        "c2pa_viewer_issued",
+        "c2pa_viewer_json",
+        "c2pa_viewer_notes",
+        "c2pa_viewer_signed_by",
+        "c2pa_viewer_software",
+        "ela_source",
+        "ela_mean_diff",
+        "ela_std_diff",
+        "ela_max_diff",
+        "block_noise_std",
+        "noise_skewness",
+        "noise_kurtosis",
+        "hf_energy_ratio",
+        "artifacts",
+        "artifact_notes",
     }
     for field in ANALYSIS_FIELDS:
         if field in analysis:
             record[field] = analysis[field]
 
     # 4. Save the updated record
-    print(f"Saving updated record...")
+    print("Saving updated record...")
     result = api("POST", f"/api/records/{record_id}", record)
     if result.get("ok"):
-        print(f"  Saved successfully.")
+        print("  Saved successfully.")
     else:
         print(f"  ERROR saving: {result}")
         sys.exit(1)

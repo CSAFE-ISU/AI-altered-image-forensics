@@ -1,11 +1,9 @@
 """API tests for info and file-discovery endpoints."""
-import io
-import pytest
-from PIL import Image
-import app as flask_app
 
+from PIL import Image
 
 # ── /images/<filename> ────────────────────────────────────────────────────────
+
 
 class TestServeImage:
     def test_not_found_returns_404(self, client):
@@ -23,6 +21,7 @@ class TestServeImage:
 # ── /api/original_files ───────────────────────────────────────────────────────
 
 # ── /api/original_image_info ─────────────────────────────────────────────────
+
 
 class TestOriginalImageInfo:
     def test_missing_filename_returns_400(self, client):
@@ -52,6 +51,7 @@ class TestOriginalImageInfo:
 
 
 # ── /api/image_info ───────────────────────────────────────────────────────────
+
 
 class TestImageInfo:
     def test_missing_params_returns_400(self, client):
@@ -85,5 +85,3 @@ class TestImageInfo:
         (downloaded / "bad.jpg").write_bytes(b"not an image")
         resp = client.get("/api/image_info?model=grok&filename=bad.jpg")
         assert resp.status_code == 500
-
-

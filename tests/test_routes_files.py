@@ -1,10 +1,10 @@
 """API tests for file management endpoints."""
+
 import io
-import pytest
 import app as flask_app
 
-
 # ── /api/models ───────────────────────────────────────────────────────────────
+
 
 class TestGetModels:
     def test_no_altered_dir_returns_empty(self, client):
@@ -12,7 +12,9 @@ class TestGetModels:
         assert resp.status_code == 200
         assert resp.get_json() == []
 
-    def test_no_altered_dir_returns_empty_when_dir_missing(self, client, monkeypatch, tmp_path):
+    def test_no_altered_dir_returns_empty_when_dir_missing(
+        self, client, monkeypatch, tmp_path
+    ):
         empty = tmp_path / "empty_base"
         empty.mkdir()
         monkeypatch.setattr(flask_app, "BASE", empty)
@@ -35,6 +37,7 @@ class TestGetModels:
 
 # ── /api/input_images ─────────────────────────────────────────────────────────
 
+
 class TestGetInputImages:
     def test_empty_dirs_returns_empty_lists(self, client):
         resp = client.get("/api/input_images")
@@ -54,9 +57,9 @@ class TestGetInputImages:
 
     def test_lists_files(self, client, tmp_base):
         orig = tmp_base / "real images" / "02-original-renamed"
-        mod  = tmp_base / "real images" / "03-modified"
+        mod = tmp_base / "real images" / "03-modified"
         (orig / "csafe-001.jpg").touch()
-        (mod  / "csafe-001-mod.jpg").touch()
+        (mod / "csafe-001-mod.jpg").touch()
         resp = client.get("/api/input_images")
         body = resp.get_json()
         assert "csafe-001.jpg" in body["original"]
@@ -64,6 +67,7 @@ class TestGetInputImages:
 
 
 # ── /api/compute_renamed ──────────────────────────────────────────────────────
+
 
 class TestComputeRenamed:
     def test_missing_params_returns_400(self, client):
@@ -73,7 +77,8 @@ class TestComputeRenamed:
     def test_valid_params_returns_filename(self, client, tmp_base):
         (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
         resp = client.get(
-            "/api/compute_renamed?input_image=csafe-001.jpg&ai_filename=out.png&model=grok"
+            "/api/compute_renamed"
+            "?input_image=csafe-001.jpg&ai_filename=out.png&model=grok"
         )
         assert resp.status_code == 200
         body = resp.get_json()
@@ -83,6 +88,7 @@ class TestComputeRenamed:
 
 # ── /api/compute_original_renamed ─────────────────────────────────────────────
 
+
 class TestComputeOriginalRenamed:
     def test_missing_params_returns_400(self, client):
         resp = client.get("/api/compute_original_renamed?original_filename=IMG.jpg")
@@ -90,7 +96,8 @@ class TestComputeOriginalRenamed:
 
     def test_valid_params_returns_filename(self, client):
         resp = client.get(
-            "/api/compute_original_renamed?original_filename=IMG_001.jpg&study_id=csafe-001"
+            "/api/compute_original_renamed"
+            "?original_filename=IMG_001.jpg&study_id=csafe-001"
         )
         assert resp.status_code == 200
         body = resp.get_json()
@@ -98,6 +105,7 @@ class TestComputeOriginalRenamed:
 
 
 # ── /api/copy_rename_image ────────────────────────────────────────────────────
+
 
 class TestCopyRenameImage:
     def test_missing_params_returns_400(self, client):
@@ -107,7 +115,11 @@ class TestCopyRenameImage:
     def test_model_not_found_returns_404(self, client):
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "nonexistent"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "out.png",
+                "model": "nonexistent",
+            },
         )
         assert resp.status_code == 404
 
@@ -116,7 +128,11 @@ class TestCopyRenameImage:
         (tmp_base / "altered images" / "grok" / "renamed").mkdir(parents=True)
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "missing.png", "model": "grok"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "missing.png",
+                "model": "grok",
+            },
         )
         assert resp.status_code == 404
 
@@ -127,7 +143,11 @@ class TestCopyRenameImage:
         (downloaded / "out.png").write_bytes(b"fake png")
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "out.png",
+                "model": "grok",
+            },
         )
         assert resp.status_code == 200
         body = resp.get_json()
@@ -145,7 +165,11 @@ class TestCopyRenameImage:
         (renamed / "csafe-001-b001.png").write_bytes(b"existing")
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "out.png",
+                "model": "grok",
+            },
         )
         assert resp.status_code == 200
         body = resp.get_json()
@@ -161,7 +185,11 @@ class TestCopyRenameImage:
         (downloaded / "output.webp").write_bytes(b"fake webp")
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-002.jpg", "ai_filename": "output.webp", "model": "grok"},
+            json={
+                "input_image": "csafe-002.jpg",
+                "ai_filename": "output.webp",
+                "model": "grok",
+            },
         )
         assert resp.status_code == 200
         filename = resp.get_json()["filename"]
@@ -172,7 +200,11 @@ class TestCopyRenameImage:
         mocker.patch("app._compute_renamed", return_value=("csafe-001-b001.png", True))
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "out.png",
+                "model": "grok",
+            },
         )
         body = resp.get_json()
         assert body["ok"] is False
@@ -185,16 +217,23 @@ class TestCopyRenameImage:
         monkeypatch.setattr(flask_app, "BASE", empty)
         resp = client.post(
             "/api/copy_rename_image",
-            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+            json={
+                "input_image": "csafe-001.jpg",
+                "ai_filename": "out.png",
+                "model": "grok",
+            },
         )
         assert resp.status_code == 404
 
 
 # ── /api/copy_rename_original ─────────────────────────────────────────────────
 
+
 class TestCopyRenameOriginal:
     def test_missing_params_returns_400(self, client):
-        resp = client.post("/api/copy_rename_original", json={"original_filename": "IMG.jpg"})
+        resp = client.post(
+            "/api/copy_rename_original", json={"original_filename": "IMG.jpg"}
+        )
         assert resp.status_code == 400
 
     def test_source_not_found_returns_404(self, client):
@@ -215,12 +254,18 @@ class TestCopyRenameOriginal:
         body = resp.get_json()
         assert body["ok"] is True
         assert body["filename"] == "csafe-001.jpg"
-        assert (tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg").is_file()
+        assert (
+            tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg"
+        ).is_file()
         assert src.is_file()  # original still present (copy, not move)
 
     def test_dest_already_exists_returns_warning(self, client, tmp_base):
-        (tmp_base / "real images" / "01-original" / "IMG_001.jpg").write_bytes(b"fake jpeg")
-        (tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg").write_bytes(b"existing")
+        (tmp_base / "real images" / "01-original" / "IMG_001.jpg").write_bytes(
+            b"fake jpeg"
+        )
+        (
+            tmp_base / "real images" / "02-original-renamed" / "csafe-001.jpg"
+        ).write_bytes(b"existing")
         resp = client.post(
             "/api/copy_rename_original",
             json={"original_filename": "IMG_001.jpg", "study_id": "csafe-001"},
@@ -232,7 +277,9 @@ class TestCopyRenameOriginal:
         assert body["filename"] == "csafe-001.jpg"
 
     def test_preserves_extension(self, client, tmp_base):
-        (tmp_base / "real images" / "01-original" / "photo.png").write_bytes(b"fake png")
+        (tmp_base / "real images" / "01-original" / "photo.png").write_bytes(
+            b"fake png"
+        )
         resp = client.post(
             "/api/copy_rename_original",
             json={"original_filename": "photo.png", "study_id": "csafe-002"},
@@ -242,6 +289,7 @@ class TestCopyRenameOriginal:
 
 
 # ── /api/upload_original ──────────────────────────────────────────────────────
+
 
 class TestUploadOriginal:
     def test_no_file_returns_400(self, client):
@@ -268,6 +316,7 @@ class TestUploadOriginal:
 
 # ── /api/upload_modified ─────────────────────────────────────────────────────
 
+
 class TestUploadModified:
     def test_no_file_returns_400(self, client):
         resp = client.post("/api/upload_modified")
@@ -290,7 +339,9 @@ class TestUploadModified:
         )
         assert resp.status_code == 200
         assert resp.get_json()["ok"] is True
-        assert (tmp_base / "real images" / "03-modified" / "csafe-001-mod.jpg").is_file()
+        assert (
+            tmp_base / "real images" / "03-modified" / "csafe-001-mod.jpg"
+        ).is_file()
 
     def test_duplicate_returns_warning(self, client, tmp_base):
         (tmp_base / "real images" / "03-modified" / "csafe-001-mod.jpg").touch()
@@ -308,6 +359,7 @@ class TestUploadModified:
 
 
 # ── /api/upload_downloaded ───────────────────────────────────────────────────
+
 
 class TestUploadDownloaded:
     def test_no_file_returns_400(self, client):
@@ -346,4 +398,3 @@ class TestUploadDownloaded:
 
 
 # ── /api/rename_modified ──────────────────────────────────────────────────────
-

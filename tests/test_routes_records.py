@@ -1,7 +1,6 @@
 """API tests for GET/POST/DELETE /api/records*."""
+
 import json
-import pytest
-import app as flask_app
 
 
 class TestGetRecords:
@@ -18,7 +17,8 @@ class TestGetRecords:
         assert resp.get_json() == data
 
     def test_returns_ela_image_b64_from_local_file(self, client, tmp_base):
-        # Local JSON fallback returns records verbatim (stripping only happens in Supabase path).
+        # Local JSON fallback returns records verbatim
+        # (stripping only happens in Supabase path).
         data = [{"id": "r1", "ela_image_b64": "somebase64data"}]
         (tmp_base / "records.json").write_text(json.dumps(data), encoding="utf-8")
         resp = client.get("/api/records")
@@ -41,7 +41,8 @@ class TestSetRecordSingle:
         assert any(r["id"] == "r1" for r in saved)
 
     def test_upsert_preserves_ela_image_b64_in_local_file(self, client, tmp_base):
-        # Local JSON fallback stores records verbatim (stripping only happens in Supabase path).
+        # Local JSON fallback stores records verbatim
+        # (stripping only happens in Supabase path).
         client.post(
             "/api/records/r1",
             json={"id": "r1", "ela_image_b64": "abc"},
@@ -85,5 +86,3 @@ class TestDeleteRecord:
         resp = client.delete("/api/records/doesnotexist")
         assert resp.status_code == 200
         assert resp.get_json()["ok"] is True
-
-
