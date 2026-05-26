@@ -196,6 +196,12 @@ class TestExtractC2paDetails:
         result = _extract_c2pa_details(tags)
         assert result["manifest_id"] == "urn:c2pa:abcdef-1234"
 
+    def test_no_jumbf_with_path_calls_c2patool(self, mocker, tmp_path):
+        mock = mocker.patch("analysis._extract_c2pa_details_from_c2patool", return_value={"signed_by": "Adobe"})
+        result = _extract_c2pa_details({}, path=tmp_path / "img.jpg")
+        mock.assert_called_once_with(tmp_path / "img.jpg")
+        assert result == {"signed_by": "Adobe"}
+
 
 # ── _detect_c2pa_from_tags ────────────────────────────────────────────────────
 

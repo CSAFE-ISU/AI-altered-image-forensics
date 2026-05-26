@@ -1,0 +1,12 @@
+[run]
+omit =
+    backfill_*.py
+    migrate_to_supabase.py
+    reanalyze_record.py
+    rerun_c2pa_details.py
+    .venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:

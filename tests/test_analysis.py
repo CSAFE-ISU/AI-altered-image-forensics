@@ -299,3 +299,27 @@ class TestRunAnalysisPipeline:
         result = _run_analysis_pipeline(sample_jpeg)
         assert result["ela_source"] in ("jpeg", "png", "unknown")
 
+    def test_exiftool_tags_written_to_metadata_dir(self, mocker, sample_jpeg, tmp_path):
+        mocker.patch.object(analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"})
+        mocker.patch.object(analysis, "_check_c2pa", return_value="No")
+        mocker.patch.object(analysis, "_extract_c2pa_details", return_value=None)
+        mocker.patch.object(analysis, "_detect_indicators", return_value=None)
+        mocker.patch.object(analysis, "METADATA_DIR", tmp_path)
+        _run_analysis_pipeline(sample_jpeg)
+        meta_file = tmp_path / (sample_jpeg.stem + ".json")
+        assert meta_file.exists()
+        assert json.loads(meta_file.read_text())["EXIF:Make"] == "Canon"
+
+    def test_c2pa_status_merged_into_indicators(self, mocker, sample_jpeg, tmp_path):
+        mocker.patch.object(analysis, "_run_exiftool", return_value={"EXIF:Make": "Canon"})
+        mocker.patch.object(analysis, "_detect_indicators", return_value={"summary": "Camera EXIF present", "c2pa": None})
+        mocker.patch.object(analysis, "_check_c2pa", return_value="Yes")
+        mocker.patch.object(analysis, "_extract_c2pa_details", return_value={"signed_by": "Adobe", "issued": None})
+        mocker.patch.object(analysis, "METADATA_DIR", tmp_path)
+        result = _run_analysis_pipeline(sample_jpeg)
+        c2pa_ind = result["indicators"]["c2pa"]
+        assert c2pa_ind["status"] == "Yes"
+        assert c2pa_ind["signed_by"] == "Adobe"
+        assert "issued" not in c2pa_ind  # None values are excluded
+        assert "C2PA: Yes" in result["indicators"]["summary"]
+

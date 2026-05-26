@@ -173,6 +173,16 @@ class TestRandomForestRoute:
         assert "has_camera_exif" in feature_names
         assert "ela_mean_diff" not in feature_names
 
+    def test_records_missing_indicators_skipped_for_indicators_feature_set(self, sklearn_mocks, client, tmp_base):
+        good = [_indicator_rec("p0", i) for i in range(5)] + \
+               [_indicator_rec("p2", i + 5) for i in range(5)]
+        # Records without indicators key should be skipped
+        bad = [{"id": "bad_p0", "type": "p0"}, {"id": "bad_p2", "type": "p2", "model": "grok"}]
+        (tmp_base / "records.json").write_text(json.dumps(good + bad), encoding="utf-8")
+        resp = client.post("/api/random_forest", json={"seed": 1, "feature_set": "indicators"})
+        assert resp.status_code == 200
+        assert resp.get_json()["n_total"] == 10  # bad records excluded
+
     def test_feature_set_both(self, sklearn_mocks, client, tmp_base):
         records = [_indicator_rec("p0", i) for i in range(5)] + \
                   [_indicator_rec("p2", i + 5) for i in range(5)]

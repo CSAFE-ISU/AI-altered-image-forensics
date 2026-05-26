@@ -12,6 +12,14 @@ class TestGetModels:
         assert resp.status_code == 200
         assert resp.get_json() == []
 
+    def test_no_altered_dir_returns_empty_when_dir_missing(self, client, monkeypatch, tmp_path):
+        empty = tmp_path / "empty_base"
+        empty.mkdir()
+        monkeypatch.setattr(flask_app, "BASE", empty)
+        resp = client.get("/api/models")
+        assert resp.status_code == 200
+        assert resp.get_json() == []
+
     def test_returns_sorted_model_names(self, client, tmp_base):
         (tmp_base / "altered images" / "grok").mkdir(parents=True)
         (tmp_base / "altered images" / "gemini").mkdir(parents=True)
@@ -31,6 +39,15 @@ class TestGetInputImages:
     def test_empty_dirs_returns_empty_lists(self, client):
         resp = client.get("/api/input_images")
         assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["original"] == []
+        assert body["modified"] == []
+
+    def test_missing_dirs_returns_empty_lists(self, client, monkeypatch, tmp_path):
+        empty = tmp_path / "empty_base"
+        empty.mkdir()
+        monkeypatch.setattr(flask_app, "BASE", empty)
+        resp = client.get("/api/input_images")
         body = resp.get_json()
         assert body["original"] == []
         assert body["modified"] == []
@@ -150,6 +167,27 @@ class TestCopyRenameImage:
         filename = resp.get_json()["filename"]
         assert filename.startswith("csafe-002-b")
         assert filename.endswith(".webp")
+
+    def test_already_exists_returns_warning(self, client, mocker):
+        mocker.patch("app._compute_renamed", return_value=("csafe-001-b001.png", True))
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+        )
+        body = resp.get_json()
+        assert body["ok"] is False
+        assert "warning" in body
+        assert body["filename"] == "csafe-001-b001.png"
+
+    def test_no_altered_dir_returns_404(self, client, monkeypatch, tmp_path):
+        empty = tmp_path / "empty_base"
+        empty.mkdir()
+        monkeypatch.setattr(flask_app, "BASE", empty)
+        resp = client.post(
+            "/api/copy_rename_image",
+            json={"input_image": "csafe-001.jpg", "ai_filename": "out.png", "model": "grok"},
+        )
+        assert resp.status_code == 404
 
 
 # ── /api/copy_rename_original ─────────────────────────────────────────────────
