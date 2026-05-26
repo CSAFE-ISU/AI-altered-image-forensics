@@ -925,8 +925,9 @@
     img.style.display = 'block';
     miss.style.display = 'none';
     img.src = '/images/' + encodeURIComponent(filename);
+    img.onclick = () => openLightbox(img.src, filename, '');
     img.onload = () => { img.style.display = 'block'; miss.style.display = 'none'; };
-    img.onerror = () => { img.style.display = 'none'; miss.style.display = 'block'; };
+    img.onerror = () => { img.style.display = 'none'; miss.style.display = 'block'; img.onclick = null; };
   }
 
   function refreshP0Preview() {
