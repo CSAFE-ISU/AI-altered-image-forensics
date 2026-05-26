@@ -2444,8 +2444,16 @@
       wrap.appendChild(miss);
       card.onclick = null;
       card.style.cursor = 'default';
+      menuBtn.remove();
     };
+
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'gallery-card-menu-btn';
+    menuBtn.textContent = '⋯';
+    menuBtn.title = 'Options';
+    menuBtn.onclick = e => { e.stopPropagation(); showGalleryActions(rec); };
     wrap.appendChild(img);
+    wrap.appendChild(menuBtn);
 
     const label = document.createElement('div');
     label.className = 'gallery-label';
@@ -2529,6 +2537,65 @@
 
   function closeGallery() {
     document.getElementById('gallery-overlay').style.display = 'none';
+  }
+
+  function showGalleryActions(rec) {
+    const overlay = document.createElement('div');
+    overlay.className = 'gallery-actions-overlay';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    const panel = document.createElement('div');
+    panel.className = 'gallery-actions-panel';
+
+    const title = document.createElement('div');
+    title.className = 'gallery-actions-title';
+    title.textContent = getRecordName(rec);
+    panel.appendChild(title);
+
+    function addBtn(label, handler) {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = label;
+      btn.onclick = () => { overlay.remove(); handler(); };
+      panel.appendChild(btn);
+    }
+
+    const p0 = state.records.find(r => r.type === 'p0' && r.study_id === rec.study_id);
+
+    if (rec.type === 'p0') {
+      addBtn('View this record', () => { closeGallery(); selectRecord(rec.id); });
+      addBtn('Add new modification', async () => {
+        closeGallery();
+        await newRecord('p1');
+        const sel = document.getElementById('p1_input_select');
+        if (sel && rec.renamed_filename) { sel.value = rec.renamed_filename; p1InputChanged(); }
+      });
+      addBtn('Add new alteration', async () => {
+        closeGallery();
+        await newRecord('p2');
+        const sel = document.getElementById('p2_input_select');
+        if (sel && rec.renamed_filename) { sel.value = rec.renamed_filename; p2InputChanged(); }
+      });
+    } else if (rec.type === 'p1') {
+      if (p0) addBtn('View original record', () => { closeGallery(); selectRecord(p0.id); });
+      addBtn('Add new alteration', async () => {
+        closeGallery();
+        await newRecord('p2');
+        const sel = document.getElementById('p2_input_select');
+        if (sel && rec.input_image) { sel.value = rec.input_image; p2InputChanged(); }
+      });
+    } else if (rec.type === 'p2') {
+      if (p0) addBtn('View original record', () => { closeGallery(); selectRecord(p0.id); });
+    }
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn gallery-actions-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => overlay.remove();
+    panel.appendChild(cancelBtn);
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
   }
 
   function openLightbox(src, filename, meta) {

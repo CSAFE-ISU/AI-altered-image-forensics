@@ -80,6 +80,8 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
 
 Every new original image is assigned a unique *study ID* with the format `csafe_<###>`. The study ID connects modified and altered images to the original image. Records appear in the left sidebar, grouped by the study IDs*.
 
+> **Unsaved changes:** If you switch to a different record, create a new record, or close/refresh the tab while a form has unsaved changes, the app will warn you before proceeding.
+
 There are three image types:
 
 1. **Original** — an unmodified image file as it came from the camera
@@ -138,6 +140,21 @@ Record details about an AI altered image:
 14. Click **Save record**.
 
 To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+
+### Browse the gallery
+
+Click **Gallery** in the top bar to open a visual grid of all images, organized by study.
+
+- **Single-click** a thumbnail to view the full image in a lightbox.
+- **Hover** over a thumbnail to reveal the **⋯** button. Click it to open an action menu with options that depend on the record type:
+
+| Record type | Options |
+|---|---|
+| Original | View this record · Add new modification · Add new alteration |
+| Modification | View original record · Add new alteration |
+| Alteration | View original record |
+
+**View this record / View original record** closes the gallery and selects the record in the sidebar. **Add new modification / Add new alteration** closes the gallery, creates a new record of that type, and pre-selects the source image as the input.
 
 ### Analyze an image
 
