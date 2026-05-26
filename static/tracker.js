@@ -2427,17 +2427,7 @@
 
     const card = document.createElement('div');
     card.className = 'gallery-card';
-
-    let clickTimer = null;
-    card.onclick = () => {
-      if (clickTimer) {
-        clearTimeout(clickTimer);
-        clickTimer = null;
-        showGalleryActions(rec);
-      } else {
-        clickTimer = setTimeout(() => { clickTimer = null; openLightbox(src, filename, meta); }, 250);
-      }
-    };
+    card.onclick = () => openLightbox(src, filename, meta);
 
     const wrap = document.createElement('div');
     wrap.className = 'gallery-thumb-wrap';
@@ -2454,8 +2444,16 @@
       wrap.appendChild(miss);
       card.onclick = null;
       card.style.cursor = 'default';
+      menuBtn.remove();
     };
+
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'gallery-card-menu-btn';
+    menuBtn.textContent = '⋯';
+    menuBtn.title = 'Options';
+    menuBtn.onclick = e => { e.stopPropagation(); showGalleryActions(rec); };
     wrap.appendChild(img);
+    wrap.appendChild(menuBtn);
 
     const label = document.createElement('div');
     label.className = 'gallery-label';
@@ -2465,14 +2463,9 @@
     metaEl.className = 'gallery-card-meta';
     metaEl.textContent = meta;
 
-    const hint = document.createElement('div');
-    hint.className = 'gallery-card-hint';
-    hint.textContent = 'double-click for options';
-
     card.appendChild(wrap);
     card.appendChild(label);
     card.appendChild(metaEl);
-    card.appendChild(hint);
     return card;
   }
 
