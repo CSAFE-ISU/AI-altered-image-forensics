@@ -207,6 +207,23 @@ The model dropdown in the alteration form is populated automatically from the su
 The `downloaded/` subfolder holds files as downloaded from the AI tool; the `renamed/` subfolder holds the renamed copies created by **Copy and Rename** in the tracker.
 
 
+## Troubleshooting
+
+### "Could not load records" error on startup
+
+Free-tier Supabase projects pause automatically after a period of inactivity. When the project is paused, the app cannot reach the database and shows this error.
+
+To restart the project:
+
+1. Go to [supabase.com](https://supabase.com) and sign in.
+2. Open the **AI-altered Images** project.
+3. If the project is paused, you will see a banner at the top of the dashboard. Click **Restore project**.
+4. Wait a minute or two for the project to fully restart.
+5. Reload the app in your browser — records should load normally.
+
+> NOTE: Only a project owner or admin can restore a paused project. If you cannot restore it yourself, ask the team member who owns the project.
+
+
 ## Repository structure
 
 ```
