@@ -1498,7 +1498,8 @@
       ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null],
       ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null],
       ['Grok signature',      r => r.indicators?.grok_signatures != null],
-      ['C2PA manifest',       r => r.indicators?.c2pa?.status?.startsWith('Yes')],
+      ['C2PA — trusted',           r => r.c2pa_viewer_found === true && r.c2pa_viewer_cert_status === 'Trusted'],
+      ['C2PA — untrusted/invalid', r => r.c2pa_viewer_found === true && !!r.c2pa_viewer_cert_status && r.c2pa_viewer_cert_status !== 'Trusted'],
       ['Visible watermark',   r => !!r.visible_watermark],
     ];
 
