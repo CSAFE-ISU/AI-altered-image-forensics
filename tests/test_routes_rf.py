@@ -276,8 +276,6 @@ class TestRandomForestRoute:
         mock_exec = supabase_mock.table.return_value.select.return_value.execute
         mock_exec.return_value.data = [
             {"data": _pixel_rec("p0", i)} for i in range(5)
-        ] + [
-            {"data": _pixel_rec("p2", i + 5)} for i in range(5)
-        ]
+        ] + [{"data": _pixel_rec("p2", i + 5)} for i in range(5)]
         resp = client.post("/api/random_forest", json={"seed": 1})
         assert resp.status_code == 200

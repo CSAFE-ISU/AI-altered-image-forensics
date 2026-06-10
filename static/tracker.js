@@ -1498,7 +1498,7 @@
       ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null],
       ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null],
       ['Grok signature',      r => r.indicators?.grok_signatures != null],
-      ['C2PA manifest',       r => r.indicators?.c2pa != null],
+      ['C2PA manifest',       r => r.indicators?.c2pa?.status?.startsWith('Yes')],
       ['Visible watermark',   r => !!r.visible_watermark],
     ];
 
