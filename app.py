@@ -30,7 +30,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, request, send_file
 
-from analysis import _run_analysis_pipeline
+from analysis import _run_analysis_pipeline, query_aiornot
 from classifier import (
     _RF_FEATURES,
     _RF_FEATURE_LABELS,
@@ -49,6 +49,7 @@ DATA_FILE = BASE / "records.json"
 _supabase = None
 _SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 _SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+_AIORNOT_API_KEY = os.environ.get("AIORNOT_API_KEY", "")
 if _SUPABASE_URL and _SUPABASE_KEY:
     from supabase import create_client
 
@@ -524,6 +525,34 @@ def analyze_file():
     except Exception as e:
         logger.exception("analyze_file failed for %s", filename)
         return jsonify({"error": f"Analysis failed: {e}"}), 500
+
+
+@app.route("/api/aiornot", methods=["POST"])
+def aiornot_analyze():
+    """Submit an uploaded image to the AI or Not detection API.
+
+    Reads AIORNOT_API_KEY from the environment, locates the file in IMAGE_ROOTS,
+    and returns the normalized AI or Not result (decision, probabilities, and
+    per-generator class breakdown).
+    """
+    if not _AIORNOT_API_KEY:
+        return jsonify({"error": "AIORNOT_API_KEY is not set in the environment"}), 503
+
+    data = request.get_json(force=True)
+    filename = (data.get("filename") or "").strip()
+
+    if not filename:
+        return jsonify({"error": "Missing filename"}), 400
+
+    path = find_image(filename)
+    if not path:
+        return jsonify({"error": f"File not found: {filename}"}), 404
+
+    try:
+        return jsonify(query_aiornot(path, _AIORNOT_API_KEY))
+    except Exception as e:
+        logger.exception("aiornot_analyze failed for %s", filename)
+        return jsonify({"error": f"AI or Not request failed: {e}"}), 502
 
 
 # ── Random Forest classifier ──────────────────────────────────────────────────

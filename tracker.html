@@ -184,6 +184,31 @@
               <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p0-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p0-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p0-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
             </div>
+            <div class="section-card">
+              <div class="section-label">AI or Not Results - <a href="https://www.aiornot.com" target="_blank" style="color:var(--accent); font-weight:400;">aiornot.com</a></div>
+              <div style="margin:0.5rem 0;">
+                <button class="btn" id="btn-aiornot-p0" onclick="runAiOrNot('p0')">Run AI or Not</button>
+                <span class="status-msg" id="status-aiornot-p0"></span>
+              </div>
+              <p class="analysis-empty" id="an-p0-aiornot-empty" style="margin-top:0.25rem">No AI or Not results yet.</p>
+              <div id="an-p0-aiornot-results" style="display:none">
+                <div class="two-col">
+                  <div class="field"><label>Decision <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-decision" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability Deepfake <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-deepfake" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <div class="two-col">
+                  <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-human" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <details id="an-p0-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p0-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p0-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Prompt</label><textarea id="an-p0-claude-prompt" placeholder="Prompt sent to Claude..."></textarea></div>
+              <div class="field"><label>Response</label><textarea id="an-p0-claude-response" placeholder="Claude's response..."></textarea></div>
+            </div>
           </div>
         </details>
 
@@ -317,6 +342,31 @@
               <div id="an-p1-artifact-list" class="artifact-display"></div>
               <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p1-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p1-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p1-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
+            </div>
+            <div class="section-card">
+              <div class="section-label">AI or Not Results - <a href="https://www.aiornot.com" target="_blank" style="color:var(--accent); font-weight:400;">aiornot.com</a></div>
+              <div style="margin:0.5rem 0;">
+                <button class="btn" id="btn-aiornot-p1" onclick="runAiOrNot('p1')">Run AI or Not</button>
+                <span class="status-msg" id="status-aiornot-p1"></span>
+              </div>
+              <p class="analysis-empty" id="an-p1-aiornot-empty" style="margin-top:0.25rem">No AI or Not results yet.</p>
+              <div id="an-p1-aiornot-results" style="display:none">
+                <div class="two-col">
+                  <div class="field"><label>Decision <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-decision" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability Deepfake <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-deepfake" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <div class="two-col">
+                  <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-human" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <details id="an-p1-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p1-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p1-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Prompt</label><textarea id="an-p1-claude-prompt" placeholder="Prompt sent to Claude..."></textarea></div>
+              <div class="field"><label>Response</label><textarea id="an-p1-claude-response" placeholder="Claude's response..."></textarea></div>
             </div>
           </div>
         </details>
@@ -554,6 +604,31 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
               <div id="an-p2-artifact-list" class="artifact-display"></div>
               <div class="field"><label>Artifact notes <span class="auto-tag">(auto)</span></label><textarea id="an-p2-artifact-notes" readonly class="auto-field"></textarea></div>
               <details id="an-p2-ela-preview" style="display:none; margin-top:0.75rem"><summary style="cursor:pointer; font-size:0.85rem; color:var(--text-muted)">ELA visualization</summary><img id="an-p2-ela-img" style="max-width:100%; margin-top:0.5rem; border-radius:4px;"></details>
+            </div>
+            <div class="section-card">
+              <div class="section-label">AI or Not Results - <a href="https://www.aiornot.com" target="_blank" style="color:var(--accent); font-weight:400;">aiornot.com</a></div>
+              <div style="margin:0.5rem 0;">
+                <button class="btn" id="btn-aiornot-p2" onclick="runAiOrNot('p2')">Run AI or Not</button>
+                <span class="status-msg" id="status-aiornot-p2"></span>
+              </div>
+              <p class="analysis-empty" id="an-p2-aiornot-empty" style="margin-top:0.25rem">No AI or Not results yet.</p>
+              <div id="an-p2-aiornot-results" style="display:none">
+                <div class="two-col">
+                  <div class="field"><label>Decision <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-decision" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability Deepfake <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-deepfake" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <div class="two-col">
+                  <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-human" readonly class="auto-field" style="width:100%"></div>
+                  <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
+                </div>
+                <details id="an-p2-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p2-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p2-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Prompt</label><textarea id="an-p2-claude-prompt" placeholder="Prompt sent to Claude..."></textarea></div>
+              <div class="field"><label>Response</label><textarea id="an-p2-claude-response" placeholder="Claude's response..."></textarea></div>
             </div>
           </div>
         </details>

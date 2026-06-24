@@ -2,6 +2,7 @@
 
 import json
 from unittest.mock import MagicMock
+import pytest
 import analysis
 from analysis import (
     _run_exiftool,
@@ -414,3 +415,82 @@ class TestRunAnalysisPipeline:
         assert c2pa_ind["signed_by"] == "Adobe"
         assert "issued" not in c2pa_ind  # None values are excluded
         assert "C2PA: Yes" in result["indicators"]["summary"]
+
+
+# ── AI or Not API ─────────────────────────────────────────────────────────────
+
+
+SAMPLE_AIORNOT_RESPONSE = {
+    "id": "report-123",
+    "created_at": "2026-01-01T00:00:00Z",
+    "report": {
+        "ai_generated": {
+            "verdict": "ai",
+            "ai": {"is_detected": True, "confidence": 0.95},
+            "human": {"is_detected": False, "confidence": 0.05},
+            "generator": {
+                "flux": {"is_detected": True, "confidence": 0.9},
+                "four_o": {"is_detected": False, "confidence": 0.2},
+                "some_new_model": {"is_detected": False, "confidence": 0.5},
+                "broken": {"is_detected": False},  # no confidence -> skipped
+            },
+        },
+        "deepfake": {"is_detected": False, "confidence": 0.1},
+    },
+}
+
+
+class TestHumanizeGenerator:
+    def test_known_label(self):
+        assert analysis._humanize_generator("four_o") == "GPT-4o"
+
+    def test_unknown_label_titlecased(self):
+        assert analysis._humanize_generator("some_new_model") == "Some New Model"
+
+
+class TestNormalizeAiOrNot:
+    def test_extracts_verdict_and_probabilities(self):
+        out = analysis._normalize_aiornot(SAMPLE_AIORNOT_RESPONSE)
+        assert out["aiornot_verdict"] == "ai"
+        assert out["aiornot_decision"] == "Likely AI"
+        assert out["aiornot_prob_ai"] == 0.95
+        assert out["aiornot_prob_human"] == 0.05
+        assert out["aiornot_prob_deepfake"] == 0.1
+        assert out["aiornot_id"] == "report-123"
+
+    def test_breakdown_sorted_and_filtered(self):
+        out = analysis._normalize_aiornot(SAMPLE_AIORNOT_RESPONSE)
+        gens = out["aiornot_generators"]
+        # The entry without a confidence is dropped.
+        assert len(gens) == 3
+        # Sorted most-likely first.
+        assert [g["confidence"] for g in gens] == [0.9, 0.5, 0.2]
+        assert gens[0]["label"] == "Flux"
+
+    def test_empty_report_yields_blank_result(self):
+        out = analysis._normalize_aiornot({})
+        assert out["aiornot_verdict"] is None
+        assert out["aiornot_decision"] is None
+        assert out["aiornot_generators"] == []
+
+    def test_unknown_verdict_passes_through(self):
+        data = {"report": {"ai_generated": {"verdict": "weird"}}}
+        out = analysis._normalize_aiornot(data)
+        assert out["aiornot_decision"] == "weird"
+
+
+class TestQueryAiOrNot:
+    def test_success_returns_normalized(self, mocker, sample_jpeg):
+        resp = MagicMock(status_code=200)
+        resp.json.return_value = SAMPLE_AIORNOT_RESPONSE
+        post = mocker.patch.object(analysis.requests, "post", return_value=resp)
+        out = analysis.query_aiornot(sample_jpeg, "secret-key")
+        assert out["aiornot_decision"] == "Likely AI"
+        # Bearer token is sent in the Authorization header.
+        assert post.call_args.kwargs["headers"]["Authorization"] == "Bearer secret-key"
+
+    def test_non_200_raises(self, mocker, sample_jpeg):
+        resp = MagicMock(status_code=401, text="unauthorized")
+        mocker.patch.object(analysis.requests, "post", return_value=resp)
+        with pytest.raises(RuntimeError, match="401"):
+            analysis.query_aiornot(sample_jpeg, "bad-key")

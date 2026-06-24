@@ -519,6 +519,105 @@
     };
   }
 
+  // ── AI or Not ─────────────────────────────────────────────────────────────
+
+  // Format a 0–1 confidence as a percentage string, or '—' when missing.
+  function _pct(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return (v * 100).toFixed(1) + '%';
+  }
+
+  function fillAiOrNotSection(prefix, rec) {
+    const hasData = rec.aiornot_decision || rec.aiornot_verdict
+      || (rec.aiornot_generators && rec.aiornot_generators.length);
+    const empty   = document.getElementById('an-' + prefix + '-aiornot-empty');
+    const results = document.getElementById('an-' + prefix + '-aiornot-results');
+    if (!hasData) {
+      if (empty) empty.style.display = '';
+      if (results) results.style.display = 'none';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (results) results.style.display = '';
+
+    setVal('an-' + prefix + '-aiornot-decision', rec.aiornot_decision || rec.aiornot_verdict || '');
+    setVal('an-' + prefix + '-aiornot-deepfake', _pct(rec.aiornot_prob_deepfake));
+    setVal('an-' + prefix + '-aiornot-human',    _pct(rec.aiornot_prob_human));
+    setVal('an-' + prefix + '-aiornot-ai',       _pct(rec.aiornot_prob_ai));
+
+    // Class breakdown — dynamic per image, so build the rows from the record.
+    const rows = (rec.aiornot_generators || []).map(g => [g.label, _pct(g.confidence), null]);
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-aiornot-breakdown-table'),
+      document.getElementById('an-' + prefix + '-aiornot-breakdown-details'),
+      rows
+    );
+  }
+
+  async function runAiOrNot(type) {
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (!rec) return;
+
+    const filenameMap = { p0: rec.renamed_filename, p1: rec.mod_filename, p2: rec.altered_filename };
+    const filename = filenameMap[type];
+    const statusId = 'status-aiornot-' + type;
+
+    if (!filename) {
+      showStatus(statusId, 'Save the record first to generate a filename', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-aiornot-' + type);
+    btn.disabled = true;
+    showPersistentStatus(statusId, 'Querying AI or Not…', '');
+
+    try {
+      const resp = await fetch('/api/aiornot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus(statusId, result.error || 'AI or Not request failed', 'warning');
+        return;
+      }
+      Object.assign(rec, {
+        aiornot_verdict:       result.aiornot_verdict,
+        aiornot_decision:      result.aiornot_decision,
+        aiornot_prob_ai:       result.aiornot_prob_ai,
+        aiornot_prob_human:    result.aiornot_prob_human,
+        aiornot_prob_deepfake: result.aiornot_prob_deepfake,
+        aiornot_generators:    result.aiornot_generators,
+        aiornot_id:            result.aiornot_id,
+        aiornot_created_at:    result.aiornot_created_at,
+      });
+      fillAiOrNotSection(type, rec);
+      const saved = await persistCurrentRecord();
+      if (saved !== false) showStatus(statusId, 'AI or Not complete', 'success');
+    } catch (err) {
+      showStatus(statusId, 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Claude (manual entry) ─────────────────────────────────────────────────
+
+  function fillClaudeSection(prefix, rec) {
+    setVal('an-' + prefix + '-claude-model',    rec.claude_model    || '');
+    setVal('an-' + prefix + '-claude-prompt',   rec.claude_prompt   || '');
+    setVal('an-' + prefix + '-claude-response', rec.claude_response || '');
+  }
+
+  function getClaudeFields(prefix) {
+    return {
+      claude_model:    getVal('an-' + prefix + '-claude-model'),
+      claude_prompt:   getVal('an-' + prefix + '-claude-prompt'),
+      claude_response: getVal('an-' + prefix + '-claude-response'),
+    };
+  }
+
   function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
     if (!detailsEl || !tableEl) return;
     if (!c2paDetails) { detailsEl.style.display = 'none'; return; }
@@ -662,7 +761,9 @@
 
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
-    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
+    const hasAiOrNotData = !!rec.aiornot_decision || !!rec.aiornot_verdict || (rec.aiornot_generators && rec.aiornot_generators.length);
+    const hasClaudeData = !!rec.claude_model || !!rec.claude_prompt || !!rec.claude_response;
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasClaudeData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -675,6 +776,8 @@
       section.open = false;
       _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
+      fillAiOrNotSection(prefix, rec);
+      fillClaudeSection(prefix, rec);
       return;
     }
     if (empty) empty.style.display = 'none';
@@ -698,6 +801,8 @@
     }
 
     fillViewerSection(prefix, rec);
+    fillAiOrNotSection(prefix, rec);
+    fillClaudeSection(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
@@ -815,7 +920,8 @@
         filesize: getVal('p0_filesize'),
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
-        ...getViewerFields('p0')
+        ...getViewerFields('p0'),
+        ...getClaudeFields('p0')
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -831,7 +937,8 @@
         mod_dims: getVal('p1_mod_dims'),
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
-        ...getViewerFields('p1')
+        ...getViewerFields('p1'),
+        ...getClaudeFields('p1')
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -857,7 +964,8 @@
         visible_watermark: document.getElementById('p2_watermark_yes').checked,
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
-        ...getViewerFields('p2')
+        ...getViewerFields('p2'),
+        ...getClaudeFields('p2')
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
