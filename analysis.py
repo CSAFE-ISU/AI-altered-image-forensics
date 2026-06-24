@@ -12,6 +12,7 @@ import re
 import subprocess
 
 import numpy as np
+import requests
 from PIL import Image, ImageChops, ImageFilter
 
 METADATA_DIR = pathlib.Path(__file__).parent / "metadata"
@@ -600,3 +601,90 @@ def _run_analysis_pipeline(path: pathlib.Path) -> dict:
         "noise_skewness": round(noise_skewness, 4),
         "noise_kurtosis": round(noise_kurtosis, 4),
     }
+
+
+# ── AI or Not detector API ────────────────────────────────────────────────────
+
+# Synchronous image-report endpoint (returns results in the HTTP response).
+AIORNOT_IMAGE_URL = "https://api.aiornot.com/v2/image/sync"
+
+# Human-readable labels for the generator/class names the API returns. The API
+# may add new generators over time, so unknown names fall back to a title-cased
+# version of the raw key (see _humanize_generator).
+_GENERATOR_LABELS = {
+    "dall_e": "DALL·E",
+    "four_o": "GPT-4o",
+    "stable_diffusion": "Stable Diffusion",
+    "midjourney": "Midjourney",
+    "adobe_firefly": "Adobe Firefly",
+    "flux": "Flux",
+    "this_person_does_not_exist": "This Person Does Not Exist",
+}
+
+# Maps the API verdict to the decision wording requested in the tracker UI.
+_VERDICT_LABELS = {
+    "ai": "Likely AI",
+    "human": "Likely real",
+    "unknown": "Unknown",
+}
+
+
+def _humanize_generator(name):
+    """Return a display label for an AI or Not generator key."""
+    if name in _GENERATOR_LABELS:
+        return _GENERATOR_LABELS[name]
+    return name.replace("_", " ").title()
+
+
+def _normalize_aiornot(data):
+    """Flatten the AI or Not API response into the fields the tracker stores.
+
+    Extracts the verdict, the human/AI/deepfake probabilities, and a dynamic
+    class breakdown (one entry per generator, sorted most-likely first). The
+    breakdown is dynamic because the set of generators varies per image.
+    """
+    report = data.get("report", {}) or {}
+    ai_gen = report.get("ai_generated", {}) or {}
+    deepfake = report.get("deepfake", {}) or {}
+    generator = ai_gen.get("generator", {}) or {}
+
+    breakdown = []
+    for name, info in generator.items():
+        if isinstance(info, dict) and info.get("confidence") is not None:
+            breakdown.append(
+                {
+                    "label": _humanize_generator(name),
+                    "confidence": info["confidence"],
+                }
+            )
+    breakdown.sort(key=lambda c: c["confidence"], reverse=True)
+
+    verdict = ai_gen.get("verdict")
+    return {
+        "aiornot_verdict": verdict,
+        "aiornot_decision": _VERDICT_LABELS.get(verdict, verdict),
+        "aiornot_prob_ai": (ai_gen.get("ai") or {}).get("confidence"),
+        "aiornot_prob_human": (ai_gen.get("human") or {}).get("confidence"),
+        "aiornot_prob_deepfake": deepfake.get("confidence"),
+        "aiornot_generators": breakdown,
+        "aiornot_id": data.get("id"),
+        "aiornot_created_at": data.get("created_at"),
+    }
+
+
+def query_aiornot(path, api_key):
+    """Submit an image to the AI or Not API and return a normalized result dict.
+
+    Raises RuntimeError on any non-200 response so the caller can surface the
+    error to the user.
+    """
+    with open(path, "rb") as f:
+        resp = requests.post(
+            AIORNOT_IMAGE_URL,
+            headers={"Authorization": f"Bearer {api_key}"},
+            files={"image": (path.name, f)},
+            timeout=60,
+        )
+    if resp.status_code != 200:
+        raise RuntimeError(f"AI or Not API returned {resp.status_code}: {resp.text}")
+    return _normalize_aiornot(resp.json())

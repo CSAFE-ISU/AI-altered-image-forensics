@@ -519,6 +519,196 @@
     };
   }
 
+  // ── AI or Not ─────────────────────────────────────────────────────────────
+
+  // Format a 0–1 confidence as a percentage string, or '—' when missing.
+  function _pct(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return (v * 100).toFixed(1) + '%';
+  }
+
+  function fillAiOrNotSection(prefix, rec) {
+    const hasData = rec.aiornot_decision || rec.aiornot_verdict
+      || (rec.aiornot_generators && rec.aiornot_generators.length);
+    const empty   = document.getElementById('an-' + prefix + '-aiornot-empty');
+    const results = document.getElementById('an-' + prefix + '-aiornot-results');
+    if (!hasData) {
+      if (empty) empty.style.display = '';
+      if (results) results.style.display = 'none';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (results) results.style.display = '';
+
+    setVal('an-' + prefix + '-aiornot-decision', rec.aiornot_decision || rec.aiornot_verdict || '');
+    setVal('an-' + prefix + '-aiornot-deepfake', _pct(rec.aiornot_prob_deepfake));
+    setVal('an-' + prefix + '-aiornot-human',    _pct(rec.aiornot_prob_human));
+    setVal('an-' + prefix + '-aiornot-ai',       _pct(rec.aiornot_prob_ai));
+
+    // Class breakdown — dynamic per image, so build the rows from the record.
+    const rows = (rec.aiornot_generators || []).map(g => [g.label, _pct(g.confidence), null]);
+    _buildIndicatorTable(
+      document.getElementById('an-' + prefix + '-aiornot-breakdown-table'),
+      document.getElementById('an-' + prefix + '-aiornot-breakdown-details'),
+      rows
+    );
+  }
+
+  async function runAiOrNot(type) {
+    const rec = state.records.find(r => r.id === state.currentId);
+    if (!rec) return;
+
+    const filenameMap = { p0: rec.renamed_filename, p1: rec.mod_filename, p2: rec.altered_filename };
+    const filename = filenameMap[type];
+    const statusId = 'status-aiornot-' + type;
+
+    if (!filename) {
+      showStatus(statusId, 'Save the record first to generate a filename', 'warning');
+      return;
+    }
+
+    const btn = document.getElementById('btn-aiornot-' + type);
+    btn.disabled = true;
+    showPersistentStatus(statusId, 'Querying AI or Not…', '');
+
+    try {
+      const resp = await fetch('/api/aiornot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename })
+      });
+      const result = await resp.json();
+      if (!resp.ok) {
+        showStatus(statusId, result.error || 'AI or Not request failed', 'warning');
+        return;
+      }
+      Object.assign(rec, {
+        aiornot_verdict:       result.aiornot_verdict,
+        aiornot_decision:      result.aiornot_decision,
+        aiornot_prob_ai:       result.aiornot_prob_ai,
+        aiornot_prob_human:    result.aiornot_prob_human,
+        aiornot_prob_deepfake: result.aiornot_prob_deepfake,
+        aiornot_generators:    result.aiornot_generators,
+        aiornot_id:            result.aiornot_id,
+        aiornot_created_at:    result.aiornot_created_at,
+      });
+      fillAiOrNotSection(type, rec);
+      const saved = await persistCurrentRecord();
+      if (saved !== false) showStatus(statusId, 'AI or Not complete', 'success');
+    } catch (err) {
+      showStatus(statusId, 'Error: ' + err.message, 'warning');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Claude (manual entry) ─────────────────────────────────────────────────
+
+  // The fixed set of prompts shown in the Claude section. IDs are stable:
+  // responses are stored keyed by id, so question wording can be tweaked later
+  // without orphaning saved answers.
+  const CLAUDE_QUESTIONS = [
+    { id: 'q1',  text: 'Has this image been altered with AI?' },
+    { id: 'q2',  text: 'Is this image authentic?' },
+    { id: 'q3',  text: 'Was this image generated entirely by AI, or is it a real photograph that was edited?' },
+    { id: 'q4',  text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
+    { id: 'q5',  text: 'What visual artifacts or inconsistencies suggest this image is AI-generated or edited?' },
+    { id: 'q6',  text: 'If AI was involved, which tool or model most likely created or edited this image?' },
+    { id: 'q7',  text: 'On a scale of 0–100%, how confident are you that this image is AI-generated, and why?' },
+    { id: 'q8',  text: 'Are there signs that objects or people were added, removed, or swapped in this image?' },
+    { id: 'q9',  text: 'Do the lighting, shadows, reflections, and perspective appear physically consistent?' },
+    { id: 'q10', text: 'Does this image show signs of conventional digital editing such as cloning, splicing, or retouching?' },
+  ];
+
+  const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));
+
+  // Pull the response text out of a stored entry, tolerating either the
+  // {question, response} object form or a bare string.
+  function _claudeRespText(entry) {
+    if (!entry) return '';
+    return typeof entry === 'string' ? entry : (entry.response || '');
+  }
+
+  // Copy text to the clipboard, briefly flashing the button to confirm.
+  function copyText(text, btn) {
+    const done = () => {
+      if (!btn) return;
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => _fallbackCopy(text, done));
+    } else {
+      _fallbackCopy(text, done);
+    }
+  }
+
+  // Clipboard fallback for browsers/contexts without the async clipboard API.
+  function _fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) { /* best effort */ }
+    document.body.removeChild(ta);
+    done();
+  }
+
+  // Build the list of prompt + response blocks for a phase (once). Each prompt
+  // is shown as a heading with a Copy button, and a response textarea below it.
+  function _buildClaudeQuestions(prefix) {
+    const container = document.getElementById('an-' + prefix + '-claude-questions');
+    if (!container || container.childElementCount) return;
+    CLAUDE_QUESTIONS.forEach(q => {
+      const block = document.createElement('div');
+      block.className = 'claude-q';
+
+      const head = document.createElement('div');
+      head.className = 'claude-q-head';
+      const label = document.createElement('span');
+      label.className = 'claude-q-text';
+      label.textContent = q.text;
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => copyText(q.text, copyBtn));
+      head.append(label, copyBtn);
+
+      const resp = document.createElement('textarea');
+      resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.placeholder = "Claude's response…";
+
+      block.append(head, resp);
+      container.appendChild(block);
+    });
+  }
+
+  function fillClaudeSection(prefix, rec) {
+    _buildClaudeQuestions(prefix);
+    setVal('an-' + prefix + '-claude-model', rec.claude_model || '');
+    const stored = rec.claude_responses || {};
+    CLAUDE_QUESTIONS.forEach(q => {
+      setVal('an-' + prefix + '-claude-resp-' + q.id, _claudeRespText(stored[q.id]));
+    });
+  }
+
+  function getClaudeFields(prefix) {
+    // Keep only non-empty answers, storing the question text alongside each.
+    const responses = {};
+    CLAUDE_QUESTIONS.forEach(q => {
+      const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
+      if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
+    });
+    return {
+      claude_model: getVal('an-' + prefix + '-claude-model'),
+      claude_responses: responses,
+    };
+  }
+
   function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
     if (!detailsEl || !tableEl) return;
     if (!c2paDetails) { detailsEl.style.display = 'none'; return; }
@@ -662,7 +852,9 @@
 
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
-    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData;
+    const hasAiOrNotData = !!rec.aiornot_decision || !!rec.aiornot_verdict || (rec.aiornot_generators && rec.aiornot_generators.length);
+    const hasClaudeData = !!rec.claude_model || (rec.claude_responses && Object.keys(rec.claude_responses).length);
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasClaudeData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -675,6 +867,8 @@
       section.open = false;
       _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
+      fillAiOrNotSection(prefix, rec);
+      fillClaudeSection(prefix, rec);
       return;
     }
     if (empty) empty.style.display = 'none';
@@ -698,6 +892,8 @@
     }
 
     fillViewerSection(prefix, rec);
+    fillAiOrNotSection(prefix, rec);
+    fillClaudeSection(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
@@ -815,7 +1011,8 @@
         filesize: getVal('p0_filesize'),
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
-        ...getViewerFields('p0')
+        ...getViewerFields('p0'),
+        ...getClaudeFields('p0')
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -831,7 +1028,8 @@
         mod_dims: getVal('p1_mod_dims'),
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
-        ...getViewerFields('p1')
+        ...getViewerFields('p1'),
+        ...getClaudeFields('p1')
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -857,7 +1055,8 @@
         visible_watermark: document.getElementById('p2_watermark_yes').checked,
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
-        ...getViewerFields('p2')
+        ...getViewerFields('p2'),
+        ...getClaudeFields('p2')
       });
       showStatus('status-p2a', 'Saved', 'success');
     }

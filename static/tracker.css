@@ -423,3 +423,16 @@
     border: 5px solid transparent; border-top-color: var(--text);
   }
   .tooltip-wrap:hover .tooltip-bubble { display: block; }
+
+  /* Claude prompt + response blocks */
+  .claude-q { margin: 0.75rem 0; }
+  .claude-q-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem; }
+  .claude-q-text { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.45; }
+  .copy-btn { flex-shrink: 0; padding: 3px 10px; font-size: 10px; }
+  .claude-q textarea {
+    width: 100%; padding: 7px 10px; font-family: var(--sans); font-size: 13px;
+    color: var(--text); background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); outline: none; transition: border-color 0.15s;
+    resize: vertical; min-height: 64px; line-height: 1.5;
+  }
+  .claude-q textarea:focus { border-color: var(--accent-border); background: #fff; }

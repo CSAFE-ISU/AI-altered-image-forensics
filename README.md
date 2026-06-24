@@ -55,6 +55,18 @@ The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records in
    SUPABASE_KEY=your-publishable-key
    ```
 
+   To use the **AI or Not** detector (see "Run AI or Not" below), also add an
+   `AIORNOT_API_KEY`. Sign up at [aiornot.com](https://www.aiornot.com), open the
+   dashboard, and create an API key under the API / Developer section (API access
+   requires a plan that includes it). Paste the key into `.env`:
+
+   ```
+   AIORNOT_API_KEY=your-aiornot-api-key
+   ```
+
+   This key is optional — the rest of the app works without it, but the **Run AI
+   or Not** button will report that the key is not set.
+
 6. **Start the app**
 
    If your terminal is already in the CSAFE-AI-altered-image-forensics folder, activate the virtual environment and launch the app:
@@ -168,6 +180,23 @@ Each record has an **Analysis results** section at the bottom. Click **Analyze**
 | ELA anomaly | Re-compress at quality=90, pixel diff | Max pixel difference > 15 |
 | Noise inconsistency | Block-level noise variance (`numpy`) | Uneven noise across 64×64 blocks |
 | Compression blocking | DCT boundary analysis | Visible 8×8 block boundaries (JPEG only) |
+
+### Record responses from AI detectors
+
+The **Analysis results** section also collects responses from third-party AI
+detectors:
+
+- **AI or Not** — click **Run AI or Not** to send the image to the
+  [AI or Not](https://www.aiornot.com) API (requires `AIORNOT_API_KEY` in
+  `.env`). The decision (Likely AI / Likely real), the probabilities for human /
+  AI / deepfake, and a per-generator class breakdown (e.g. Flux, GPT-4o, Stable
+  Diffusion — which varies per image) are filled in automatically and saved with
+  the record.
+- **Claude** — paste results from [Claude](https://claude.ai) manually. Record
+  the model / version, then pick a question from the **Prompt** dropdown (a fixed
+  list of 10 standard questions, e.g. "Has this image been altered with AI?") and
+  paste Claude's response. Each image stores a separate response per question, so
+  you can switch questions in the dropdown and fill in answers one at a time.
 
 
 ## File naming conventions
