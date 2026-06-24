@@ -192,8 +192,11 @@ detectors:
   AI / deepfake, and a per-generator class breakdown (e.g. Flux, GPT-4o, Stable
   Diffusion — which varies per image) are filled in automatically and saved with
   the record.
-- **Claude** — paste results from [Claude](https://claude.ai) manually: the
-  model / version, the prompt you used, and Claude's response.
+- **Claude** — paste results from [Claude](https://claude.ai) manually. Record
+  the model / version, then pick a question from the **Prompt** dropdown (a fixed
+  list of 10 standard questions, e.g. "Has this image been altered with AI?") and
+  paste Claude's response. Each image stores a separate response per question, so
+  you can switch questions in the dropdown and fill in answers one at a time.
 
 
 ## File naming conventions

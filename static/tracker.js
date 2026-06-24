@@ -604,17 +604,108 @@
 
   // ── Claude (manual entry) ─────────────────────────────────────────────────
 
+  // The fixed set of prompts shown in the Claude section. IDs are stable:
+  // responses are stored keyed by id, so question wording can be tweaked later
+  // without orphaning saved answers.
+  const CLAUDE_QUESTIONS = [
+    { id: 'q1',  text: 'Has this image been altered with AI?' },
+    { id: 'q2',  text: 'Is this image authentic?' },
+    { id: 'q3',  text: 'Was this image generated entirely by AI, or is it a real photograph that was edited?' },
+    { id: 'q4',  text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
+    { id: 'q5',  text: 'What visual artifacts or inconsistencies suggest this image is AI-generated or edited?' },
+    { id: 'q6',  text: 'If AI was involved, which tool or model most likely created or edited this image?' },
+    { id: 'q7',  text: 'On a scale of 0–100%, how confident are you that this image is AI-generated, and why?' },
+    { id: 'q8',  text: 'Are there signs that objects or people were added, removed, or swapped in this image?' },
+    { id: 'q9',  text: 'Do the lighting, shadows, reflections, and perspective appear physically consistent?' },
+    { id: 'q10', text: 'Does this image show signs of conventional digital editing such as cloning, splicing, or retouching?' },
+  ];
+
+  const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));
+
+  // Pull the response text out of a stored entry, tolerating either the
+  // {question, response} object form or a bare string.
+  function _claudeRespText(entry) {
+    if (!entry) return '';
+    return typeof entry === 'string' ? entry : (entry.response || '');
+  }
+
+  // Copy text to the clipboard, briefly flashing the button to confirm.
+  function copyText(text, btn) {
+    const done = () => {
+      if (!btn) return;
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = orig; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(() => _fallbackCopy(text, done));
+    } else {
+      _fallbackCopy(text, done);
+    }
+  }
+
+  // Clipboard fallback for browsers/contexts without the async clipboard API.
+  function _fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) { /* best effort */ }
+    document.body.removeChild(ta);
+    done();
+  }
+
+  // Build the list of prompt + response blocks for a phase (once). Each prompt
+  // is shown as a heading with a Copy button, and a response textarea below it.
+  function _buildClaudeQuestions(prefix) {
+    const container = document.getElementById('an-' + prefix + '-claude-questions');
+    if (!container || container.childElementCount) return;
+    CLAUDE_QUESTIONS.forEach(q => {
+      const block = document.createElement('div');
+      block.className = 'claude-q';
+
+      const head = document.createElement('div');
+      head.className = 'claude-q-head';
+      const label = document.createElement('span');
+      label.className = 'claude-q-text';
+      label.textContent = q.text;
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.addEventListener('click', () => copyText(q.text, copyBtn));
+      head.append(label, copyBtn);
+
+      const resp = document.createElement('textarea');
+      resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.placeholder = "Claude's response…";
+
+      block.append(head, resp);
+      container.appendChild(block);
+    });
+  }
+
   function fillClaudeSection(prefix, rec) {
-    setVal('an-' + prefix + '-claude-model',    rec.claude_model    || '');
-    setVal('an-' + prefix + '-claude-prompt',   rec.claude_prompt   || '');
-    setVal('an-' + prefix + '-claude-response', rec.claude_response || '');
+    _buildClaudeQuestions(prefix);
+    setVal('an-' + prefix + '-claude-model', rec.claude_model || '');
+    const stored = rec.claude_responses || {};
+    CLAUDE_QUESTIONS.forEach(q => {
+      setVal('an-' + prefix + '-claude-resp-' + q.id, _claudeRespText(stored[q.id]));
+    });
   }
 
   function getClaudeFields(prefix) {
+    // Keep only non-empty answers, storing the question text alongside each.
+    const responses = {};
+    CLAUDE_QUESTIONS.forEach(q => {
+      const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
+      if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
+    });
     return {
-      claude_model:    getVal('an-' + prefix + '-claude-model'),
-      claude_prompt:   getVal('an-' + prefix + '-claude-prompt'),
-      claude_response: getVal('an-' + prefix + '-claude-response'),
+      claude_model: getVal('an-' + prefix + '-claude-model'),
+      claude_responses: responses,
     };
   }
 
@@ -762,7 +853,7 @@
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
     const hasAiOrNotData = !!rec.aiornot_decision || !!rec.aiornot_verdict || (rec.aiornot_generators && rec.aiornot_generators.length);
-    const hasClaudeData = !!rec.claude_model || !!rec.claude_prompt || !!rec.claude_response;
+    const hasClaudeData = !!rec.claude_model || (rec.claude_responses && Object.keys(rec.claude_responses).length);
     const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasClaudeData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
