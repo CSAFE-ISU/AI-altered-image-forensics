@@ -11,6 +11,9 @@ records.json
 __pycache__/
 *.pyc
 
+# Test coverage artifact — regenerated on every run
+.coverage
+
 # Supabase credentials — never commit
 .env
 
