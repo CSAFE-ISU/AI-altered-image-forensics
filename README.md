@@ -236,6 +236,42 @@ The model dropdown in the alteration form is populated automatically from the su
 The `downloaded/` subfolder holds files as downloaded from the AI tool; the `renamed/` subfolder holds the renamed copies created by **Copy and Rename** in the tracker.
 
 
+## Security
+
+This is a local, single-user research tool with no built-in authentication. A
+few precautions keep the shared credentials and external connections safe.
+
+- **Enable Supabase Row Level Security (RLS).** The `SUPABASE_KEY` is the
+  publishable **anon** key, which is shared across the team. It is only safe if
+  RLS is enabled on the `records` table with appropriate access policies. Verify
+  this in the Supabase dashboard under **Authentication → Policies**. **Never**
+  put the `service_role` key in `.env` — it bypasses RLS entirely.
+- **Protect your `.env` file.** It holds your credentials and is already
+  gitignored — never commit it. On a shared computer, restrict it to your user:
+  ```bash
+  chmod 600 .env
+  ```
+  If a key is ever exposed, rotate it (Supabase: **Project Settings → API
+  Keys**; AI or Not: regenerate in your account dashboard).
+- **Run locally only.** Start the app on the default `localhost` binding and do
+  not expose the port to a network or bind to `0.0.0.0`. The app has no
+  authentication, and the **Run AI or Not** button spends real API credits on
+  every call.
+- **Keep the debugger off.** The app runs with the Flask debugger **disabled**
+  by default. Only enable it for local development by setting `FLASK_DEBUG=1`,
+  and never with the app reachable from a network — the interactive debugger
+  allows arbitrary code execution.
+- **AI or Not sends images to a third party.** Clicking **Run AI or Not**
+  uploads the image to `api.aiornot.com`. Keep this in mind for sensitive
+  material, and review their data-retention policy.
+- **Audit dependencies periodically.** Check the pinned packages for known
+  vulnerabilities:
+  ```bash
+  pip3 install pip-audit
+  pip-audit
+  ```
+
+
 ## Troubleshooting
 
 ### "Could not load records" error on startup

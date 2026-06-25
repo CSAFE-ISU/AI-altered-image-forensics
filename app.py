@@ -522,9 +522,13 @@ def analyze_file():
 
     try:
         return jsonify(_run_analysis_pipeline(path))
-    except Exception as e:
+    except Exception:
+        # Log full detail server-side; return a generic message to the client.
         logger.exception("analyze_file failed for %s", filename)
-        return jsonify({"error": f"Analysis failed: {e}"}), 500
+        return (
+            jsonify({"error": "Analysis failed. Check the server logs for details."}),
+            500,
+        )
 
 
 @app.route("/api/aiornot", methods=["POST"])
@@ -550,9 +554,16 @@ def aiornot_analyze():
 
     try:
         return jsonify(query_aiornot(path, _AIORNOT_API_KEY))
-    except Exception as e:
+    except Exception:
+        # Log full detail server-side; return a generic message to the client so
+        # the upstream API's raw response body is never exposed to the browser.
         logger.exception("aiornot_analyze failed for %s", filename)
-        return jsonify({"error": f"AI or Not request failed: {e}"}), 502
+        return (
+            jsonify(
+                {"error": "AI or Not request failed; see server logs for details."}
+            ),
+            502,
+        )
 
 
 # ── Random Forest classifier ──────────────────────────────────────────────────
@@ -728,5 +739,8 @@ if __name__ == "__main__":
                 DATA_FILE.write_text("[]", encoding="utf-8")
 
     port = int(os.environ.get("PORT", 5001))
+    # Debugger is off by default; the Werkzeug interactive debugger allows
+    # arbitrary code execution, so only enable it for local development.
+    debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes")
     print(f"\n  CSAFE Tracker running → http://localhost:{port}\n")
-    app.run(debug=True, port=port)
+    app.run(debug=debug, port=port)
