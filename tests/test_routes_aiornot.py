@@ -54,3 +54,5 @@ class TestAiOrNotRoute:
         Image.new("RGB", (8, 8)).save(str(dest), format="JPEG")
         resp = client.post("/api/aiornot", json={"filename": "test.jpg"})
         assert resp.status_code == 502
+        # The raw exception detail must not leak to the client.
+        assert "boom" not in resp.get_json()["error"]

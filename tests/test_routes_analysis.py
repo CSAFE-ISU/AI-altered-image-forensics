@@ -43,3 +43,5 @@ class TestAnalyzeFile:
         Image.new("RGB", (8, 8)).save(str(dest), format="JPEG")
         resp = client.post("/api/analyze_file", json={"filename": "test.jpg"})
         assert resp.status_code == 500
+        # The raw exception detail must not leak to the client.
+        assert "boom" not in resp.get_json()["error"]
