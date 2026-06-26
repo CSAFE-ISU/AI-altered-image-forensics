@@ -1802,26 +1802,83 @@
       return wrapper;
     }
 
-    // ── 1. Detection rate by image type ──
-    const typeSection = document.createElement('div');
-    const typeTitle = document.createElement('div');
-    typeTitle.className = 'dash-section-title';
-    typeTitle.textContent = 'Detection Rate by Image Type';
-    typeSection.appendChild(typeTitle);
-    const typeSub = document.createElement('p');
-    typeSub.className = 'dash-section-subtitle';
-    typeSub.textContent = 'Percentage of analyzed images of each type that AI or Not flagged as ' +
-      '"Likely AI". Ideally originals and modified images read as real (low) and altered images as AI (high).';
-    typeSection.appendChild(typeSub);
+    // ── 1. Confusion matrix (AI = positive case) ──
+    // Altered images are the positive ground-truth case; originals and modified
+    // images are grouped as the negative case. A "Likely AI" verdict is a
+    // positive prediction.
+    const cmSection = document.createElement('div');
+    const cmTitle = document.createElement('div');
+    cmTitle.className = 'dash-section-title';
+    cmTitle.textContent = 'AI or Not Confusion Matrix';
+    cmSection.appendChild(cmTitle);
+    const cmSub = document.createElement('p');
+    cmSub.className = 'dash-section-subtitle';
+    cmSub.textContent = 'Treats "Likely AI" as the positive prediction and altered images as the ' +
+      'positive ground-truth case; originals and modified images are grouped as the negative case.';
+    cmSection.appendChild(cmSub);
 
-    const typeChart = document.createElement('div');
-    typeChart.className = 'dash-bar-chart';
-    [['Original', aP0], ['Modified', aP1], ['Altered', aP2]].forEach(([label, recs]) => {
-      if (!recs.length) return;
-      _appendPctRow(typeChart, label, recs.filter(_aiornotIsAI), recs.length, `Flagged "Likely AI" — ${label}`);
+    const negRecs = [...aP0, ...aP1];
+    const tp = aP2.filter(_aiornotIsAI);
+    const fn = aP2.filter(r => !_aiornotIsAI(r));
+    const fp = negRecs.filter(_aiornotIsAI);
+    const tn = negRecs.filter(r => !_aiornotIsAI(r));
+
+    // Build a confusion-matrix cell: count, correct/incorrect tint, and (when
+    // non-empty) a click that opens those records in the gallery.
+    const cmCell = (records, correct, galleryLabel) => {
+      const td = document.createElement('td');
+      td.style.cssText = 'text-align:center; font-family:var(--mono); font-size:18px; background:' +
+        (correct ? 'rgba(78,184,78,0.12)' : 'rgba(224,92,92,0.12)') + ';';
+      td.textContent = records.length;
+      if (records.length) {
+        td.style.cursor = 'pointer';
+        td.title = 'Click to view in gallery';
+        const ids = new Set(records.map(r => r.id));
+        td.addEventListener('click', () => { closeDashboard(); openGallery(ids, galleryLabel); });
+      }
+      return td;
+    };
+
+    const cmTable = document.createElement('table');
+    cmTable.className = 'dash-table';
+    const cmHead = cmTable.createTHead();
+    const cmHRow = cmHead.insertRow();
+    ['', 'Predicted: AI', 'Predicted: Real'].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.textAlign = 'center';
+      cmHRow.appendChild(th);
     });
-    typeSection.appendChild(typeChart);
-    wrapper.appendChild(typeSection);
+    const cmBody = cmTable.createTBody();
+    const cmRow = (label, cells) => {
+      const tr = cmBody.insertRow();
+      const th = document.createElement('th');
+      th.textContent = label;
+      tr.appendChild(th);
+      cells.forEach(c => tr.appendChild(c));
+    };
+    cmRow('Actual: Altered (AI)', [
+      cmCell(tp, true,  'True positives — altered, flagged AI'),
+      cmCell(fn, false, 'False negatives — altered, flagged real'),
+    ]);
+    cmRow('Actual: Original + Modified (real)', [
+      cmCell(fp, false, 'False positives — real, flagged AI'),
+      cmCell(tn, true,  'True negatives — real, flagged real'),
+    ]);
+    cmSection.appendChild(cmTable);
+
+    // Standard rates derived from the matrix ('—' when the denominator is zero).
+    const _rate = (num, den) => (den ? Math.round(num / den * 100) + '%' : '—');
+    const metrics = document.createElement('p');
+    metrics.className = 'dash-section-subtitle';
+    metrics.style.margin = '0.75rem 0 0';
+    metrics.textContent =
+      `Recall ${_rate(tp.length, tp.length + fn.length)} · ` +
+      `Specificity ${_rate(tn.length, tn.length + fp.length)} · ` +
+      `Precision ${_rate(tp.length, tp.length + fp.length)} · ` +
+      `Accuracy ${_rate(tp.length + tn.length, totalAnalyzed)}`;
+    cmSection.appendChild(metrics);
+    wrapper.appendChild(cmSection);
 
     // ── 2. Detection rate by model (altered images only) ──
     if (aP2.length) {

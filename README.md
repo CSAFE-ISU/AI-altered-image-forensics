@@ -209,9 +209,10 @@ organized into collapsible groups:
   and metadata tags by image type.
 - **AI or Not Detector** — analysis of the [AI or Not](https://www.aiornot.com)
   results recorded on each image:
-  - **Detection rate by image type** — the percentage of originals, modified, and
-    altered images flagged "Likely AI". Originals and modified images should read
-    as real (low), altered images as AI (high).
+  - **Confusion matrix** — treats "Likely AI" as the positive prediction and
+    altered images as the positive ground-truth case, with originals and modified
+    images grouped as the negative case. Cells show true/false positives and
+    negatives, with recall, specificity, precision, and accuracy below.
   - **Detection rate by model** — for altered images, the share flagged "Likely
     AI" per generating model.
   - **AI probability distribution** — density curves of the AI confidence score,
