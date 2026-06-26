@@ -243,9 +243,23 @@ few precautions keep the shared credentials and external connections safe.
 
 - **Enable Supabase Row Level Security (RLS).** The `SUPABASE_KEY` is the
   publishable **anon** key, which is shared across the team. It is only safe if
-  RLS is enabled on the `records` table with appropriate access policies. Verify
-  this in the Supabase dashboard under **Authentication → Policies**. **Never**
-  put the `service_role` key in `.env` — it bypasses RLS entirely.
+  RLS is enabled on the `records` table with appropriate access policies. To set
+  this up (a project owner/admin does this once):
+  1. In the Supabase dashboard, open **SQL Editor → New query**.
+  2. Paste the contents of [`supabase_rls.sql`](supabase_rls.sql) and click
+     **Run**. This enables RLS and grants the anon role the four operations the
+     app needs (select / insert / update / delete). The script is idempotent, so
+     it is safe to re-run.
+  3. Verify: the **Database → Tables → `records`** view no longer shows the red
+     **"Unrestricted"** badge, and four policies appear under **Authentication →
+     Policies**.
+  4. Confirm the app can still **load**, **save**, and **delete** records.
+
+  **Never** put the `service_role` key in `.env` — it bypasses RLS entirely.
+  Note that RLS is a baseline (least privilege + no other tables exposed); it
+  does not protect data from someone who already holds the shared anon key. True
+  per-user protection requires per-user logins (Supabase Auth), a possible
+  future enhancement.
 - **Protect your `.env` file.** It holds your credentials and is already
   gitignored — never commit it. On a shared computer, restrict it to your user:
   ```bash
@@ -298,6 +312,7 @@ To restart the project:
 ├── .env                            # Supabase credentials (not committed — get from a team member)
 ├── .env.example                    # Credential template
 ├── requirements.txt                # Python dependencies
+├── supabase_rls.sql                # Row Level Security policies for the records table
 ├── migrate_to_supabase.py          # One-time migration script (already run)
 ├── real images/
 │   ├── 01-original/                # Files as received from camera
