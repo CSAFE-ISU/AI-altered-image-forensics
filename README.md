@@ -198,6 +198,34 @@ detectors:
   paste Claude's response. Each image stores a separate response per question, so
   you can switch questions in the dropdown and fill in answers one at a time.
 
+### Dashboard
+
+Click **Dashboard** in the top bar to open aggregate analytics across all records,
+organized into collapsible groups:
+
+- **Summary** — record counts, alterations by model, subjective-quality
+  distribution, and a quality-by-model scatter plot.
+- **AI Indicators** — indicator presence by model, visible-watermark coverage,
+  and metadata tags by image type.
+- **AI or Not Detector** — analysis of the [AI or Not](https://www.aiornot.com)
+  results recorded on each image:
+  - **Detection rate by image type** — the percentage of originals, modified, and
+    altered images flagged "Likely AI". Originals and modified images should read
+    as real (low), altered images as AI (high).
+  - **Detection rate by model** — for altered images, the share flagged "Likely
+    AI" per generating model.
+  - **AI probability distribution** — density curves of the AI confidence score,
+    overlaid for real (originals + modified) vs. altered images.
+  - **Deepfake & generator attribution** — the mean deepfake probability for real
+    vs. altered images, and how often each generator is the most-likely
+    attribution for altered images.
+
+  Only records that have AI or Not results contribute; bars are clickable to open
+  the matching images in the gallery.
+- **Visual / pixel-level artifacts** — distributions of ELA and noise features.
+- **Random Forest Classifier** — train and evaluate a classifier on the pixel
+  features.
+
 
 ## File naming conventions
 

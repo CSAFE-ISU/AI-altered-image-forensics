@@ -1739,6 +1739,174 @@
     return section;
   }
 
+  // ── AI or Not detector analysis ───────────────────────────────────────────
+
+  // A record carries AI or Not results once it has a verdict or decision.
+  function _hasAiOrNot(r) {
+    return !!(r.aiornot_verdict || r.aiornot_decision);
+  }
+
+  // AI or Not flags an image as AI-generated when its verdict reads "ai".
+  function _aiornotIsAI(r) {
+    return r.aiornot_verdict === 'ai' || r.aiornot_decision === 'Likely AI';
+  }
+
+  // Append one percentage bar (matching / total) to a dash-bar-chart. When any
+  // records match, the row is clickable and opens them in the gallery.
+  function _appendPctRow(chart, label, matching, total, galleryLabel) {
+    const pct = total ? Math.round(matching.length / total * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'dash-bar-row';
+    if (matching.length) {
+      row.style.cursor = 'pointer';
+      row.title = 'Click to view in gallery';
+      const ids = new Set(matching.map(r => r.id));
+      row.addEventListener('click', () => {
+        closeDashboard();
+        openGallery(ids, galleryLabel);
+      });
+    }
+    const labelEl = document.createElement('span');
+    labelEl.className = 'dash-bar-label';
+    labelEl.textContent = label;
+    labelEl.style.width = '220px';
+    const track = document.createElement('div');
+    track.className = 'dash-bar-track';
+    const fill = document.createElement('div');
+    fill.className = 'dash-bar-fill';
+    fill.style.width = pct + '%';
+    track.appendChild(fill);
+    const cEl = document.createElement('span');
+    cEl.className = 'dash-bar-count-wide';
+    cEl.textContent = `${pct}% (${matching.length}/${total})`;
+    row.append(labelEl, track, cEl);
+    chart.appendChild(row);
+  }
+
+  function buildAiOrNotSection(p0, p1, p2) {
+    const ORIG_COLOR = '#4e9af1';
+    const ALT_COLOR  = '#e05c5c';
+
+    const wrapper = document.createElement('div');
+
+    const aP0 = p0.filter(_hasAiOrNot);
+    const aP1 = p1.filter(_hasAiOrNot);
+    const aP2 = p2.filter(_hasAiOrNot);
+    const totalAnalyzed = aP0.length + aP1.length + aP2.length;
+
+    if (!totalAnalyzed) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No records have AI or Not results yet.';
+      wrapper.appendChild(empty);
+      return wrapper;
+    }
+
+    // ── 1. Detection rate by image type ──
+    const typeSection = document.createElement('div');
+    const typeTitle = document.createElement('div');
+    typeTitle.className = 'dash-section-title';
+    typeTitle.textContent = 'Detection Rate by Image Type';
+    typeSection.appendChild(typeTitle);
+    const typeSub = document.createElement('p');
+    typeSub.className = 'dash-section-subtitle';
+    typeSub.textContent = 'Percentage of analyzed images of each type that AI or Not flagged as ' +
+      '"Likely AI". Ideally originals and modified images read as real (low) and altered images as AI (high).';
+    typeSection.appendChild(typeSub);
+
+    const typeChart = document.createElement('div');
+    typeChart.className = 'dash-bar-chart';
+    [['Original', aP0], ['Modified', aP1], ['Altered', aP2]].forEach(([label, recs]) => {
+      if (!recs.length) return;
+      _appendPctRow(typeChart, label, recs.filter(_aiornotIsAI), recs.length, `Flagged "Likely AI" — ${label}`);
+    });
+    typeSection.appendChild(typeChart);
+    wrapper.appendChild(typeSection);
+
+    // ── 2. Detection rate by model (altered images only) ──
+    if (aP2.length) {
+      const modelSection = document.createElement('div');
+      const modelTitle = document.createElement('div');
+      modelTitle.className = 'dash-section-title';
+      modelTitle.textContent = 'Detection Rate by Model';
+      modelSection.appendChild(modelTitle);
+      const modelSub = document.createElement('p');
+      modelSub.className = 'dash-section-subtitle';
+      modelSub.textContent = 'For altered images, the percentage AI or Not flagged as "Likely AI", per generating model.';
+      modelSection.appendChild(modelSub);
+
+      const byModel = {};
+      aP2.forEach(r => {
+        const m = (r.model || 'Unknown').trim() || 'Unknown';
+        (byModel[m] = byModel[m] || []).push(r);
+      });
+      const modelChart = document.createElement('div');
+      modelChart.className = 'dash-bar-chart';
+      // Sort by detection rate descending, then name for stable ties.
+      Object.keys(byModel)
+        .sort((a, b) => {
+          const ra = byModel[a].filter(_aiornotIsAI).length / byModel[a].length;
+          const rb = byModel[b].filter(_aiornotIsAI).length / byModel[b].length;
+          return rb - ra || a.localeCompare(b);
+        })
+        .forEach(m => {
+          _appendPctRow(modelChart, m, byModel[m].filter(_aiornotIsAI), byModel[m].length, `Flagged "Likely AI" — ${m}`);
+        });
+      modelSection.appendChild(modelChart);
+      wrapper.appendChild(modelSection);
+    }
+
+    // ── 3. AI-probability distribution by image type ──
+    const realProbs = [...aP0, ...aP1]
+      .map(r => r.aiornot_prob_ai).filter(v => typeof v === 'number');
+    const altProbs = aP2
+      .map(r => r.aiornot_prob_ai).filter(v => typeof v === 'number');
+    if (realProbs.length || altProbs.length) {
+      wrapper.appendChild(buildDensityPlot('AI Probability Distribution', 'P(AI)', [
+        { label: 'Real (originals + modified)', color: ORIG_COLOR, values: realProbs },
+        { label: 'Altered',                     color: ALT_COLOR,  values: altProbs },
+      ]));
+    }
+
+    // ── 4. Deepfake probability & generator attribution ──
+    const dfSection = document.createElement('div');
+    const dfTitle = document.createElement('div');
+    dfTitle.className = 'dash-section-title';
+    dfTitle.textContent = 'Deepfake & Generator Attribution';
+    dfSection.appendChild(dfTitle);
+
+    const mean = vals => vals.reduce((s, v) => s + v, 0) / vals.length;
+    const realDf = [...aP0, ...aP1].map(r => r.aiornot_prob_deepfake).filter(v => typeof v === 'number');
+    const altDf  = aP2.map(r => r.aiornot_prob_deepfake).filter(v => typeof v === 'number');
+    const dfSub = document.createElement('p');
+    dfSub.className = 'dash-section-subtitle';
+    const realTxt = realDf.length ? (mean(realDf) * 100).toFixed(1) + '%' : '—';
+    const altTxt  = altDf.length ? (mean(altDf) * 100).toFixed(1) + '%' : '—';
+    dfSub.textContent = `Mean deepfake probability — real: ${realTxt}, altered: ${altTxt}.`;
+    dfSection.appendChild(dfSub);
+    wrapper.appendChild(dfSection);
+
+    // Tally the most-likely generator (highest confidence) per altered image.
+    const genCounts = {}, genIds = {};
+    aP2.forEach(r => {
+      const gens = r.aiornot_generators || [];
+      if (!gens.length) return;
+      const top = gens[0].label;  // generators arrive sorted most-likely first
+      genCounts[top] = (genCounts[top] || 0) + 1;
+      (genIds[top] = genIds[top] || []).push(r.id);
+    });
+    if (Object.keys(genCounts).length) {
+      dfSection.appendChild(buildBarChart('Most likely generator (altered images)', genCounts, false, genIds));
+    } else {
+      const noGen = document.createElement('p');
+      noGen.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      noGen.textContent = 'No generator attributions among analyzed altered images.';
+      dfSection.appendChild(noGen);
+    }
+
+    return wrapper;
+  }
+
   // ── KDE density plot ──────────────────────────────────────────────────────
 
   function buildDensityPlot(title, unit, datasets) {
@@ -2448,6 +2616,11 @@
 
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
+
+    // ── AI or Not detector group ──
+    const { details: anDetails, body: anBody } = buildDashGroup('AI or Not Detector');
+    content.appendChild(anDetails);
+    anBody.appendChild(buildAiOrNotSection(p0, p1, p2));
 
     // ── Visual / pixel-level artifacts group ──
     const { details: fdDetails, body: fdBody } = buildDashGroup('Visual / pixel-level artifacts', false);
