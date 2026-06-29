@@ -1817,7 +1817,8 @@
     const cmSub = document.createElement('p');
     cmSub.className = 'dash-section-subtitle';
     cmSub.textContent = 'Treats "Likely AI" as the positive prediction and altered images as the ' +
-      'positive ground-truth case; originals and modified images are grouped as the negative case.';
+      'positive ground-truth case; originals and modified images are grouped as the negative case. ' +
+      'Click a cell to view those images in the gallery.';
     cmSection.appendChild(cmSub);
 
     const negRecs = [...aP0, ...aP1];

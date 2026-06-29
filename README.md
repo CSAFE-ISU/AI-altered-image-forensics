@@ -218,8 +218,8 @@ organized into collapsible groups:
   - **AI probability distribution** — density curves of the AI confidence score,
     overlaid for real (originals + modified) vs. altered images.
 
-  Only records that have AI or Not results contribute; bars are clickable to open
-  the matching images in the gallery.
+  Only records that have AI or Not results contribute; confusion-matrix cells and
+  bars are clickable to open the matching images in the gallery.
 - **Visual / pixel-level artifacts** — distributions of ELA and noise features.
 - **Random Forest Classifier** — train and evaluate a classifier on the pixel
   features.
