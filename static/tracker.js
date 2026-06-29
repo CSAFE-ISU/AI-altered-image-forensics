@@ -1928,42 +1928,6 @@
       ]));
     }
 
-    // ── 4. Deepfake probability & generator attribution ──
-    const dfSection = document.createElement('div');
-    const dfTitle = document.createElement('div');
-    dfTitle.className = 'dash-section-title';
-    dfTitle.textContent = 'Deepfake & Generator Attribution';
-    dfSection.appendChild(dfTitle);
-
-    const mean = vals => vals.reduce((s, v) => s + v, 0) / vals.length;
-    const realDf = [...aP0, ...aP1].map(r => r.aiornot_prob_deepfake).filter(v => typeof v === 'number');
-    const altDf  = aP2.map(r => r.aiornot_prob_deepfake).filter(v => typeof v === 'number');
-    const dfSub = document.createElement('p');
-    dfSub.className = 'dash-section-subtitle';
-    const realTxt = realDf.length ? (mean(realDf) * 100).toFixed(1) + '%' : '—';
-    const altTxt  = altDf.length ? (mean(altDf) * 100).toFixed(1) + '%' : '—';
-    dfSub.textContent = `Mean deepfake probability — real: ${realTxt}, altered: ${altTxt}.`;
-    dfSection.appendChild(dfSub);
-    wrapper.appendChild(dfSection);
-
-    // Tally the most-likely generator (highest confidence) per altered image.
-    const genCounts = {}, genIds = {};
-    aP2.forEach(r => {
-      const gens = r.aiornot_generators || [];
-      if (!gens.length) return;
-      const top = gens[0].label;  // generators arrive sorted most-likely first
-      genCounts[top] = (genCounts[top] || 0) + 1;
-      (genIds[top] = genIds[top] || []).push(r.id);
-    });
-    if (Object.keys(genCounts).length) {
-      dfSection.appendChild(buildBarChart('Most likely generator (altered images)', genCounts, false, genIds));
-    } else {
-      const noGen = document.createElement('p');
-      noGen.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
-      noGen.textContent = 'No generator attributions among analyzed altered images.';
-      dfSection.appendChild(noGen);
-    }
-
     return wrapper;
   }
 

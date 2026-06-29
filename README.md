@@ -217,9 +217,6 @@ organized into collapsible groups:
     AI" per generating model.
   - **AI probability distribution** — density curves of the AI confidence score,
     overlaid for real (originals + modified) vs. altered images.
-  - **Deepfake & generator attribution** — the mean deepfake probability for real
-    vs. altered images, and how often each generator is the most-likely
-    attribution for altered images.
 
   Only records that have AI or Not results contribute; bars are clickable to open
   the matching images in the gallery.
