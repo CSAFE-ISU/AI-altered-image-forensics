@@ -1739,15 +1739,224 @@
     return section;
   }
 
+  // ── AI or Not detector analysis ───────────────────────────────────────────
+
+  // A record carries AI or Not results once it has a verdict or decision.
+  function _hasAiOrNot(r) {
+    return !!(r.aiornot_verdict || r.aiornot_decision);
+  }
+
+  // AI or Not flags an image as AI-generated when its verdict reads "ai".
+  function _aiornotIsAI(r) {
+    return r.aiornot_verdict === 'ai' || r.aiornot_decision === 'Likely AI';
+  }
+
+  // Append one percentage bar (matching / total) to a dash-bar-chart. When any
+  // records match, the row is clickable and opens them in the gallery. A fixed
+  // countWidth keeps the count column (and therefore the tracks) the same width
+  // across rows so every bar has the same total length.
+  function _appendPctRow(chart, label, matching, total, galleryLabel, countWidth) {
+    const pct = total ? Math.round(matching.length / total * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'dash-bar-row';
+    if (matching.length) {
+      row.style.cursor = 'pointer';
+      row.title = 'Click to view in gallery';
+      const ids = new Set(matching.map(r => r.id));
+      row.addEventListener('click', () => {
+        closeDashboard();
+        openGallery(ids, galleryLabel);
+      });
+    }
+    const labelEl = document.createElement('span');
+    labelEl.className = 'dash-bar-label';
+    labelEl.textContent = label;
+    labelEl.style.width = '220px';
+    const track = document.createElement('div');
+    track.className = 'dash-bar-track';
+    const fill = document.createElement('div');
+    fill.className = 'dash-bar-fill';
+    fill.style.width = pct + '%';
+    track.appendChild(fill);
+    const cEl = document.createElement('span');
+    cEl.className = 'dash-bar-count-wide';
+    if (countWidth) cEl.style.width = countWidth;
+    cEl.textContent = `${pct}% (${matching.length}/${total})`;
+    row.append(labelEl, track, cEl);
+    chart.appendChild(row);
+  }
+
+  function buildAiOrNotSection(p0, p1, p2) {
+    const ORIG_COLOR = '#4e9af1';
+    const ALT_COLOR  = '#e05c5c';
+
+    const wrapper = document.createElement('div');
+    // Match the 2rem gap that .dash-group-body puts between sibling sections, so
+    // the subsections nested here are spaced like every other dashboard group.
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
+
+    const aP0 = p0.filter(_hasAiOrNot);
+    const aP1 = p1.filter(_hasAiOrNot);
+    const aP2 = p2.filter(_hasAiOrNot);
+    const totalAnalyzed = aP0.length + aP1.length + aP2.length;
+
+    if (!totalAnalyzed) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size:12px; color:var(--text-muted); margin:0;';
+      empty.textContent = 'No records have AI or Not results yet.';
+      wrapper.appendChild(empty);
+      return wrapper;
+    }
+
+    // ── 1. Confusion matrix (AI = positive case) ──
+    // Altered images are the positive ground-truth case; originals and modified
+    // images are grouped as the negative case. A "Likely AI" verdict is a
+    // positive prediction.
+    const cmSection = document.createElement('div');
+    const cmTitle = document.createElement('div');
+    cmTitle.className = 'dash-section-title';
+    cmTitle.textContent = 'AI or Not Confusion Matrix';
+    cmSection.appendChild(cmTitle);
+    const cmSub = document.createElement('p');
+    cmSub.className = 'dash-section-subtitle';
+    cmSub.textContent = 'Treats "Likely AI" as the positive prediction and altered images as the ' +
+      'positive ground-truth case; originals and modified images are grouped as the negative case. ' +
+      'Click a cell to view those images in the gallery.';
+    cmSection.appendChild(cmSub);
+
+    const negRecs = [...aP0, ...aP1];
+    const tp = aP2.filter(_aiornotIsAI);
+    const fn = aP2.filter(r => !_aiornotIsAI(r));
+    const fp = negRecs.filter(_aiornotIsAI);
+    const tn = negRecs.filter(r => !_aiornotIsAI(r));
+
+    // Build a confusion-matrix cell: count, correct/incorrect tint, and (when
+    // non-empty) a click that opens those records in the gallery.
+    const cmCell = (records, correct, galleryLabel) => {
+      const td = document.createElement('td');
+      td.style.cssText = 'text-align:center; font-family:var(--mono); font-size:18px; background:' +
+        (correct ? 'rgba(78,184,78,0.12)' : 'rgba(224,92,92,0.12)') + ';';
+      td.textContent = records.length;
+      if (records.length) {
+        td.style.cursor = 'pointer';
+        td.title = 'Click to view in gallery';
+        const ids = new Set(records.map(r => r.id));
+        td.addEventListener('click', () => { closeDashboard(); openGallery(ids, galleryLabel); });
+      }
+      return td;
+    };
+
+    const cmTable = document.createElement('table');
+    cmTable.className = 'dash-table';
+    const cmHead = cmTable.createTHead();
+    const cmHRow = cmHead.insertRow();
+    ['', 'Predicted: AI', 'Predicted: Real'].forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.textAlign = 'center';
+      cmHRow.appendChild(th);
+    });
+    const cmBody = cmTable.createTBody();
+    const cmRow = (label, cells) => {
+      const tr = cmBody.insertRow();
+      const th = document.createElement('th');
+      th.textContent = label;
+      tr.appendChild(th);
+      cells.forEach(c => tr.appendChild(c));
+    };
+    cmRow('Actual: Altered (AI)', [
+      cmCell(tp, true,  'True positives — altered, flagged AI'),
+      cmCell(fn, false, 'False negatives — altered, flagged real'),
+    ]);
+    cmRow('Actual: Original + Modified (real)', [
+      cmCell(fp, false, 'False positives — real, flagged AI'),
+      cmCell(tn, true,  'True negatives — real, flagged real'),
+    ]);
+    cmSection.appendChild(cmTable);
+
+    // Error rates derived from the matrix ('—' when the denominator is zero).
+    const _rate = (num, den) => (den ? Math.round(num / den * 100) + '%' : '—');
+    const metrics = document.createElement('p');
+    metrics.className = 'dash-section-subtitle';
+    metrics.style.margin = '0.75rem 0 0';
+    metrics.textContent =
+      `False positive rate ${_rate(fp.length, fp.length + tn.length)} · ` +
+      `False negative rate ${_rate(fn.length, fn.length + tp.length)}`;
+    cmSection.appendChild(metrics);
+    wrapper.appendChild(cmSection);
+
+    // ── 2. Detection rate by model (altered images only) ──
+    if (aP2.length) {
+      const modelSection = document.createElement('div');
+      const modelTitle = document.createElement('div');
+      modelTitle.className = 'dash-section-title';
+      modelTitle.textContent = 'Detection Rate by Model';
+      modelSection.appendChild(modelTitle);
+      const modelSub = document.createElement('p');
+      modelSub.className = 'dash-section-subtitle';
+      modelSub.textContent = 'For altered images, the percentage AI or Not flagged as "Likely AI", per generating model.';
+      modelSection.appendChild(modelSub);
+
+      const byModel = {};
+      aP2.forEach(r => {
+        const m = (r.model || 'Unknown').trim() || 'Unknown';
+        (byModel[m] = byModel[m] || []).push(r);
+      });
+      const modelChart = document.createElement('div');
+      modelChart.className = 'dash-bar-chart';
+      // Build the rows (sorted by detection rate descending, then name for
+      // stable ties) so the count column can be sized uniformly.
+      const rows = Object.keys(byModel)
+        .map(m => {
+          const recs = byModel[m];
+          const matching = recs.filter(_aiornotIsAI);
+          return { model: m, matching, total: recs.length };
+        })
+        .sort((a, b) => (b.matching.length / b.total) - (a.matching.length / a.total) || a.model.localeCompare(b.model));
+      // Widest count string (mono font, so 1ch ≈ 1 char) drives the shared width.
+      const maxCountLen = Math.max(
+        ...rows.map(r => `${Math.round(r.matching.length / r.total * 100)}% (${r.matching.length}/${r.total})`.length)
+      );
+      const countWidth = maxCountLen + 'ch';
+      rows.forEach(r => {
+        _appendPctRow(modelChart, r.model, r.matching, r.total, `Flagged "Likely AI" — ${r.model}`, countWidth);
+      });
+      modelSection.appendChild(modelChart);
+      wrapper.appendChild(modelSection);
+    }
+
+    // ── 3. AI-probability distribution by image type ──
+    const realProbs = [...aP0, ...aP1]
+      .map(r => r.aiornot_prob_ai).filter(v => typeof v === 'number');
+    const altProbs = aP2
+      .map(r => r.aiornot_prob_ai).filter(v => typeof v === 'number');
+    if (realProbs.length || altProbs.length) {
+      wrapper.appendChild(buildDensityPlot('AI Probability Distribution', 'P(AI)', [
+        { label: 'Real (originals + modified)', color: ORIG_COLOR, values: realProbs },
+        { label: 'Altered',                     color: ALT_COLOR,  values: altProbs },
+      ], 'The AI or Not assigned AI probability.'));
+    }
+
+    return wrapper;
+  }
+
   // ── KDE density plot ──────────────────────────────────────────────────────
 
-  function buildDensityPlot(title, unit, datasets) {
+  function buildDensityPlot(title, unit, datasets, subtitle) {
     // datasets: [{ label, color, values: number[] }, ...]
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
     titleEl.textContent = title;
     section.appendChild(titleEl);
+
+    // Optional explanatory line shown under the title.
+    if (subtitle) {
+      const subEl = document.createElement('p');
+      subEl.className = 'dash-section-subtitle';
+      subEl.textContent = subtitle;
+      section.appendChild(subEl);
+    }
 
     const allValues = datasets.flatMap(d => d.values);
     if (!allValues.length) {
@@ -2448,6 +2657,11 @@
 
     // Metadata indicators
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
+
+    // ── AI or Not detector group ──
+    const { details: anDetails, body: anBody } = buildDashGroup('AI or Not Detector');
+    content.appendChild(anDetails);
+    anBody.appendChild(buildAiOrNotSection(p0, p1, p2));
 
     // ── Visual / pixel-level artifacts group ──
     const { details: fdDetails, body: fdBody } = buildDashGroup('Visual / pixel-level artifacts', false);
