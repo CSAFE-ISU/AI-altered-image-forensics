@@ -1788,6 +1788,9 @@
     const ALT_COLOR  = '#e05c5c';
 
     const wrapper = document.createElement('div');
+    // Match the 2rem gap that .dash-group-body puts between sibling sections, so
+    // the subsections nested here are spaced like every other dashboard group.
+    wrapper.style.cssText = 'display:flex; flex-direction:column; gap:2rem;';
 
     const aP0 = p0.filter(_hasAiOrNot);
     const aP1 = p1.filter(_hasAiOrNot);
