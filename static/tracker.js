@@ -1934,7 +1934,7 @@
       wrapper.appendChild(buildDensityPlot('AI Probability Distribution', 'P(AI)', [
         { label: 'Real (originals + modified)', color: ORIG_COLOR, values: realProbs },
         { label: 'Altered',                     color: ALT_COLOR,  values: altProbs },
-      ]));
+      ], 'The AI or Not assigned AI probability.'));
     }
 
     return wrapper;
@@ -1942,13 +1942,21 @@
 
   // ── KDE density plot ──────────────────────────────────────────────────────
 
-  function buildDensityPlot(title, unit, datasets) {
+  function buildDensityPlot(title, unit, datasets, subtitle) {
     // datasets: [{ label, color, values: number[] }, ...]
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
     titleEl.className = 'dash-section-title';
     titleEl.textContent = title;
     section.appendChild(titleEl);
+
+    // Optional explanatory line shown under the title.
+    if (subtitle) {
+      const subEl = document.createElement('p');
+      subEl.className = 'dash-section-subtitle';
+      subEl.textContent = subtitle;
+      section.appendChild(subEl);
+    }
 
     const allValues = datasets.flatMap(d => d.values);
     if (!allValues.length) {
