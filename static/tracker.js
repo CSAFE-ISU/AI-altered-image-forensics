@@ -1870,16 +1870,14 @@
     ]);
     cmSection.appendChild(cmTable);
 
-    // Standard rates derived from the matrix ('—' when the denominator is zero).
+    // Error rates derived from the matrix ('—' when the denominator is zero).
     const _rate = (num, den) => (den ? Math.round(num / den * 100) + '%' : '—');
     const metrics = document.createElement('p');
     metrics.className = 'dash-section-subtitle';
     metrics.style.margin = '0.75rem 0 0';
     metrics.textContent =
-      `Recall ${_rate(tp.length, tp.length + fn.length)} · ` +
-      `Specificity ${_rate(tn.length, tn.length + fp.length)} · ` +
-      `Precision ${_rate(tp.length, tp.length + fp.length)} · ` +
-      `Accuracy ${_rate(tp.length + tn.length, totalAnalyzed)}`;
+      `False positive rate ${_rate(fp.length, fp.length + tn.length)} · ` +
+      `False negative rate ${_rate(fn.length, fn.length + tp.length)}`;
     cmSection.appendChild(metrics);
     wrapper.appendChild(cmSection);
 

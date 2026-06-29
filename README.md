@@ -212,7 +212,7 @@ organized into collapsible groups:
   - **Confusion matrix** — treats "Likely AI" as the positive prediction and
     altered images as the positive ground-truth case, with originals and modified
     images grouped as the negative case. Cells show true/false positives and
-    negatives, with recall, specificity, precision, and accuracy below.
+    negatives, with the false positive rate and false negative rate below.
   - **Detection rate by model** — for altered images, the share flagged "Likely
     AI" per generating model.
   - **AI probability distribution** — density curves of the AI confidence score,
