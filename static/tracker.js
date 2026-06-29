@@ -1752,8 +1752,10 @@
   }
 
   // Append one percentage bar (matching / total) to a dash-bar-chart. When any
-  // records match, the row is clickable and opens them in the gallery.
-  function _appendPctRow(chart, label, matching, total, galleryLabel) {
+  // records match, the row is clickable and opens them in the gallery. A fixed
+  // countWidth keeps the count column (and therefore the tracks) the same width
+  // across rows so every bar has the same total length.
+  function _appendPctRow(chart, label, matching, total, galleryLabel, countWidth) {
     const pct = total ? Math.round(matching.length / total * 100) : 0;
     const row = document.createElement('div');
     row.className = 'dash-bar-row';
@@ -1778,6 +1780,7 @@
     track.appendChild(fill);
     const cEl = document.createElement('span');
     cEl.className = 'dash-bar-count-wide';
+    if (countWidth) cEl.style.width = countWidth;
     cEl.textContent = `${pct}% (${matching.length}/${total})`;
     row.append(labelEl, track, cEl);
     chart.appendChild(row);
@@ -1901,16 +1904,23 @@
       });
       const modelChart = document.createElement('div');
       modelChart.className = 'dash-bar-chart';
-      // Sort by detection rate descending, then name for stable ties.
-      Object.keys(byModel)
-        .sort((a, b) => {
-          const ra = byModel[a].filter(_aiornotIsAI).length / byModel[a].length;
-          const rb = byModel[b].filter(_aiornotIsAI).length / byModel[b].length;
-          return rb - ra || a.localeCompare(b);
+      // Build the rows (sorted by detection rate descending, then name for
+      // stable ties) so the count column can be sized uniformly.
+      const rows = Object.keys(byModel)
+        .map(m => {
+          const recs = byModel[m];
+          const matching = recs.filter(_aiornotIsAI);
+          return { model: m, matching, total: recs.length };
         })
-        .forEach(m => {
-          _appendPctRow(modelChart, m, byModel[m].filter(_aiornotIsAI), byModel[m].length, `Flagged "Likely AI" — ${m}`);
-        });
+        .sort((a, b) => (b.matching.length / b.total) - (a.matching.length / a.total) || a.model.localeCompare(b.model));
+      // Widest count string (mono font, so 1ch ≈ 1 char) drives the shared width.
+      const maxCountLen = Math.max(
+        ...rows.map(r => `${Math.round(r.matching.length / r.total * 100)}% (${r.matching.length}/${r.total})`.length)
+      );
+      const countWidth = maxCountLen + 'ch';
+      rows.forEach(r => {
+        _appendPctRow(modelChart, r.model, r.matching, r.total, `Flagged "Likely AI" — ${r.model}`, countWidth);
+      });
       modelSection.appendChild(modelChart);
       wrapper.appendChild(modelSection);
     }
