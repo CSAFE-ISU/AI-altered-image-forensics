@@ -170,7 +170,7 @@
   .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dark-amethyst); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -196,7 +196,6 @@
      background; all others stay white. Text inside switches to ink-black so it
      stays legible on the peach. */
   .accordion-item.acc-incomplete { background: var(--vanilla-custard); }
-  .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label { color: var(--ink-black); }
 
@@ -331,7 +330,7 @@
   }
   .dash-section-title {
     font-family: var(--sans); font-size: 15px; font-weight: 600;
-    letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong);
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--dark-amethyst);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
   .dash-section-subtitle { font-size: 12px; color: var(--text-muted); margin: -0.5rem 0 1.25rem; }
