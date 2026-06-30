@@ -129,6 +129,12 @@
       if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
     }
 
+    // Generic required fields (marked with .field-required), e.g. every Claude
+    // answer. Flag any that are empty so their section reads as incomplete.
+    form.querySelectorAll('.field-required').forEach(el => {
+      if (typeof el.value === 'string' && !el.value.trim()) el.classList.add('field-blank');
+    });
+
     // Recolor the accordions now that blank-required fields are up to date.
     updateAccordionStatus(type);
   }
@@ -683,6 +689,7 @@
 
       const resp = document.createElement('textarea');
       resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.className = 'field-required';
       resp.placeholder = "Claude's response…";
 
       block.append(head, resp);
