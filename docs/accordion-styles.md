@@ -38,7 +38,7 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----------|----------|----------|----------|----------|----------|----------|
-| **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **burnt-peach** (`--secondary-accent-strong`) |
+| **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **dark-amethyst** (`--dark-amethyst`) |
 | ↳ toggle marker ▸/▾ | `summary::before` | — | 9px | — | — | `--text-faint` |
 | **Section title** | `.dash-section-title` | Geist | 15px | 600 | uppercase, `0.04em` | **dark-amethyst** (`--dark-amethyst`) — identical to `.section-label` |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
@@ -63,7 +63,7 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, dark-amethyst, 15px). Dashboard group titles (`.dash-group > summary`) remain Geist Mono, burnt-peach, at 18px. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same section-heading treatment (Geist, uppercase, dark-amethyst, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, dark-amethyst, at 18px. Both accordion types have a 2px dark-amethyst outline. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ---
 
