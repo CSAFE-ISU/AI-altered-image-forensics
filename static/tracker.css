@@ -34,6 +34,8 @@
     --text-muted: var(--muted-foreground);
     --text-faint: var(--ring);
     --accent: var(--primary);
+    /* Darker coral for solid buttons so light text clears WCAG AA (~4.9:1). */
+    --accent-strong: oklch(0.55 0.16 29.981);
     --accent-light: color-mix(in oklch, var(--primary) 12%, var(--background));
     --accent-border: color-mix(in oklch, var(--primary) 40%, var(--border));
     --success: oklch(0.55 0.12 150);
@@ -205,7 +207,7 @@
   .rating-group { display: flex; gap: 6px; }
   .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
   .rating-btn:hover { border-color: var(--accent-border); color: var(--accent); }
-  .rating-btn.selected { background: var(--accent); color: var(--primary-foreground); border-color: var(--accent); }
+  .rating-btn.selected { background: var(--accent-strong); color: var(--primary-foreground); border-color: var(--accent-strong); }
 
   .artifact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
   .artifact-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); transition: all 0.12s; user-select: none; }
@@ -239,7 +241,7 @@
   .form-actions { display: flex; gap: 10px; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   .btn { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; padding: 8px 18px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); transition: all 0.15s; }
   .btn:hover { background: var(--surface2); border-color: var(--text-faint); color: var(--text); }
-  .btn.save { background: var(--accent); color: var(--primary-foreground); border-color: var(--accent); }
+  .btn.save { background: var(--accent-strong); color: var(--primary-foreground); border-color: var(--accent-strong); }
   .btn.save:hover { opacity: 0.88; }
   .btn.danger { color: var(--danger); border-color: color-mix(in oklch, var(--destructive) 35%, var(--border)); }
   .btn.danger:hover { background: color-mix(in oklch, var(--destructive) 12%, var(--background)); border-color: var(--danger); }
@@ -495,7 +497,7 @@
     font-size: 10px; font-family: var(--mono); font-weight: 500;
     cursor: help; flex-shrink: 0; line-height: 1;
   }
-  .tooltip-icon:hover { background: var(--accent); color: #fff; }
+  .tooltip-icon:hover { background: var(--accent-strong); color: #fff; }
   .tooltip-bubble {
     display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
     background: var(--text); color: var(--background); font-size: 11px; font-family: var(--sans);
