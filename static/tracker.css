@@ -32,7 +32,7 @@
     --chart-5: oklch(0.437 0.078 188.216);
 
     /* App semantic aliases mapped onto the Shadcn tokens above. */
-    --bg: var(--lime-cream); /* lime-cream canvas */
+    --bg: #ffffff; /* white canvas */
     --surface: var(--card);
     --surface2: var(--muted);
     --border: oklch(0.923 0.003 48.717);
