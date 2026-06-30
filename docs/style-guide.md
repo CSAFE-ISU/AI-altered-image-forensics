@@ -1,6 +1,6 @@
-# Accordion text styles
+# Style guide
 
-A reference of every text element in the two accordion types and the styles applied to each, read from `static/tracker.css` (and the inline SVG/JS styles for dashboard plots).
+A reference of the app's text styles — the canvas header, the two accordion types, and the analysis sub-sections — read from `static/tracker.css` (and the inline SVG/JS styles for dashboard plots).
 
 ## Token legend
 
@@ -14,6 +14,17 @@ A reference of every text element in the two accordion types and the styles appl
 | `var(--secondary-accent-strong)` | `oklch(0.52 0.112 35.8)` — **dark burnt-peach** (terracotta) |
 | `var(--accent)` = `--rose-wine` | **#bd4f6c** |
 | `var(--velvet-purple)` | **#5F3370** — deep velvet purple (section headings) |
+
+------------------------------------------------------------------------
+
+## Canvas header
+
+The record title and subtitle at the top of the canvas, above the accordions.
+
+| Text element | Selector | Font | Size | Weight | Color |
+|---|---|---|---|---|---|
+| **Title** (record name) | `.form-title` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
+| **Subtitle** (record type, e.g. "AI alteration") | `.form-subtitle` | Geist Mono | 11px | normal | `--text-faint` |
 
 ------------------------------------------------------------------------
 
