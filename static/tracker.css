@@ -215,7 +215,7 @@
   .auto-field { background: var(--surface2) !important; color: var(--text-muted); cursor: default; }
   .auto-field:focus { border-color: var(--border) !important; background: var(--surface2) !important; }
   select.auto-field:disabled { opacity: 1; }
-  .auto-tag { font-weight: 400; color: var(--text-faint); font-size: 11px; margin-left: 4px; }
+  .auto-tag { font-weight: 400; color: var(--rose-wine); font-size: 11px; margin-left: 4px; }
   .instruction-box {
     font-size: 12px; color: var(--text-muted); margin-top: -4px; margin-bottom: 1rem;
     line-height: 1.6; padding: 7px 10px 7px 12px;
