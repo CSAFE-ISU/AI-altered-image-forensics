@@ -2121,9 +2121,11 @@
       { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness'        },
       { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis'        },
     ];
-    const MODEL_COLORS = ['#e05c5c','#f5a623','#4eb84e','#9b59b6','#1abc9c','#e67e22','#3498db'];
-    const ORIG_COLOR   = '#4e9af1';
-    const ALT_COLOR    = '#e05c5c';
+    // Brand-aligned categorical palette: coral, purple, sage, teal, ochre,
+    // lavender, terracotta.
+    const MODEL_COLORS = ['#e26d5c','#3e2f5b','#8a9a5b','#1c7c6e','#d9a45b','#7e6ba6','#b6553f'];
+    const ORIG_COLOR   = '#3e2f5b'; // deep purple — "real" series
+    const ALT_COLOR    = '#e26d5c'; // coral — "altered" series
 
     const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
     const modelCounts = {};

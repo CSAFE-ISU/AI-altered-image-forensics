@@ -17,7 +17,7 @@
     --destructive: oklch(0.577 0.245 27.325);
     --input: oklch(0.923 0.003 48.717);
     --ring: oklch(0.709 0.01 56.259);
-    --sidebar: oklch(0.985 0.001 106.423);
+    --sidebar: color-mix(in oklch, var(--sage) 22%, var(--background)); /* faint sage wash */
     --chart-1: oklch(0.855 0.138 181.071);
     --chart-2: oklch(0.704 0.14 182.503);
     --chart-3: oklch(0.6 0.118 184.704);
@@ -38,8 +38,14 @@
     --accent-strong: oklch(0.55 0.16 29.981);
     --accent-light: color-mix(in oklch, var(--primary) 12%, var(--background));
     --accent-border: color-mix(in oklch, var(--primary) 40%, var(--border));
-    --success: oklch(0.55 0.12 150);
-    --success-bg: color-mix(in oklch, var(--success) 12%, var(--background));
+    /* Secondary palette: deep purple (structure / navigation) and sage
+       (positive states / soft surfaces). */
+    --secondary-accent: oklch(0.344 0.076 298); /* #3E2F5B deep purple */
+    --secondary-accent-light: color-mix(in oklch, var(--secondary-accent) 10%, var(--background));
+    --sage: oklch(0.83 0.054 109.9); /* #C9CBA3 */
+    --sage-strong: oklch(0.5 0.085 113); /* deeper sage for legible text / dots */
+    --success: var(--sage-strong);
+    --success-bg: color-mix(in oklch, var(--sage) 32%, var(--background));
     --warning: oklch(0.55 0.11 65);
     --warning-bg: color-mix(in oklch, var(--warning) 14%, var(--background));
     --danger: var(--destructive);
@@ -72,7 +78,7 @@
     --border: oklch(1 0 0 / 10%);
     --border-strong: oklch(1 0 0 / 22%);
     /* Lift success/warning a little for legibility on dark surfaces. */
-    --success: oklch(0.7 0.13 160);
+    --success: oklch(0.78 0.08 113);
     --warning: oklch(0.75 0.13 70);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -89,9 +95,9 @@
   .header-btn {
     font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
     padding: 5px 14px; border-radius: var(--radius); cursor: pointer;
-    border: 1px solid var(--border); background: var(--background); color: var(--text); transition: background 0.15s;
+    border: 1px solid var(--secondary-accent); background: var(--background); color: var(--secondary-accent); transition: background 0.15s;
   }
-  .header-btn:hover { background: var(--surface2); }
+  .header-btn:hover { background: var(--secondary-accent-light); }
   .record-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
 
   .shell { display: grid; grid-template-columns: 270px 1fr; min-height: calc(100vh - 52px); }
@@ -138,12 +144,12 @@
     color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
   }
   .phase-tab:hover { color: var(--text); }
-  .phase-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .phase-tab.active { color: var(--secondary-accent); border-bottom-color: var(--secondary-accent); }
   .phase-panel { display: none; }
   .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--secondary-accent); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -153,7 +159,7 @@
     width: 100%; margin: 0; padding: 0.9rem 1.5rem; border-bottom: none;
     cursor: pointer; user-select: none; transition: color 0.15s;
   }
-  .accordion-item > .accordion-trigger:hover { color: var(--text-muted); }
+  .accordion-item > .accordion-trigger:hover { opacity: 0.7; }
   .accordion-item.open > .accordion-trigger { border-bottom: 1px solid var(--border); }
   .accordion-trigger .accordion-chevron {
     width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint);
@@ -175,6 +181,7 @@
   }
   .accordion-item.acc-incomplete { box-shadow: inset 3px 0 0 0 var(--warning); }
   .accordion-item.acc-incomplete .accordion-status-dot { background: var(--warning); }
+  .accordion-item.acc-complete .accordion-status-dot { background: var(--sage-strong); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
