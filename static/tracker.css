@@ -2,12 +2,12 @@
     /* Shadcn theme — preset b5dx6KICo (stone base, orange primary). The app's
        semantic variables below are aliased onto these tokens, so the whole UI
        (and the .dark palette) is driven from this one block. */
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.147 0.004 49.25);
+    --background: oklch(1 0 0); /* #FFFFFF */
+    --foreground: oklch(0.429 0.031 107.7); /* #51513D dark olive */
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.147 0.004 49.25);
+    --card-foreground: oklch(0.429 0.031 107.7);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.147 0.004 49.25);
+    --popover-foreground: oklch(0.429 0.031 107.7);
     --primary: oklch(0.67 0.149 29.981); /* #E26D5C */
     --primary-foreground: oklch(0.98 0.016 73.684);
     --secondary: oklch(0.967 0.001 286.375);
@@ -17,7 +17,7 @@
     --destructive: oklch(0.577 0.245 27.325);
     --input: oklch(0.923 0.003 48.717);
     --ring: oklch(0.709 0.01 56.259);
-    --sidebar: color-mix(in oklch, var(--sage) 22%, var(--background)); /* faint sage wash */
+    --sidebar: var(--sage); /* sage sidebar */
     --chart-1: oklch(0.855 0.138 181.071);
     --chart-2: oklch(0.704 0.14 182.503);
     --chart-3: oklch(0.6 0.118 184.704);
@@ -131,6 +131,11 @@
   }
   .new-record-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
   .empty-state { padding: 0.4rem 1.25rem; font-size: 11px; color: var(--text-faint); font-style: italic; }
+  /* Use the palette's dark olive for secondary text so it reads on the sage. */
+  aside .sidebar-group-label,
+  aside .sidebar-section-label,
+  aside .record-item-meta,
+  aside .empty-state { color: var(--text); }
 
   main { padding: 2rem 2.5rem; max-width: 860px; }
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
