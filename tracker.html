@@ -135,7 +135,7 @@
         <div class="section-card img-preview-card" id="prev-p0" style="display:none;">
           <div class="section-label">Image preview</div>
           <div class="img-slot">
-            <div class="img-caption">Original<span id="cap-p0"></span></div>
+            <div class="img-caption">Original<span id="cap-p0" class="img-name"></span></div>
             <img id="img-p0" class="img-preview" src="" alt="Original image">
             <div class="img-missing" id="miss-p0" style="display:none;">Image not found in images folder.</div>
           </div>
@@ -152,17 +152,17 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p0-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p0-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p0-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p0-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p0-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p0-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p0-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p0-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p0-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p0-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p0-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p0-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p0-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p0-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p0-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p0-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p0')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-no" value="no" onchange="toggleViewerDetails('p0')"> No</label>
                 </div>
@@ -201,7 +201,7 @@
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p0-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p0-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p0-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p0-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">
@@ -275,12 +275,12 @@
           <div class="section-label">Image preview</div>
           <div class="img-pair">
             <div class="img-slot">
-              <div class="img-caption">Input<span id="cap-p1-input"></span></div>
+              <div class="img-caption">Input<span id="cap-p1-input" class="img-name"></span></div>
               <img id="img-p1-input" class="img-preview" src="" alt="Input image">
               <div class="img-missing" id="miss-p1-input" style="display:none;">Image not found.</div>
             </div>
             <div class="img-slot">
-              <div class="img-caption">Modified output<span id="cap-p1-output"></span></div>
+              <div class="img-caption">Modified output<span id="cap-p1-output" class="img-name"></span></div>
               <img id="img-p1-output" class="img-preview" src="" alt="Modified image">
               <div class="img-missing" id="miss-p1-output" style="display:none;">Image not found.</div>
             </div>
@@ -310,17 +310,17 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p1-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p1-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p1-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p1-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p1-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p1-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p1-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p1-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p1-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p1-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p1-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p1-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p1-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p1-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p1-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p1-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p1')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-no" value="no" onchange="toggleViewerDetails('p1')"> No</label>
                 </div>
@@ -359,7 +359,7 @@
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p1-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p1-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p1-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p1-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">
@@ -447,12 +447,12 @@
             <div class="section-label">Image preview</div>
             <div class="img-pair">
               <div class="img-slot">
-                <div class="img-caption">Input<span id="cap-p2-input"></span></div>
+                <div class="img-caption">Input<span id="cap-p2-input" class="img-name"></span></div>
                 <img id="img-p2-input" class="img-preview" src="" alt="Input image">
                 <div class="img-missing" id="miss-p2-input" style="display:none;">Image not found.</div>
               </div>
               <div class="img-slot">
-                <div class="img-caption">AI-altered output<span id="cap-p2-output"></span></div>
+                <div class="img-caption">AI-altered output<span id="cap-p2-output" class="img-name"></span></div>
                 <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
                 <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
               </div>
@@ -571,17 +571,17 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p2-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p2-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p2-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p2-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p2-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p2-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p2-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p2-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p2-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p2-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p2-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p2-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p2-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p2-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p2-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p2-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p2')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-no" value="no" onchange="toggleViewerDetails('p2')"> No</label>
                 </div>
@@ -620,7 +620,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p2-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p2-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p2-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p2-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">

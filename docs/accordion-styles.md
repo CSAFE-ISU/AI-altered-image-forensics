@@ -67,6 +67,26 @@ Both accordion types share the same section-heading treatment (Geist, uppercase,
 
 ---
 
+## C. Analysis sub-section (inside the image-records accordions)
+
+These live in the **Image preview**, **Metadata forensics**, and **C2PA Viewer Results** accordions. Each element now has a dedicated class for easy editing.
+
+| Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
+|---|---|---|---|---|---|---|
+| **"Analysis results" toggle** | `.analysis-summary` | Geist Mono | 10px | 500 | uppercase, `0.1em` | `--text-faint` |
+| **Image-caption prefix** ("Original" / "Input" / …) | `.img-caption` | Geist Mono | 10px | 500 | uppercase, `0.08em` | `--text-faint` |
+| **Image name** (filename) | `.img-name` | Geist Mono | 10px | 400 | none, `word-break: break-all` | `--text-faint` |
+| **Expandable summary** ("Camera EXIF fields", "Photoshop / Adobe markers", "ICC…", "Grok signatures", "C2PA Results – Auto-detected") | `.analysis-detail > summary` | Geist (sans) | 0.82rem | normal | `cursor: pointer` | `--text-muted` |
+| **Field name** (expandable table, left cell) | `.c2pa-table td:first-child` | Geist (sans) | inherited | normal | `white-space: nowrap` | `--text-muted` |
+| **Field value** (expandable table, right cell) | `.c2pa-table td` | Geist (sans) | inherited | normal | none | `--text` (#0d1f2d) |
+| ↳ "Absent" / warning value | `.c2pa-table .c2pa-warn` | — | — | 500 | — | `#c0392b` (red) |
+| ↳ OK value | `.c2pa-table .c2pa-ok` | — | — | normal | — | `#27ae60` (green) |
+| **"C2PA data found"** label | `.viewer-found-label` | Geist (sans) | 0.9rem | normal | `white-space: nowrap` | `--text` (#0d1f2d) |
+
+The expandable panels (`.analysis-detail`) keep an inline `display:none` so the JS show/hide toggle in `tracker.js` still works; all other styling is in the CSS classes above.
+
+---
+
 ## Palette contrast
 
 Palette color pairs that meet the WCAG 4.5:1 contrast ratio (from the Coolors contrast checker):
