@@ -170,7 +170,7 @@
   .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -330,7 +330,7 @@
     display: flex; flex-direction: column; gap: 2rem; max-width: 860px;
   }
   .dash-section-title {
-    font-family: var(--mono); font-size: 15px; font-weight: 600;
+    font-family: var(--sans); font-size: 15px; font-weight: 600;
     letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
