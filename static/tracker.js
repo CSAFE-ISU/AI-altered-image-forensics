@@ -3059,6 +3059,7 @@
           !el.disabled &&
           !el.readOnly &&
           !el.classList.contains('auto-field') &&
+          !el.classList.contains('field-optional') &&
           !['hidden', 'file', 'button', 'submit', 'reset'].includes(el.type)
       );
       const hasData = fields.some(el =>
