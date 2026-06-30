@@ -164,14 +164,13 @@
   .accordion-content-inner { padding: 1.1rem 1.5rem 1.25rem; }
   .accordion-title { min-width: 0; }
   /* Completion-status indicator: a dot in the header plus a left accent bar
-     (inset shadow, so no layout shift and it follows the card's radius). */
+     (inset shadow, so no layout shift and it follows the card's radius).
+     Amber = needs completion; gray (the default) = complete. */
   .accordion-status-dot {
     display: inline-block; width: 8px; height: 8px; border-radius: 50%;
     margin-right: 9px; vertical-align: middle; flex-shrink: 0;
     background: var(--border-strong);
   }
-  .accordion-item.acc-complete { box-shadow: inset 3px 0 0 0 var(--success); }
-  .accordion-item.acc-complete .accordion-status-dot { background: var(--success); }
   .accordion-item.acc-incomplete { box-shadow: inset 3px 0 0 0 var(--warning); }
   .accordion-item.acc-incomplete .accordion-status-dot { background: var(--warning); }
 

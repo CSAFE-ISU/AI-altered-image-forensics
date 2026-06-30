@@ -3046,10 +3046,10 @@
   window.addEventListener('beforeunload', e => { if (state.dirty) e.preventDefault(); });
 
   // Color each accordion by completion state so you can see at a glance — even
-  // while collapsed — which sections are done vs. still need input:
-  //   acc-incomplete (amber) — a required field is still empty
-  //   acc-complete   (green) — has data and no required fields missing
-  //   acc-empty      (gray)  — nothing entered yet / informational section
+  // while collapsed — which sections still need input. Two states:
+  //   acc-incomplete (amber) — a required field is empty, or the section has
+  //                            fields to fill but nothing entered yet
+  //   acc-complete   (gray)  — required fields done (or nothing to fill in)
   function updateAccordionStatus(type) {
     const form = document.getElementById('form-' + type);
     if (!form) return;
@@ -3067,10 +3067,9 @@
           : el.value.trim() !== ''
       );
       const hasBlank = !!item.querySelector('.field-blank');
-      item.classList.remove('acc-complete', 'acc-incomplete', 'acc-empty');
-      item.classList.add(
-        hasBlank ? 'acc-incomplete' : hasData ? 'acc-complete' : 'acc-empty'
-      );
+      const needsCompletion = hasBlank || (fields.length > 0 && !hasData);
+      item.classList.toggle('acc-incomplete', needsCompletion);
+      item.classList.toggle('acc-complete', !needsCompletion);
     });
   }
 
