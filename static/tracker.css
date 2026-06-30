@@ -5,6 +5,7 @@
     --burnt-peach: #d7816a;
     --vanilla-custard: #f6e2a2;
     --ink-black: #0d1f2d;
+    --dark-amethyst: #41234d;
 
     /* Shadcn base tokens, repointed onto the named palette. Cards stay white;
        the canvas (--bg) is the warm vanilla-custard. */
