@@ -201,7 +201,7 @@
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
-  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; font-family: var(--mono); }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--rose-wine); margin-bottom: 4px; font-family: var(--mono); }
   .field input[type=text], .field input[type=datetime-local], .field select, .field textarea {
     width: 100%; padding: 7px 10px; font-family: var(--sans); font-size: 13px;
     color: var(--text); background: var(--surface); border: 1px solid var(--border);
