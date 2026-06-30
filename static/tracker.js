@@ -1689,17 +1689,21 @@
     section.appendChild(titleEl);
     const subEl = document.createElement('p');
     subEl.className = 'dash-section-subtitle';
-    subEl.textContent = 'Marked if any image in that group has the indicator present.';
+    subEl.textContent = 'Each cell indicates whether any image in the group exhibits the indicator: ' +
+      '"+" denotes evidence of AI generation, "−" denotes evidence against AI generation, ' +
+      'and "x" denotes inconclusive or neutral.';
     section.appendChild(subEl);
 
+    // Third element is the cell marker: '+' a positive indicator of AI, '−' a
+    // negative indicator (EXIF present suggests NOT AI), 'x' neutral.
     const INDICATORS = [
-      ['Camera EXIF',         r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0],
-      ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null],
-      ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null],
-      ['Grok signature',      r => r.indicators?.grok_signatures != null],
-      ['C2PA — trusted',           r => r.c2pa_viewer_found === true && r.c2pa_viewer_cert_status === 'Trusted'],
-      ['C2PA — untrusted/invalid', r => r.c2pa_viewer_found === true && !!r.c2pa_viewer_cert_status && r.c2pa_viewer_cert_status !== 'Trusted'],
-      ['Visible watermark',   r => !!r.visible_watermark],
+      ['Camera EXIF',         r => r.indicators?.camera_exif && Object.keys(r.indicators.camera_exif.present || {}).length > 0, '−'],
+      ['Photoshop / Adobe',   r => r.indicators?.photoshop_adobe != null, 'x'],
+      ['ICC meas./viewing',   r => r.indicators?.icc_meas_view != null, '+'],
+      ['Grok signature',      r => r.indicators?.grok_signatures != null, '+'],
+      ['C2PA — trusted',           r => r.c2pa_viewer_found === true && r.c2pa_viewer_cert_status === 'Trusted', '+'],
+      ['C2PA — untrusted/invalid', r => r.c2pa_viewer_found === true && !!r.c2pa_viewer_cert_status && r.c2pa_viewer_cert_status !== 'Trusted', '+'],
+      ['Visible watermark',   r => !!r.visible_watermark, '+'],
     ];
 
     const models = [...new Set(p2.map(r => (r.model || 'Unknown').trim() || 'Unknown'))].sort((a, b) => a.localeCompare(b));
@@ -1724,10 +1728,15 @@
     const addRow = (label, records) => {
       const tr = tbody.insertRow();
       tr.insertCell().textContent = label;
-      INDICATORS.forEach(([, fn]) => {
+      INDICATORS.forEach(([, fn, mark]) => {
         const td = tr.insertCell();
         td.style.textAlign = 'center';
-        if (records.some(fn)) td.textContent = 'x';
+        if (records.some(fn)) {
+          td.textContent = mark;
+          // Green for positive (+) evidence of AI, red for negative (−).
+          if (mark === '+') td.style.color = '#4eb84e';
+          else if (mark === '−') td.style.color = '#e05c5c';
+        }
       });
     };
 
