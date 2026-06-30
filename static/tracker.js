@@ -1806,8 +1806,8 @@
   }
 
   function buildAiOrNotSection(p0, p1, p2) {
-    const ORIG_COLOR = '#4e9af1';
-    const ALT_COLOR  = '#e05c5c';
+    const ORIG_COLOR = '#6f9d54'; // lime-green — "real" series
+    const ALT_COLOR  = '#bd4f6c'; // rose-wine — "altered" series
 
     const wrapper = document.createElement('div');
     // Match the 2rem gap that .dash-group-body puts between sibling sections, so
@@ -1854,7 +1854,7 @@
     const cmCell = (records, correct, galleryLabel) => {
       const td = document.createElement('td');
       td.style.cssText = 'text-align:center; font-family:var(--mono); font-size:18px; background:' +
-        (correct ? 'rgba(78,184,78,0.12)' : 'rgba(224,92,92,0.12)') + ';';
+        (correct ? 'rgba(214,234,154,0.55)' : 'rgba(215,129,106,0.4)') + ';';
       td.textContent = records.length;
       if (records.length) {
         td.style.cursor = 'pointer';
@@ -2124,7 +2124,7 @@
     // Brand-aligned categorical palette: rose-wine, burnt-peach, green, steel
     // blue, gold, mauve, teal.
     const MODEL_COLORS = ['#bd4f6c','#d7816a','#6f9d54','#3e6b87','#d4a13c','#8a6fa3','#4c9182'];
-    const ORIG_COLOR   = '#3e6b87'; // steel blue — "real" series
+    const ORIG_COLOR   = '#6f9d54'; // lime-green — "real" series
     const ALT_COLOR    = '#bd4f6c'; // rose-wine — "altered" series
 
     const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
@@ -3114,10 +3114,6 @@
       const title = document.createElement('span');
       title.className = 'accordion-title';
       while (trigger.firstChild) title.appendChild(trigger.firstChild);
-      // Status dot signals completion state (set by updateAccordionStatus).
-      const dot = document.createElement('span');
-      dot.className = 'accordion-status-dot';
-      title.insertBefore(dot, title.firstChild);
       trigger.appendChild(title);
       const chev = document.createElementNS(NS, 'svg');
       chev.setAttribute('class', 'accordion-chevron');

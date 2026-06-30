@@ -15,7 +15,7 @@
     --popover: #ffffff;
     --popover-foreground: var(--ink-black);
     --primary: var(--rose-wine);
-    --primary-foreground: oklch(0.98 0.016 73.684);
+    --primary-foreground: #ffffff;
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.97 0.001 106.424);
@@ -23,7 +23,7 @@
     --destructive: oklch(0.577 0.245 27.325);
     --input: oklch(0.923 0.003 48.717);
     --ring: oklch(0.709 0.01 56.259);
-    --sidebar: var(--sage); /* sage sidebar */
+    --sidebar: var(--ink-black); /* dark sidebar */
     --chart-1: oklch(0.855 0.138 181.071);
     --chart-2: oklch(0.704 0.14 182.503);
     --chart-3: oklch(0.6 0.118 184.704);
@@ -31,7 +31,7 @@
     --chart-5: oklch(0.437 0.078 188.216);
 
     /* App semantic aliases mapped onto the Shadcn tokens above. */
-    --bg: var(--vanilla-custard); /* warm cream canvas */
+    --bg: oklch(0.965 0 0); /* light gray canvas */
     --surface: var(--card);
     --surface2: var(--muted);
     --border: oklch(0.923 0.003 48.717);
@@ -40,8 +40,8 @@
     --text-muted: var(--muted-foreground);
     --text-faint: var(--ring);
     --accent: var(--primary);
-    /* Darker rose-wine for solid buttons so light text clears WCAG AA (~6:1). */
-    --accent-strong: oklch(0.5 0.144 6.3);
+    /* Rose-wine fill: white text clears WCAG AA (4.67:1). */
+    --accent-strong: var(--rose-wine);
     --accent-light: color-mix(in oklch, var(--primary) 12%, var(--background));
     --accent-border: color-mix(in oklch, var(--primary) 40%, var(--border));
     /* Secondary palette: deep purple (structure / navigation) and sage
@@ -103,9 +103,9 @@
   .header-btn {
     font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
     padding: 5px 14px; border-radius: var(--radius); cursor: pointer;
-    border: 1px solid var(--secondary-accent); background: var(--background); color: var(--secondary-accent-strong); transition: background 0.15s;
+    border: 1px solid var(--ink-black); background: var(--ink-black); color: #fff; transition: background 0.15s;
   }
-  .header-btn:hover { background: var(--secondary-accent-light); }
+  .header-btn:hover { background: color-mix(in oklch, var(--ink-black) 82%, #fff); }
   .record-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
 
   .shell { display: grid; grid-template-columns: 270px 1fr; min-height: calc(100vh - 52px); }
@@ -139,11 +139,14 @@
   }
   .new-record-btn:hover { opacity: 0.88; }
   .empty-state { padding: 0.4rem 1.25rem; font-size: 11px; color: var(--text-faint); font-style: italic; }
-  /* Use the palette's dark olive for secondary text so it reads on the sage. */
+  /* The sidebar is ink-black, so all its text is white. */
+  aside .record-item-name,
   aside .sidebar-group-label,
   aside .sidebar-section-label,
   aside .record-item-meta,
-  aside .empty-state { color: var(--text); }
+  aside .empty-state { color: #fff; }
+  aside .record-item:hover { background: rgba(255,255,255,0.08); }
+  aside .record-item.active { background: rgba(255,255,255,0.14); border-left-color: var(--accent); }
 
   main { padding: 2rem 2.5rem; max-width: 860px; }
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
@@ -184,17 +187,13 @@
   .accordion-content { overflow: visible; transition: height 0.2s ease; }
   .accordion-content-inner { padding: 1.1rem 1.5rem 1.25rem; }
   .accordion-title { min-width: 0; }
-  /* Completion-status indicator: a dot in the header plus a left accent bar
-     (inset shadow, so no layout shift and it follows the card's radius).
-     Amber = needs completion; gray (the default) = complete. */
-  .accordion-status-dot {
-    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-    margin-right: 9px; vertical-align: middle; flex-shrink: 0;
-    background: var(--border-strong);
-  }
-  .accordion-item.acc-incomplete { box-shadow: inset 3px 0 0 0 var(--warning); }
-  .accordion-item.acc-incomplete .accordion-status-dot { background: var(--warning); }
-  .accordion-item.acc-complete .accordion-status-dot { background: var(--sage-strong); }
+  /* Completion status: accordions missing a required field get a burnt-peach
+     background; all others stay white. Text inside switches to ink-black so it
+     stays legible on the peach. */
+  .accordion-item.acc-incomplete { background: var(--burnt-peach); }
+  .accordion-item.acc-incomplete > .accordion-trigger,
+  .accordion-item.acc-incomplete .accordion-content-inner,
+  .accordion-item.acc-incomplete .field label { color: var(--ink-black); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
