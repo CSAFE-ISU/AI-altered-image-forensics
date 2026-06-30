@@ -64,3 +64,11 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 ------------------------------------------------------------------------
 
 Both accordion types share the same section-heading treatment (Geist, uppercase, burnt-peach, 15px). Dashboard group titles (`.dash-group > summary`) remain Geist Mono at 18px. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+
+---
+
+## Palette contrast
+
+Palette color pairs that meet the WCAG 4.5:1 contrast ratio (from the Coolors contrast checker):
+
+![Palette contrast matrix](color-contrast.png)
