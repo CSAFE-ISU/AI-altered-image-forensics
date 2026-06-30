@@ -144,13 +144,17 @@
   aside .sidebar-group-label,
   aside .sidebar-section-label,
   aside .record-item-meta,
-  aside .empty-state { color: #fff; }
+  aside .empty-state,
+  aside .filter-label,
+  aside .filter-check-label { color: #fff; }
   aside .record-item:hover { background: rgba(255,255,255,0.08); }
   aside .record-item.active { background: rgba(255,255,255,0.14); border-left-color: var(--accent); }
+  aside .study-header:hover { background: rgba(255,255,255,0.08); }
+  aside .study-toggle { color: rgba(255,255,255,0.6); }
 
   main { padding: 2rem 2.5rem; max-width: 860px; }
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-  .form-title { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--text); }
+  .form-title { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
   .form-subtitle { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 4px; }
 
   .phase-tabs { display: flex; margin-bottom: 1.75rem; border-bottom: 1px solid var(--border); }
@@ -165,7 +169,7 @@
   .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -190,7 +194,7 @@
   /* Completion status: accordions missing a required field get a burnt-peach
      background; all others stay white. Text inside switches to ink-black so it
      stays legible on the peach. */
-  .accordion-item.acc-incomplete { background: var(--burnt-peach); }
+  .accordion-item.acc-incomplete { background: var(--vanilla-custard); }
   .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label { color: var(--ink-black); }
@@ -275,7 +279,7 @@
   .no-record small { font-family: var(--mono); font-size: 11px; }
 
   /* ── Image preview ── */
-  .img-preview-card { background: var(--bg); }
+  .img-preview-card { background: var(--surface); }
   .img-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .img-slot { display: flex; flex-direction: column; gap: 6px; }
   .img-caption { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
@@ -307,11 +311,11 @@
     display: flex; align-items: center; gap: 6px;
     padding: 6px 1.25rem; cursor: pointer; user-select: none;
     font-family: var(--mono); font-size: 11px; font-weight: 500;
-    letter-spacing: 0.04em; color: var(--text);
+    letter-spacing: 0.04em; color: var(--accent);
     transition: background 0.1s;
   }
   .study-header:hover { background: var(--surface2); }
-  .study-header.has-active { color: var(--accent); }
+  .study-header.has-active { color: var(--accent); font-weight: 700; }
   .study-toggle { font-size: 8px; color: var(--text-faint); width: 10px; flex-shrink: 0; }
   .study-children .record-item { padding-left: 2.25rem; }
 
@@ -325,8 +329,8 @@
     display: flex; flex-direction: column; gap: 2rem; max-width: 860px;
   }
   .dash-section-title {
-    font-family: var(--mono); font-size: 11px; font-weight: 500;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+    font-family: var(--mono); font-size: 14px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
   .dash-section-subtitle { font-size: 12px; color: var(--text-muted); margin: -0.5rem 0 1.25rem; }
@@ -370,8 +374,8 @@
   .dash-group > summary {
     padding: 0.75rem 1rem; cursor: pointer; list-style: none;
     display: flex; align-items: center; gap: 0.5rem; user-select: none;
-    font-family: var(--mono); font-size: 12px; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+    font-family: var(--mono); font-size: 18px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted);
     background: var(--surface2); border-radius: var(--radius);
   }
   .dash-group[open] > summary { border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--border); }

@@ -2026,8 +2026,12 @@
 
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-    svg.setAttribute('width', '100%');
-    svg.style.maxWidth = totalW + 'px';
+    // Intrinsic size + max-width:100%/height:auto so the plot scales responsively
+    // in every browser (Safari/Firefox don't derive height from viewBox alone).
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
     svg.style.display = 'block';
 
     // Grid lines
@@ -2772,8 +2776,12 @@
 
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-    svg.setAttribute('width', '100%');
-    svg.style.maxWidth = totalW + 'px';
+    // Intrinsic size + max-width:100%/height:auto so the plot scales responsively
+    // in every browser (Safari/Firefox don't derive height from viewBox alone).
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
     svg.style.display = 'block';
 
     // Alternating row backgrounds
