@@ -1,14 +1,20 @@
   :root {
-    /* Shadcn theme — preset b5dx6KICo (stone base, orange primary). The app's
-       semantic variables below are aliased onto these tokens, so the whole UI
-       (and the .dark palette) is driven from this one block. */
-    --background: oklch(1 0 0); /* #FFFFFF */
-    --foreground: oklch(0.429 0.031 107.7); /* #51513D dark olive */
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.429 0.031 107.7);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.429 0.031 107.7);
-    --primary: oklch(0.67 0.149 29.981); /* #E26D5C */
+    /* ── Named palette ──────────────────────────────────────────────────── */
+    --rose-wine: #bd4f6c;
+    --lime-cream: #d6ea9a;
+    --burnt-peach: #d7816a;
+    --vanilla-custard: #f6e2a2;
+    --ink-black: #0d1f2d;
+
+    /* Shadcn base tokens, repointed onto the named palette. Cards stay white;
+       the canvas (--bg) is the warm vanilla-custard. */
+    --background: #ffffff;
+    --foreground: var(--ink-black);
+    --card: #ffffff;
+    --card-foreground: var(--ink-black);
+    --popover: #ffffff;
+    --popover-foreground: var(--ink-black);
+    --primary: var(--rose-wine);
     --primary-foreground: oklch(0.98 0.016 73.684);
     --secondary: oklch(0.967 0.001 286.375);
     --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -25,7 +31,7 @@
     --chart-5: oklch(0.437 0.078 188.216);
 
     /* App semantic aliases mapped onto the Shadcn tokens above. */
-    --bg: var(--background);
+    --bg: var(--vanilla-custard); /* warm cream canvas */
     --surface: var(--card);
     --surface2: var(--muted);
     --border: oklch(0.923 0.003 48.717);
@@ -34,16 +40,18 @@
     --text-muted: var(--muted-foreground);
     --text-faint: var(--ring);
     --accent: var(--primary);
-    /* Darker coral for solid buttons so light text clears WCAG AA (~4.9:1). */
-    --accent-strong: oklch(0.55 0.16 29.981);
+    /* Darker rose-wine for solid buttons so light text clears WCAG AA (~6:1). */
+    --accent-strong: oklch(0.5 0.144 6.3);
     --accent-light: color-mix(in oklch, var(--primary) 12%, var(--background));
     --accent-border: color-mix(in oklch, var(--primary) 40%, var(--border));
     /* Secondary palette: deep purple (structure / navigation) and sage
        (positive states / soft surfaces). */
-    --secondary-accent: oklch(0.344 0.076 298); /* #3E2F5B deep purple */
-    --secondary-accent-light: color-mix(in oklch, var(--secondary-accent) 10%, var(--background));
-    --sage: oklch(0.83 0.054 109.9); /* #C9CBA3 */
-    --sage-strong: oklch(0.5 0.085 113); /* deeper sage for legible text / dots */
+    --secondary-accent: var(--burnt-peach);
+    /* Darker burnt-peach for headings/nav text so it stays legible (~5.8:1). */
+    --secondary-accent-strong: oklch(0.52 0.112 35.8);
+    --secondary-accent-light: color-mix(in oklch, var(--secondary-accent) 16%, var(--background));
+    --sage: var(--lime-cream);
+    --sage-strong: oklch(0.5 0.1 122); /* deeper green for legible text / dots */
     --success: var(--sage-strong);
     --success-bg: color-mix(in oklch, var(--sage) 32%, var(--background));
     --warning: oklch(0.55 0.11 65);
@@ -95,7 +103,7 @@
   .header-btn {
     font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
     padding: 5px 14px; border-radius: var(--radius); cursor: pointer;
-    border: 1px solid var(--secondary-accent); background: var(--background); color: var(--secondary-accent); transition: background 0.15s;
+    border: 1px solid var(--secondary-accent); background: var(--background); color: var(--secondary-accent-strong); transition: background 0.15s;
   }
   .header-btn:hover { background: var(--secondary-accent-light); }
   .record-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
@@ -149,12 +157,12 @@
     color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
   }
   .phase-tab:hover { color: var(--text); }
-  .phase-tab.active { color: var(--secondary-accent); border-bottom-color: var(--secondary-accent); }
+  .phase-tab.active { color: var(--secondary-accent-strong); border-bottom-color: var(--secondary-accent-strong); }
   .phase-panel { display: none; }
   .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--secondary-accent); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--secondary-accent-strong); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
