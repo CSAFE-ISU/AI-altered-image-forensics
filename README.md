@@ -4,6 +4,8 @@ A dataset and tracking tool for studying how AI image-editing models alter photo
 
 The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action. Supabase is hosted on AWS and accessible from anywhere with an internet connection.
 
+The interface is styled with the [Shadcn](https://ui.shadcn.com) theme preset `b5dx6KICo` (stone base, orange primary). The theme is implemented as plain CSS custom properties in `static/tracker.css` — the app stays vanilla JS/CSS with no build step. The preset's dark palette is included under a `.dark` class for a future light/dark toggle.
+
 
 ## Setup
 
