@@ -3042,7 +3042,90 @@
 
   window.addEventListener('beforeunload', e => { if (state.dirty) e.preventDefault(); });
 
+  // Transform the static .section-card boxes into Shadcn-style accordions:
+  // the section label becomes a clickable trigger (with a rotating chevron)
+  // over animated, collapsible content. Items start open so data entry is
+  // unaffected; nothing in the app depends on the original box markup.
+  function initAccordions() {
+    const NS = 'http://www.w3.org/2000/svg';
+    document.querySelectorAll('.section-card').forEach(card => {
+      if (card.dataset.accordion) return;
+      const trigger = card.querySelector(':scope > .section-label');
+      if (!trigger) return;
+      card.dataset.accordion = '1';
+      card.classList.add('accordion-item', 'open');
+
+      // Move everything after the label into an animated content wrapper.
+      const content = document.createElement('div');
+      content.className = 'accordion-content';
+      const inner = document.createElement('div');
+      inner.className = 'accordion-content-inner';
+      while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
+      content.appendChild(inner);
+      card.appendChild(content);
+
+      // Turn the label into the trigger: keep its existing content (text and
+      // any links) grouped in a title span on the left, chevron on the right.
+      trigger.classList.add('accordion-trigger');
+      trigger.setAttribute('role', 'button');
+      trigger.setAttribute('tabindex', '0');
+      trigger.setAttribute('aria-expanded', 'true');
+      const title = document.createElement('span');
+      title.className = 'accordion-title';
+      while (trigger.firstChild) title.appendChild(trigger.firstChild);
+      trigger.appendChild(title);
+      const chev = document.createElementNS(NS, 'svg');
+      chev.setAttribute('class', 'accordion-chevron');
+      chev.setAttribute('viewBox', '0 0 24 24');
+      chev.setAttribute('fill', 'none');
+      chev.setAttribute('stroke', 'currentColor');
+      chev.setAttribute('stroke-width', '2');
+      chev.setAttribute('stroke-linecap', 'round');
+      chev.setAttribute('stroke-linejoin', 'round');
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', 'm6 9 6 6 6-6');
+      chev.appendChild(path);
+      trigger.appendChild(chev);
+
+      // Animate height between 0 and the content's natural height. While
+      // animating, overflow is hidden; when fully open it returns to visible
+      // (height:auto) so hover tooltips inside aren't clipped.
+      const setOpen = open => {
+        card.classList.toggle('open', open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        content.style.overflow = 'hidden';
+        if (open) {
+          content.style.height = content.scrollHeight + 'px';
+          content.addEventListener('transitionend', function te(e) {
+            if (e.propertyName !== 'height') return;
+            content.removeEventListener('transitionend', te);
+            if (card.classList.contains('open')) {
+              content.style.height = 'auto';
+              content.style.overflow = 'visible';
+            }
+          });
+        } else {
+          content.style.height = content.scrollHeight + 'px';
+          void content.offsetHeight;  // force reflow so the next line animates
+          content.style.height = '0px';
+        }
+      };
+
+      trigger.addEventListener('click', e => {
+        if (e.target.closest('a')) return;  // let links in the header work
+        setOpen(!card.classList.contains('open'));
+      });
+      trigger.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
+          e.preventDefault();
+          setOpen(!card.classList.contains('open'));
+        }
+      });
+    });
+  }
+
   // ── Boot ──────────────────────────────────────────────────────────────────
+  initAccordions();
   loadModels();
   loadInputImages();
   loadRecords();

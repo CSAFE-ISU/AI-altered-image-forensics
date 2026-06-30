@@ -143,6 +143,27 @@
   .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
   .section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
+  /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
+        at runtime by initAccordions() in tracker.js. ── */
+  .section-card.accordion-item { padding: 0; }
+  .accordion-item > .accordion-trigger {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    width: 100%; margin: 0; padding: 0.9rem 1.5rem; border-bottom: none;
+    cursor: pointer; user-select: none; transition: color 0.15s;
+  }
+  .accordion-item > .accordion-trigger:hover { color: var(--text-muted); }
+  .accordion-item.open > .accordion-trigger { border-bottom: 1px solid var(--border); }
+  .accordion-trigger .accordion-chevron {
+    width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint);
+    transition: transform 0.2s ease;
+  }
+  .accordion-item.open > .accordion-trigger .accordion-chevron { transform: rotate(180deg); }
+  /* Height is animated in JS (set to the content height, then to 0); overflow
+     stays visible while open so hover tooltips aren't clipped. */
+  .accordion-content { overflow: visible; transition: height 0.2s ease; }
+  .accordion-content-inner { padding: 1.1rem 1.5rem 1.25rem; }
+  .accordion-title { min-width: 0; }
+
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
   .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 4px; font-family: var(--mono); }
