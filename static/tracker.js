@@ -128,6 +128,9 @@
       const regionWrap = document.getElementById('region-picker-wrap');
       if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
     }
+
+    // Recolor the accordions now that blank-required fields are up to date.
+    updateAccordionStatus(type);
   }
 
   function applyFilters(records) {
@@ -3042,6 +3045,35 @@
 
   window.addEventListener('beforeunload', e => { if (state.dirty) e.preventDefault(); });
 
+  // Color each accordion by completion state so you can see at a glance — even
+  // while collapsed — which sections are done vs. still need input:
+  //   acc-incomplete (amber) — a required field is still empty
+  //   acc-complete   (green) — has data and no required fields missing
+  //   acc-empty      (gray)  — nothing entered yet / informational section
+  function updateAccordionStatus(type) {
+    const form = document.getElementById('form-' + type);
+    if (!form) return;
+    form.querySelectorAll('.accordion-item').forEach(item => {
+      const fields = [...item.querySelectorAll('input, select, textarea')].filter(
+        el =>
+          !el.disabled &&
+          !el.readOnly &&
+          !el.classList.contains('auto-field') &&
+          !['hidden', 'file', 'button', 'submit', 'reset'].includes(el.type)
+      );
+      const hasData = fields.some(el =>
+        el.type === 'checkbox' || el.type === 'radio'
+          ? el.checked
+          : el.value.trim() !== ''
+      );
+      const hasBlank = !!item.querySelector('.field-blank');
+      item.classList.remove('acc-complete', 'acc-incomplete', 'acc-empty');
+      item.classList.add(
+        hasBlank ? 'acc-incomplete' : hasData ? 'acc-complete' : 'acc-empty'
+      );
+    });
+  }
+
   // Transform the static .section-card boxes into Shadcn-style accordions:
   // the section label becomes a clickable trigger (with a rotating chevron)
   // over animated, collapsible content. Items start open so data entry is
@@ -3053,7 +3085,7 @@
       const trigger = card.querySelector(':scope > .section-label');
       if (!trigger) return;
       card.dataset.accordion = '1';
-      card.classList.add('accordion-item', 'open');
+      card.classList.add('accordion-item');
 
       // Move everything after the label into an animated content wrapper.
       const content = document.createElement('div');
@@ -3069,10 +3101,14 @@
       trigger.classList.add('accordion-trigger');
       trigger.setAttribute('role', 'button');
       trigger.setAttribute('tabindex', '0');
-      trigger.setAttribute('aria-expanded', 'true');
+      trigger.setAttribute('aria-expanded', 'false');
       const title = document.createElement('span');
       title.className = 'accordion-title';
       while (trigger.firstChild) title.appendChild(trigger.firstChild);
+      // Status dot signals completion state (set by updateAccordionStatus).
+      const dot = document.createElement('span');
+      dot.className = 'accordion-status-dot';
+      title.insertBefore(dot, title.firstChild);
       trigger.appendChild(title);
       const chev = document.createElementNS(NS, 'svg');
       chev.setAttribute('class', 'accordion-chevron');
@@ -3110,6 +3146,10 @@
           content.style.height = '0px';
         }
       };
+
+      // Collapsed by default (no animation on load).
+      content.style.height = '0px';
+      content.style.overflow = 'hidden';
 
       trigger.addEventListener('click', e => {
         if (e.target.closest('a')) return;  // let links in the header work
