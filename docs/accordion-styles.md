@@ -13,7 +13,7 @@ A reference of every text element in the two accordion types and the styles appl
 | `var(--text-faint)` | `oklch(0.709 0.01 56)` — light gray |
 | `var(--secondary-accent-strong)` | `oklch(0.52 0.112 35.8)` — **dark burnt-peach** (terracotta) |
 | `var(--accent)` = `--rose-wine` | **#bd4f6c** |
-| `var(--dark-amethyst)` | **#41234d** — deep amethyst (section headings) |
+| `var(--velvet-purple)` | **#5F3370** — deep velvet purple (section headings) |
 
 ------------------------------------------------------------------------
 
@@ -21,7 +21,7 @@ A reference of every text element in the two accordion types and the styles appl
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----------|----------|----------|----------|----------|----------|----------|
-| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **dark-amethyst** (`--dark-amethyst` #41234d) |
+| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
 | **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--rose-wine`) — `--ink-black` when incomplete |
@@ -38,9 +38,9 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----------|----------|----------|----------|----------|----------|----------|
-| **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **dark-amethyst** (`--dark-amethyst`) |
+| **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | ↳ toggle marker ▸/▾ | `summary::before` | — | 9px | — | — | `--text-faint` |
-| **Section title** | `.dash-section-title` | Geist | 15px | 600 | uppercase, `0.04em` | **dark-amethyst** (`--dark-amethyst`) — identical to `.section-label` |
+| **Section title** | `.dash-section-title` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) — identical to `.section-label` |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
 | **Summary card number** | `.dash-card-num` | Geist Mono | 2rem | 600 | `line-height 1` | rose-wine (`--accent`) |
 | **Summary card label** | `.dash-card-label` | Geist (sans) | 11px | normal | none | `--text-muted` |
@@ -63,7 +63,7 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, dark-amethyst, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, dark-amethyst, at 18px. Both accordion types have a 2px dark-amethyst outline. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. Both accordion types have a 2px velvet-purple outline. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ---
 

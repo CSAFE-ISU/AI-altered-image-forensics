@@ -5,7 +5,7 @@
     --burnt-peach: #d7816a;
     --vanilla-custard: #f6e2a2;
     --ink-black: #0d1f2d;
-    --dark-amethyst: #41234d;
+    --velvet-purple: #5f3370;
 
     /* Shadcn base tokens, repointed onto the named palette. Cards stay white;
        the canvas (--bg) is the warm vanilla-custard. */
@@ -169,8 +169,8 @@
   .phase-panel { display: none; }
   .phase-panel.active { display: block; }
 
-  .section-card { background: var(--surface); border: 2px solid var(--dark-amethyst); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dark-amethyst); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-card { background: var(--surface); border: 2px solid var(--velvet-purple); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--velvet-purple); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -337,7 +337,7 @@
   }
   .dash-section-title {
     font-family: var(--sans); font-size: 15px; font-weight: 600;
-    letter-spacing: 0.04em; text-transform: uppercase; color: var(--dark-amethyst);
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--velvet-purple);
     margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
   }
   .dash-section-subtitle { font-size: 12px; color: var(--text-muted); margin: -0.5rem 0 1.25rem; }
@@ -377,12 +377,12 @@
   .dash-table td { padding: 6px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
   .dash-table tbody tr:hover { background: var(--surface); }
 
-  .dash-group { border: 2px solid var(--dark-amethyst); border-radius: var(--radius); }
+  .dash-group { border: 2px solid var(--velvet-purple); border-radius: var(--radius); }
   .dash-group > summary {
     padding: 0.75rem 1rem; cursor: pointer; list-style: none;
     display: flex; align-items: center; gap: 0.5rem; user-select: none;
     font-family: var(--mono); font-size: 18px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.04em; color: var(--dark-amethyst);
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--velvet-purple);
     background: var(--surface2); border-radius: var(--radius);
   }
   .dash-group[open] > summary { border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--border); }
