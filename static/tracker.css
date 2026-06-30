@@ -6,6 +6,7 @@
     --vanilla-custard: #f6e2a2;
     --ink-black: #0d1f2d;
     --velvet-purple: #5f3370;
+    --cornsilk: #fbf4da;
 
     /* Shadcn base tokens, repointed onto the named palette. Cards stay white;
        the canvas (--bg) is the warm vanilla-custard. */
@@ -224,7 +225,7 @@
   }
   .instruction-box strong { color: var(--accent); font-weight: 600; }
 
-  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--warning) !important; background: var(--warning-bg) !important; }
+  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--warning) !important; background: var(--cornsilk) !important; }
   .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--warning); border-radius: var(--radius); }
 
   .rating-group { display: flex; gap: 6px; }
