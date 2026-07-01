@@ -8,29 +8,17 @@
     --velvet-purple: #5f3370;
     --cornsilk: #fbf4da;
 
-    /* Shadcn base tokens, repointed onto the named palette. Cards stay white;
-       the canvas (--bg) is the warm vanilla-custard. */
+    /* Shadcn base tokens, repointed onto the named palette. */
     --background: #ffffff;
     --foreground: var(--ink-black);
     --card: #ffffff;
-    --card-foreground: var(--ink-black);
-    --popover: #ffffff;
-    --popover-foreground: var(--ink-black);
     --primary: var(--rose-wine);
     --primary-foreground: #ffffff;
-    --secondary: oklch(0.967 0.001 286.375);
-    --secondary-foreground: oklch(0.21 0.006 285.885);
     --muted: oklch(0.97 0.001 106.424);
     --muted-foreground: oklch(0.553 0.013 58.071);
     --destructive: oklch(0.577 0.245 27.325);
-    --input: oklch(0.923 0.003 48.717);
     --ring: oklch(0.709 0.01 56.259);
     --sidebar: var(--ink-black); /* dark sidebar */
-    --chart-1: oklch(0.855 0.138 181.071);
-    --chart-2: oklch(0.704 0.14 182.503);
-    --chart-3: oklch(0.6 0.118 184.704);
-    --chart-4: oklch(0.511 0.096 186.391);
-    --chart-5: oklch(0.437 0.078 188.216);
 
     /* App semantic aliases mapped onto the Shadcn tokens above. */
     --bg: #ffffff; /* white canvas */
@@ -66,31 +54,6 @@
     --radius-lg: 0.875rem;
   }
 
-  /* Preset dark palette. Inert until a `dark` class is set on <html>; only the
-     raw tokens flip — every alias above re-resolves automatically. */
-  .dark {
-    --background: oklch(0.147 0.004 49.25);
-    --foreground: oklch(0.985 0.001 106.423);
-    --card: oklch(0.216 0.006 56.043);
-    --card-foreground: oklch(0.985 0.001 106.423);
-    --popover: oklch(0.216 0.006 56.043);
-    --popover-foreground: oklch(0.985 0.001 106.423);
-    --primary: oklch(0.47 0.157 37.304);
-    --primary-foreground: oklch(0.98 0.016 73.684);
-    --secondary: oklch(0.274 0.006 286.033);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.268 0.007 34.298);
-    --muted-foreground: oklch(0.709 0.01 56.259);
-    --destructive: oklch(0.704 0.191 22.216);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.553 0.013 58.071);
-    --sidebar: oklch(0.216 0.006 56.043);
-    --border: oklch(1 0 0 / 10%);
-    --border-strong: oklch(1 0 0 / 22%);
-    /* Lift success/warning a little for legibility on dark surfaces. */
-    --success: oklch(0.78 0.08 113);
-    --warning: oklch(0.75 0.13 70);
-  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; min-height: 100vh; }
 
@@ -116,23 +79,11 @@
     background: var(--sidebar); border-right: 1px solid var(--border);
     position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto; padding: 0.75rem 0 1.5rem;
   }
-  .sidebar-group { margin-bottom: 1rem; }
-  .sidebar-group-label {
-    font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--text-faint); padding: 0.5rem 1.25rem 0.3rem;
-  }
-  .record-list { list-style: none; }
   .record-item { padding: 7px 1.25rem; cursor: pointer; border-left: 3px solid transparent; transition: background 0.1s; }
   .record-item:hover { background: var(--surface2); }
   .record-item.active { background: var(--accent-light); border-left-color: var(--accent); }
   .record-item-name { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .record-item-meta { font-size: 11px; color: var(--text-faint); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .record-item-badge { display: inline-block; font-family: var(--mono); font-size: 9px; font-weight: 500; padding: 1px 6px; border-radius: var(--radius-sm); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .badge-p0 { background: #f0ede8; color: #5a5248; }
-  .badge-p1 { background: #e8f0e8; color: #2d5a2d; }
-  .badge-grok { background: #e8f0e8; color: #2d6a2d; }
-  .badge-gemini { background: #e8eef8; color: #1a4a7a; }
-  .badge-other-model { background: var(--surface2); color: var(--text-muted); }
   .new-record-btn {
     display: block; margin: 0.25rem 1.25rem 0; width: calc(100% - 2.5rem);
     padding: 6px; font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
@@ -140,15 +91,10 @@
     background: var(--accent-strong); color: var(--primary-foreground); cursor: pointer; transition: all 0.15s;
   }
   .new-record-btn:hover { opacity: 0.88; }
-  .empty-state { padding: 0.4rem 1.25rem; font-size: 11px; color: var(--text-faint); font-style: italic; }
   /* The sidebar is ink-black, so all its text is white. */
   aside .record-item-name,
-  aside .sidebar-group-label,
-  aside .sidebar-section-label,
   aside .record-item-meta,
-  aside .empty-state,
-  aside .filter-label,
-  aside .filter-check-label { color: #fff; }
+  aside .filter-label { color: #fff; }
   aside .record-item:hover { background: rgba(255,255,255,0.08); }
   aside .record-item.active { background: rgba(255,255,255,0.14); border-left-color: var(--accent); }
   aside .study-header:hover { background: rgba(255,255,255,0.08); }
@@ -158,17 +104,6 @@
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
   .form-title { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text); }
   .form-subtitle { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 4px; }
-
-  .phase-tabs { display: flex; margin-bottom: 1.75rem; border-bottom: 1px solid var(--border); }
-  .phase-tab {
-    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
-    padding: 8px 18px; cursor: pointer; border: none; background: transparent;
-    color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s;
-  }
-  .phase-tab:hover { color: var(--text); }
-  .phase-tab.active { color: var(--secondary-accent-strong); border-bottom-color: var(--secondary-accent-strong); }
-  .phase-panel { display: none; }
-  .phase-panel.active { display: block; }
 
   .section-card { background: var(--surface); border: 2px solid var(--velvet-purple); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
   .section-label { font-family: var(--sans); font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--velvet-purple); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
@@ -213,18 +148,10 @@
   .field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-  .hint-box { font-size: 12px; color: var(--text-faint); margin-top: -4px; margin-bottom: 1rem; line-height: 1.6; }
   .auto-field { background: var(--surface2) !important; color: var(--text-muted); cursor: default; }
   .auto-field:focus { border-color: var(--border) !important; background: var(--surface2) !important; }
   select.auto-field:disabled { opacity: 1; }
   .auto-tag { font-weight: 400; color: var(--rose-wine); font-size: 11px; margin-left: 4px; }
-  .instruction-box {
-    font-size: 12px; color: var(--text-muted); margin-top: -4px; margin-bottom: 1rem;
-    line-height: 1.6; padding: 7px 10px 7px 12px;
-    border-left: 3px solid var(--accent); background: var(--accent-light);
-    border-radius: 0 var(--radius) var(--radius) 0;
-  }
-  .instruction-box strong { color: var(--accent); font-weight: 600; }
 
   input.field-blank, select.field-blank, textarea.field-blank { border: 2px solid var(--burnt-peach) !important; background: var(--surface) !important; }
   .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--burnt-peach); border-radius: var(--radius); }
@@ -234,22 +161,6 @@
   .rating-btn:hover { border-color: var(--accent-border); color: var(--accent); }
   .rating-btn.selected { background: var(--accent-strong); color: var(--primary-foreground); border-color: var(--accent-strong); }
 
-  .artifact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
-  .artifact-item { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); transition: all 0.12s; user-select: none; }
-  .artifact-item:hover { border-color: var(--accent-border); background: var(--accent-light); }
-  .artifact-item input[type=checkbox] { margin-top: 1px; accent-color: var(--accent); }
-  .artifact-item.checked { background: var(--accent-light); border-color: var(--accent-border); color: var(--accent); }
-
-  .detector-header { display: grid; grid-template-columns: 1fr 120px 140px 32px; gap: 8px; margin-bottom: 6px; }
-  .detector-header span { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
-  .detector-row { display: grid; grid-template-columns: 1fr 120px 140px 32px; gap: 8px; align-items: center; margin-bottom: 6px; }
-  .detector-row input, .detector-row select { width: 100%; padding: 6px 8px; font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); outline: none; }
-  .detector-row input:focus, .detector-row select:focus { border-color: var(--accent-border); }
-  .remove-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-faint); cursor: pointer; font-size: 14px; transition: all 0.12s; }
-  .remove-btn:hover { border-color: var(--danger); color: var(--danger); background: color-mix(in oklch, var(--destructive) 12%, var(--background)); }
-  .add-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; letter-spacing: 0.03em; margin-top: 4px; }
-  .add-link:hover { opacity: 0.7; }
-
   .analysis-section { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
   .analysis-summary { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); cursor: pointer; user-select: none; list-style: none; }
   .analysis-summary::-webkit-details-marker { display: none; }
@@ -258,7 +169,6 @@
   .analysis-empty { font-size: 0.85rem; color: var(--text-muted); margin: 0.75rem 0; font-style: italic; }
   .artifact-display { display: flex; flex-wrap: wrap; gap: 6px; margin: 0.5rem 0 0.75rem; }
   .artifact-tag { font-family: var(--mono); font-size: 11px; padding: 3px 8px; background: var(--accent-light); color: var(--accent); border-radius: var(--radius); }
-  .sidebar-section-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint); padding: 0.75rem 1.25rem 0.3rem; border-top: 1px solid var(--border); margin-top: 0.5rem; }
   .c2pa-table td { padding: 3px 8px 3px 0; vertical-align: top; }
   .c2pa-table td:first-child { color: var(--text-muted, #888); white-space: nowrap; padding-right: 12px; }
   .c2pa-table .c2pa-warn { color: #c0392b; font-weight: 500; }
@@ -311,7 +221,6 @@
   }
   .filter-row { display: flex; align-items: center; gap: 6px; }
   .filter-label { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 40px; flex-shrink: 0; }
-  .filter-check-label { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); cursor: pointer; min-width: unset; }
   #sidebar-filters select, #filter-search { font-size: 11px; flex: 1; padding: 2px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); }
   #filter-search::placeholder { color: var(--text-muted); }
 

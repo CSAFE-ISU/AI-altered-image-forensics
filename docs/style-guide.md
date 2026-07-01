@@ -37,8 +37,6 @@ The record title and subtitle at the top of the canvas, above the accordions.
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
 | **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--rose-wine`) — **lime-cream** when incomplete |
 | **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--rose-wine`) |
-| **Hint text** | `.hint-box` | Geist (sans) | 12px | normal | `line-height 1.6` | `--text-faint` |
-| **Instruction box** | `.instruction-box` | Geist (sans) | 12px | normal | — | `--text-muted` (`<strong>` → `--accent`) |
 | **Field values** (inputs) | inherited | Geist | 13px | normal | — | `--text` (#0d1f2d) |
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
