@@ -199,7 +199,7 @@
   .accordion-item.acc-incomplete { background: var(--velvet-purple); }
   .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
-  .accordion-item.acc-incomplete .field label { color: var(--burnt-peach); }
+  .accordion-item.acc-incomplete .field label { color: var(--lime-cream); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }

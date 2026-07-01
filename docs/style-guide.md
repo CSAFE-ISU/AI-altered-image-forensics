@@ -32,10 +32,10 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **burnt-peach** when incomplete |
+| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **lime-cream** when incomplete |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
-| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--rose-wine`) — **burnt-peach** when incomplete |
+| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--rose-wine`) — **lime-cream** when incomplete |
 | **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--rose-wine`) |
 | **Hint text** | `.hint-box` | Geist (sans) | 12px | normal | `line-height 1.6` | `--text-faint` |
 | **Instruction box** | `.instruction-box` | Geist (sans) | 12px | normal | — | `--text-muted` (`<strong>` → `--accent`) |
@@ -43,7 +43,7 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
 
-Incomplete ("to-do") accordions (`.acc-incomplete`) get a **velvet-purple** background with **burnt-peach** title and field labels; complete accordions stay white.
+Incomplete ("to-do") accordions (`.acc-incomplete`) get a **velvet-purple** background with **lime-cream** title and field labels; complete accordions stay white.
 
 ### Input field states
 
