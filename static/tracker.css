@@ -196,9 +196,10 @@
   /* Completion status: accordions missing a required field get a burnt-peach
      background; all others stay white. Text inside switches to ink-black so it
      stays legible on the peach. */
-  .accordion-item.acc-incomplete { background: var(--vanilla-custard); }
+  .accordion-item.acc-incomplete { background: var(--velvet-purple); }
+  .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
-  .accordion-item.acc-incomplete .field label { color: var(--ink-black); }
+  .accordion-item.acc-incomplete .field label { color: var(--burnt-peach); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
