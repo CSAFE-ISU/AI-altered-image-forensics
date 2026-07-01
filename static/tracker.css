@@ -155,7 +155,8 @@
   .accordion-item.acc-incomplete { background: var(--rose-wine); border-color: var(--rose-wine); }
   .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
-  .accordion-item.acc-incomplete .field label { color: #fff; }
+  .accordion-item.acc-incomplete .field label,
+  .accordion-item.acc-incomplete .auto-tag { color: #fff; }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }

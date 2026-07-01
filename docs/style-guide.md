@@ -42,7 +42,7 @@ The record title and subtitle at the top of the canvas, above the accordions.
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
 | **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
-| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--label-color`) |
+| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
 | **Field values** (inputs) | inherited | Geist | 13px | normal | — | `--text` (#0d1f2d) |
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
