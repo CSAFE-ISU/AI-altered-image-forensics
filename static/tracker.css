@@ -225,8 +225,8 @@
   }
   .instruction-box strong { color: var(--accent); font-weight: 600; }
 
-  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--warning) !important; background: var(--cornsilk) !important; }
-  .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--warning); border-radius: var(--radius); }
+  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--burnt-peach) !important; background: var(--surface) !important; }
+  .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--burnt-peach); border-radius: var(--radius); }
 
   .rating-group { display: flex; gap: 6px; }
   .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
