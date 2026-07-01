@@ -37,9 +37,6 @@
     /* Secondary palette: deep purple (structure / navigation) and sage
        (positive states / soft surfaces). */
     --secondary-accent: var(--burnt-peach);
-    /* Darker burnt-peach for headings/nav text so it stays legible (~5.8:1). */
-    --secondary-accent-strong: oklch(0.52 0.112 35.8);
-    --secondary-accent-light: color-mix(in oklch, var(--secondary-accent) 16%, var(--background));
     --sage: var(--lime-cream);
     --sage-strong: oklch(0.5 0.1 122); /* deeper green for legible text / dots */
     --success: var(--sage-strong);
@@ -50,7 +47,6 @@
     --mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
     --sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --radius: 0.625rem;
-    --radius-sm: calc(var(--radius) - 4px);
     --radius-lg: 0.875rem;
   }
 
