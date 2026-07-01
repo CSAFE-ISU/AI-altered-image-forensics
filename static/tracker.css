@@ -313,7 +313,7 @@
   .dash-group > summary {
     padding: 0.9rem 1.5rem; cursor: pointer; list-style: none;
     display: flex; align-items: center; justify-content: space-between; gap: 1rem; user-select: none;
-    font-family: var(--mono); font-size: var(--text-lg); font-weight: 600;
+    font-family: var(--sans); font-size: var(--text-lg); font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.04em; color: var(--velvet-purple);
     background: var(--lime-cream); transition: color 0.15s;
     /* Round the summary corners inside the card's rounded border (see the form

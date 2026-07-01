@@ -68,7 +68,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
+| **Group title** (summary) | `.dash-group > summary` | Geist | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | ↳ chevron (right, rotates) | `summary::after` (CSS mask) | 16×16 | — | — | rotates 180° when open | `--text-faint` |
 | **Section title** | `.section-label` (shared with the form) | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
@@ -93,7 +93,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px lime-cream outline + card radius, a lime-cream title strip, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px lime-cream outline + card radius, a lime-cream title strip, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ------------------------------------------------------------------------
 
