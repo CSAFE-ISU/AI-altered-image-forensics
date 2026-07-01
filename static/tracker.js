@@ -1611,7 +1611,7 @@
   function buildMetadataIndicatorsSection(p0, p1, p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = 'Metadata Tags by Image Type';
     section.appendChild(titleEl);
     const subEl1 = document.createElement('p');
@@ -1694,7 +1694,7 @@
   function buildModelIndicatorTable(p0, p1, p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = 'Indicator Presence by Model';
     section.appendChild(titleEl);
     const subEl = document.createElement('p');
@@ -1833,7 +1833,7 @@
     // positive prediction.
     const cmSection = document.createElement('div');
     const cmTitle = document.createElement('div');
-    cmTitle.className = 'dash-section-title';
+    cmTitle.className = 'section-label';
     cmTitle.textContent = 'AI or Not Confusion Matrix';
     cmSection.appendChild(cmTitle);
     const cmSub = document.createElement('p');
@@ -1908,7 +1908,7 @@
     if (aP2.length) {
       const modelSection = document.createElement('div');
       const modelTitle = document.createElement('div');
-      modelTitle.className = 'dash-section-title';
+      modelTitle.className = 'section-label';
       modelTitle.textContent = 'Detection Rate by Model';
       modelSection.appendChild(modelTitle);
       const modelSub = document.createElement('p');
@@ -1965,7 +1965,7 @@
     // datasets: [{ label, color, values: number[] }, ...]
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
@@ -2430,7 +2430,7 @@
 
     // ── Confusion matrix ──
     const cmTitle = document.createElement('div');
-    cmTitle.className = 'dash-section-title';
+    cmTitle.className = 'section-label';
     cmTitle.textContent = 'Confusion Matrix';
     wrapper.appendChild(cmTitle);
 
@@ -2493,7 +2493,7 @@
 
     // ── Feature importances ──
     const fiTitle = document.createElement('div');
-    fiTitle.className = 'dash-section-title';
+    fiTitle.className = 'section-label';
     fiTitle.textContent = 'Feature Importances';
     wrapper.appendChild(fiTitle);
 
@@ -2636,7 +2636,7 @@
 
       const wmSection = document.createElement('div');
       const wmTitle = document.createElement('div');
-      wmTitle.className = 'dash-section-title';
+      wmTitle.className = 'section-label';
       wmTitle.textContent = 'Models with Visible Watermarks';
       wmSection.appendChild(wmTitle);
 
@@ -2704,7 +2704,7 @@
   function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
@@ -2750,7 +2750,7 @@
   function buildScatterPlot(title, records) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 

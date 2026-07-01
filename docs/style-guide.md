@@ -64,7 +64,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 |----|----|----|----|----|----|----|
 | **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | ↳ toggle marker ▸/▾ | `summary::before` | — | 9px | — | — | `--text-faint` |
-| **Section title** | `.dash-section-title` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) — identical to `.section-label` |
+| **Section title** | `.section-label` (shared with the form) | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
 | **Summary card number** | `.dash-card-num` | Geist Mono | 2rem | 600 | `line-height 1` | rose-wine (`--accent`) |
 | **Summary card label** | `.dash-card-label` | Geist (sans) | 11px | normal | none | `--text-muted` |
