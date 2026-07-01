@@ -140,9 +140,11 @@
      also lime-cream, so the header + border blend cleanly at the corners). */
   .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); }
   .accordion-trigger .accordion-chevron {
-    width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint);
+    width: 16px; height: 16px; flex-shrink: 0; color: var(--velvet-purple);
     transition: transform 0.2s ease;
   }
+  /* White chevron on the rose-wine background of incomplete accordions. */
+  .accordion-item.acc-incomplete > .accordion-trigger .accordion-chevron { color: #fff; }
   .accordion-item.open > .accordion-trigger .accordion-chevron { transform: rotate(180deg); }
   /* Height is animated in JS (set to the content height, then to 0); overflow
      stays visible while open so hover tooltips aren't clipped. */
@@ -327,7 +329,7 @@
   }
   .dash-group > summary::after {
     content: ''; width: 16px; height: 16px; flex-shrink: 0;
-    background-color: var(--text-faint);
+    background-color: var(--velvet-purple);
     -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') center / contain no-repeat;
     mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') center / contain no-repeat;
     transition: transform 0.2s ease;
