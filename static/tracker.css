@@ -117,7 +117,7 @@
   .form-subtitle { color: var(--text-faint); margin-top: 4px; }
 
   .section-card { background: var(--surface); border: 2px solid var(--lime-cream); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
-  .section-label { font-family: var(--sans); font-size: var(--text-md); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--velvet-purple); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+  .section-label { font-family: var(--sans); font-size: var(--text-md); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-black); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
 
   /* ── Accordion — the .section-card boxes are turned into Shadcn accordions
         at runtime by initAccordions() in tracker.js. ── */
@@ -138,11 +138,11 @@
     border-bottom-left-radius: 0; border-bottom-right-radius: 0;
   }
   /* Complete accordions get a lime-cream strip behind the title (its border is
-     also lime-cream, so the header + border blend cleanly at the corners), with
-     a black title. */
-  .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); color: var(--ink-black); }
+     also lime-cream, so the header + border blend cleanly at the corners). The
+     black title comes from the base .section-label color. */
+  .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); }
   .accordion-trigger .accordion-chevron {
-    width: 16px; height: 16px; flex-shrink: 0; color: var(--velvet-purple);
+    width: 16px; height: 16px; flex-shrink: 0; color: var(--ink-black);
     transition: transform 0.2s ease;
   }
   /* White chevron on the rose-wine background of incomplete accordions. */
@@ -340,7 +340,7 @@
   }
   .dash-group > summary::after {
     content: ''; width: 16px; height: 16px; flex-shrink: 0;
-    background-color: var(--velvet-purple);
+    background-color: var(--ink-black);
     -webkit-mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') center / contain no-repeat;
     mask: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') center / contain no-repeat;
     transition: transform 0.2s ease;
