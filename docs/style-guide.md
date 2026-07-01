@@ -11,9 +11,15 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 | `var(--text)` = `--ink-black` | **#0d1f2d** (ink-black) |
 | `var(--text-muted)` | `oklch(0.553 0.013 58)` — medium warm gray |
 | `var(--text-faint)` | `oklch(0.709 0.01 56)` — light gray |
-| `var(--secondary-accent-strong)` | `oklch(0.52 0.112 35.8)` — **dark burnt-peach** (terracotta) |
 | `var(--accent)` = `--rose-wine` | **#bd4f6c** |
+| `var(--label-color)` = `--rose-wine` | **#bd4f6c** — field labels & "(auto)" tags |
 | `var(--velvet-purple)` | **#5F3370** — deep velvet purple (section headings) |
+
+### Type scale & the `.ui-label` utility
+
+Font sizes use a scale defined in `:root`: `--text-xs` 10px, `--text-sm` 11px, `--text-base` 13px, `--text-md` 15px, `--text-lg` 18px, `--text-xl` 22px.
+
+`.ui-label` (Geist Mono, `--text-sm`, weight 500, `0.06em`, uppercase) is a shared utility applied to the uppercase-label classes: `.img-caption`, `.filter-label`, `.gallery-bar-title`, `.dash-indicator-label`, `.gallery-row-label`, `.gallery-actions-title`, `.analysis-summary`, `.dash-bar-label`, `.dash-table th`, `.dash-bar-count`, `.dash-bar-count-wide`, `.record-count`, `.form-subtitle`. Those classes keep only their own color/layout declarations, so any row below listing one of them inherits its font/size/weight/spacing/case from `.ui-label`.
 
 ------------------------------------------------------------------------
 
@@ -24,7 +30,7 @@ The record title and subtitle at the top of the canvas, above the accordions.
 | Text element | Selector | Font | Size | Weight | Color |
 |----|----|----|----|----|----|
 | **Title** (record name) | `.form-title` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
-| **Subtitle** (record type, e.g. "AI alteration") | `.form-subtitle` | Geist Mono | 11px | normal | `--text-faint` |
+| **Subtitle** (record type, e.g. "AI ALTERATION") | `.form-subtitle` (`.ui-label`) | Geist Mono | 11px | 500 | `--text-faint` |
 
 ------------------------------------------------------------------------
 
@@ -35,8 +41,8 @@ The record title and subtitle at the top of the canvas, above the accordions.
 | **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **lime-cream** when incomplete |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
-| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--rose-wine`) — **lime-cream** when incomplete |
-| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--rose-wine`) |
+| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **lime-cream** when incomplete |
+| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--label-color`) |
 | **Field values** (inputs) | inherited | Geist | 13px | normal | — | `--text` (#0d1f2d) |
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
@@ -68,10 +74,10 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
 | **Summary card number** | `.dash-card-num` | Geist Mono | 2rem | 600 | `line-height 1` | rose-wine (`--accent`) |
 | **Summary card label** | `.dash-card-label` | Geist (sans) | 11px | normal | none | `--text-muted` |
-| **Bar label** | `.dash-bar-label` | Geist Mono | 11px | normal | right-aligned | `--text` (#0d1f2d) |
-| **Bar count** | `.dash-bar-count` | Geist Mono | 11px | normal | right-aligned | `--text-muted` |
-| **Bar count (wide)** | `.dash-bar-count-wide` | Geist Mono | 11px | normal | right-aligned | `--text-muted` |
-| **Indicator label** | `.dash-indicator-label` | Geist Mono | 10px | 500 | uppercase, `0.06em` | `--text-muted` |
+| **Bar label** | `.dash-bar-label` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text` (#0d1f2d) |
+| **Bar count** | `.dash-bar-count` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text-muted` |
+| **Bar count (wide)** | `.dash-bar-count-wide` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text-muted` |
+| **Indicator label** | `.dash-indicator-label` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, `0.06em` | `--text-muted` |
 | **Table header** | `.dash-table th` | Geist Mono | 11px | 500 | uppercase, `0.06em` | `--text-muted` |
 | **Table cell** | `.dash-table td` | Geist (sans) | 12px | normal | none | `--text` (#0d1f2d) |
 | **Confusion-matrix cell** | inline | Geist Mono | 18px | normal | centered | `--text` (#0d1f2d) |
@@ -87,7 +93,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. Both accordion types have a 2px velvet-purple outline. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px velvet-purple outline + card radius, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ------------------------------------------------------------------------
 
@@ -97,8 +103,8 @@ These live in the **Image preview**, **Metadata forensics**, and **C2PA Viewer R
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **"Analysis results" toggle** | `.analysis-summary` | Geist Mono | 10px | 500 | uppercase, `0.1em` | `--text-faint` |
-| **Image-caption prefix** ("Original" / "Input" / …) | `.img-caption` | Geist Mono | 10px | 500 | uppercase, `0.08em` | `--text-faint` |
+| **"Analysis results" toggle** | `.analysis-summary` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, `0.06em` | `--text-faint` |
+| **Image-caption prefix** ("Original" / "Input" / …) | `.img-caption` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, `0.06em` | `--text-faint` |
 | **Image name** (filename) | `.img-name` | Geist Mono | 10px | 400 | none, `word-break: break-all` | `--text-faint` |
 | **Expandable summary** ("Camera EXIF fields", "Photoshop / Adobe markers", "ICC…", "Grok signatures", "C2PA Results – Auto-detected") | `.analysis-detail > summary` | Geist (sans) | 0.82rem | normal | `cursor: pointer` | `--text-muted` |
 | **Field name** (expandable table, left cell) | `.c2pa-table td:first-child` | Geist (sans) | inherited | normal | `white-space: nowrap` | `--text-muted` |
