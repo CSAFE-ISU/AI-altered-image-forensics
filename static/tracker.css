@@ -225,7 +225,7 @@
   }
   .instruction-box strong { color: var(--accent); font-weight: 600; }
 
-  input.field-blank, select.field-blank, textarea.field-blank { border-color: var(--burnt-peach) !important; background: var(--surface) !important; }
+  input.field-blank, select.field-blank, textarea.field-blank { border: 2px solid var(--burnt-peach) !important; background: var(--surface) !important; }
   .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--burnt-peach); border-radius: var(--radius); }
 
   .rating-group { display: flex; gap: 6px; }

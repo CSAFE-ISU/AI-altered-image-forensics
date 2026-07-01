@@ -52,7 +52,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 | **Default** | `.field input[type=text]` / `[datetime-local]`, `.field select`, `.field textarea` | `--surface` (white) | 1px `--border` | `--text` (#0d1f2d) |
 | **Focus** | `.field input:focus`, `…select:focus`, `…textarea:focus` | `--card` (white) | `--accent-border` (rose-wine tint) + 3px `--ring` focus ring | — |
 | **Auto / read-only** | `.auto-field` | `--surface2` (light gray) | `--border` | `--text-muted`, `cursor: default` |
-| **Required-but-empty** | `.field-blank` | `--surface` (white) | **`--burnt-peach`** (#d7816a) | rating / region widgets get a 2px `--burnt-peach` outline instead |
+| **Required-but-empty** | `.field-blank` | `--surface` (white) | **2px** `--burnt-peach` (#d7816a) | rating / region widgets get a 2px `--burnt-peach` outline instead |
 | **Optional** | `.field-optional` | — | — | JS status marker only — renders like **Default** |
 | **Required-and-filled** | *(no class)* | — | — | renders like **Default** |
 
