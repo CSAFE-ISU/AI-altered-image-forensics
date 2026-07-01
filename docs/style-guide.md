@@ -38,16 +38,16 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **lime-cream** when incomplete |
+| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **white** when incomplete |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
-| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **lime-cream** when incomplete |
+| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
 | **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--label-color`) |
 | **Field values** (inputs) | inherited | Geist | 13px | normal | — | `--text` (#0d1f2d) |
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
 
-Incomplete ("to-do") accordions (`.acc-incomplete`) get a **velvet-purple** background with **lime-cream** title and field labels; complete accordions stay white.
+Incomplete ("to-do") accordions (`.acc-incomplete`) are solid **rose-wine** (background + border) with **white** title and field labels. Complete accordions have a **lime-cream** border with a lime-cream strip behind the title, over white content.
 
 ### Input field states
 
@@ -93,7 +93,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px velvet-purple outline + card radius, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px lime-cream outline + card radius, a lime-cream title strip, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ------------------------------------------------------------------------
 
