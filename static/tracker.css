@@ -6,6 +6,7 @@
     --vanilla-custard: #f6e2a2;
     --ink-black: #0d1f2d;
     --velvet-purple: #5f3370;
+    --stormy-teal: #25747e;
     --cornsilk: #fbf4da;
 
     /* Shadcn base tokens, repointed onto the named palette. */
@@ -282,6 +283,15 @@
     line-height: 1;
   }
   .dash-card-label { font-size: var(--text-sm); color: var(--text-muted); margin-top: 4px; }
+  /* Colored summary counters: originals (burnt-peach / black), modifications
+     (velvet-purple / white), alterations (stormy-teal / white). Both the
+     number and label inherit the box's text color. */
+  .dash-card--orig { background: var(--burnt-peach); border-color: var(--burnt-peach); }
+  .dash-card--mod { background: var(--velvet-purple); border-color: var(--velvet-purple); }
+  .dash-card--alt { background: var(--stormy-teal); border-color: var(--stormy-teal); }
+  .dash-card--orig .dash-card-num, .dash-card--orig .dash-card-label { color: var(--ink-black); }
+  .dash-card--mod .dash-card-num, .dash-card--mod .dash-card-label,
+  .dash-card--alt .dash-card-num, .dash-card--alt .dash-card-label { color: #fff; }
   .dash-bar-chart { display: flex; flex-direction: column; gap: 8px; }
   .dash-bar-row { display: flex; align-items: center; gap: 10px; border-radius: var(--radius); padding: 2px 4px; margin: 0 -4px; }
   .dash-bar-row[style*="pointer"]:hover { background: var(--surface2); }

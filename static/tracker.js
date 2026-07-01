@@ -2585,9 +2585,10 @@
 
     const cards = document.createElement('div');
     cards.className = 'dash-cards';
-    [[p0.length, 'Originals'], [p1.length, 'Modifications'], [p2.length, 'Alterations']].forEach(([num, label]) => {
+    [[p0.length, 'Originals', 'orig'], [p1.length, 'Modifications', 'mod'],
+     [p2.length, 'Alterations', 'alt']].forEach(([num, label, variant]) => {
       const card = document.createElement('div');
-      card.className = 'dash-card';
+      card.className = 'dash-card dash-card--' + variant;
       const n = document.createElement('div'); n.className = 'dash-card-num'; n.textContent = num;
       const l = document.createElement('div'); l.className = 'dash-card-label'; l.textContent = label;
       card.appendChild(n); card.appendChild(l); cards.appendChild(card);

@@ -72,8 +72,8 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 | ↳ chevron (right, rotates) | `summary::after` (CSS mask) | 16×16 | — | — | rotates 180° when open | **velvet-purple** (`--velvet-purple`) |
 | **Section title** | `.section-label` (shared with the form) | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
-| **Summary card number** | `.dash-card-num` | Geist Mono | 2rem | 600 | `line-height 1` | rose-wine (`--accent`) |
-| **Summary card label** | `.dash-card-label` | Geist (sans) | 11px | normal | none | `--text-muted` |
+| **Summary card number** | `.dash-card-num` | Geist Mono | 2rem | 600 | `line-height 1` | inherits the box text color (see note) |
+| **Summary card label** | `.dash-card-label` | Geist (sans) | 11px | normal | none | inherits the box text color (see note) |
 | **Bar label** | `.dash-bar-label` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text` (#0d1f2d) |
 | **Bar count** | `.dash-bar-count` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text-muted` |
 | **Bar count (wide)** | `.dash-bar-count-wide` (`.ui-label`) | Geist Mono | 11px | 500 | uppercase, right-aligned | `--text-muted` |
@@ -81,6 +81,8 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 | **Table header** | `.dash-table th` | Geist Mono | 11px | 500 | uppercase, `0.06em` | `--text-muted` |
 | **Table cell** | `.dash-table td` | Geist (sans) | 12px | normal | none | `--text` (#0d1f2d) |
 | **Confusion-matrix cell** | inline | Geist Mono | 18px | normal | centered | `--text` (#0d1f2d) |
+
+The three Summary counter boxes are color-coded via `.dash-card--{orig,mod,alt}` modifiers, and their number + label inherit the box text color: **Originals** = burnt-peach box, black text; **Modifications** = velvet-purple box, white text; **Alterations** = stormy-teal (`--stormy-teal` #25747e) box, white text.
 
 ### Plot text (SVG; styles set inline in `tracker.js`)
 
