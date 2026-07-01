@@ -13,7 +13,7 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 | `var(--text-faint)` | `oklch(0.709 0.01 56)` — light gray |
 | `var(--accent)` = `--rose-wine` | **#bd4f6c** |
 | `var(--label-color)` = `--rose-wine` | **#bd4f6c** — field labels & "(auto)" tags |
-| `var(--velvet-purple)` | **#5F3370** — deep velvet purple (section headings) |
+| `var(--velvet-purple)` | **#5F3370** — deep velvet purple (dashboard section titles) |
 
 ### Type scale & the `.ui-label` utility
 
@@ -38,7 +38,7 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) — **white** when incomplete |
+| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **black** (`--ink-black`) when complete — **white** when incomplete |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | **velvet-purple** (`--velvet-purple`) — **white** when incomplete |
 | **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
@@ -68,7 +68,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Group title** (summary) | `.dash-group > summary` | Geist | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
+| **Group title** (summary) | `.dash-group > summary` | Geist | 18px | 600 | uppercase, `0.04em` | **black** (`--ink-black`) |
 | ↳ chevron (right, rotates) | `summary::after` (CSS mask) | 16×16 | — | — | rotates 180° when open | **velvet-purple** (`--velvet-purple`) |
 | **Section title** | `.section-label` (shared with the form) | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | **Section subtitle** | `.dash-section-subtitle` | Geist (sans) | 12px | normal | none | `--text-muted` |
@@ -95,7 +95,7 @@ The three Summary counter boxes are color-coded via `.dash-card--{orig,mod,alt}`
 
 ------------------------------------------------------------------------
 
-Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist, velvet-purple, at 18px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px lime-cream outline + card radius, a lime-cream title strip, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
+Both accordion types share the same heading typography (Geist, uppercase, weight 600). Form section headings are black when complete (white when incomplete); dashboard group titles (`.dash-group > summary`) are black at 18px, while the dashboard's inner **section titles** (`.section-label`) stay velvet-purple at 15px. `.dash-group` is styled to visually match the form `.accordion-item`: a 2px lime-cream outline + card radius, a lime-cream title strip, `0.9rem 1.5rem` trigger padding, a right-side rotating chevron (same SVG, via a CSS mask), and an open border-bottom — while staying a native `<details>` element. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
 ------------------------------------------------------------------------
 

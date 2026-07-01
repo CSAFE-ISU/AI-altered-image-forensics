@@ -138,8 +138,9 @@
     border-bottom-left-radius: 0; border-bottom-right-radius: 0;
   }
   /* Complete accordions get a lime-cream strip behind the title (its border is
-     also lime-cream, so the header + border blend cleanly at the corners). */
-  .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); }
+     also lime-cream, so the header + border blend cleanly at the corners), with
+     a black title. */
+  .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); color: var(--ink-black); }
   .accordion-trigger .accordion-chevron {
     width: 16px; height: 16px; flex-shrink: 0; color: var(--velvet-purple);
     transition: transform 0.2s ease;
@@ -326,7 +327,7 @@
     padding: 0.9rem 1.5rem; cursor: pointer; list-style: none;
     display: flex; align-items: center; justify-content: space-between; gap: 1rem; user-select: none;
     font-family: var(--sans); font-size: var(--text-lg); font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.04em; color: var(--velvet-purple);
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-black);
     background: var(--lime-cream); transition: color 0.15s;
     /* Round the summary corners inside the card's rounded border (see the form
        trigger above); bottom corners go square when open. */
