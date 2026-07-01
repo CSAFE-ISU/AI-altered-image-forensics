@@ -5,7 +5,7 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 ## Token legend
 
 | Token | Resolves to |
-|------------------------------------|------------------------------------|
+|----|----|
 | `var(--mono)` | **Geist Mono** (`'Geist Mono', ui-monospace, 'SF Mono', monospace`) |
 | `var(--sans)` | **Geist** (body default; used when no `font-family` is set) |
 | `var(--text)` = `--ink-black` | **#0d1f2d** (ink-black) |
@@ -22,7 +22,7 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 The record title and subtitle at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Color |
-|---|---|---|---|---|---|
+|----|----|----|----|----|----|
 | **Title** (record name) | `.form-title` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
 | **Subtitle** (record type, e.g. "AI alteration") | `.form-subtitle` | Geist Mono | 11px | normal | `--text-faint` |
 
@@ -31,7 +31,7 @@ The record title and subtitle at the top of the canvas, above the accordions.
 ## A. Image-records accordion (`.section-card` → `.accordion-item`)
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
-|----------|----------|----------|----------|----------|----------|----------|
+|----|----|----|----|----|----|----|
 | **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple` #5F3370) |
 | **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
 | **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | `--text-faint` |
@@ -43,12 +43,25 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
 
+### Input field states
+
+Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-radius: var(--radius)`, Geist (sans) 13px.
+
+| State | Selector | Background | Border | Text / notes |
+|---|---|---|---|---|
+| **Default** | `.field input[type=text]` / `[datetime-local]`, `.field select`, `.field textarea` | `--surface` (white) | 1px `--border` | `--text` (#0d1f2d) |
+| **Focus** | `.field input:focus`, `…select:focus`, `…textarea:focus` | `--card` (white) | `--accent-border` (rose-wine tint) + 3px `--ring` focus ring | — |
+| **Auto / read-only** | `.auto-field` | `--surface2` (light gray) | `--border` | `--text-muted`, `cursor: default` |
+| **Required-but-empty** | `.field-blank` | **`--cornsilk`** (#fbf4da) | `--warning` (amber) | rating / region widgets get a 2px `--warning` outline instead |
+| **Optional** | `.field-optional` | — | — | JS status marker only — renders like **Default** |
+| **Required-and-filled** | *(no class)* | — | — | renders like **Default** |
+
 ------------------------------------------------------------------------
 
 ## B. Dashboard accordion (`.dash-group`)
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
-|----------|----------|----------|----------|----------|----------|----------|
+|----|----|----|----|----|----|----|
 | **Group title** (summary) | `.dash-group > summary` | Geist Mono | 18px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) |
 | ↳ toggle marker ▸/▾ | `summary::before` | — | 9px | — | — | `--text-faint` |
 | **Section title** | `.dash-section-title` | Geist | 15px | 600 | uppercase, `0.04em` | **velvet-purple** (`--velvet-purple`) — identical to `.section-label` |
@@ -66,7 +79,7 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 ### Plot text (SVG; styles set inline in `tracker.js`)
 
 | Text element                         | Font       | Size    | Color (`fill`)     |
-|------------------|------------------|------------------|------------------|
+|--------------------------------------|------------|---------|--------------------|
 | Axis tick labels                     | Geist Mono | 9px     | `--text-muted`     |
 | X-axis unit label                    | Geist Mono | 9px     | `--text-faint`     |
 | Legend items                         | Geist Mono | 11px    | `--text-muted`     |
@@ -76,14 +89,14 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 
 Both accordion types share the same section-heading treatment (Geist, uppercase, velvet-purple, 15px). Dashboard group titles (`.dash-group > summary`) are Geist Mono, velvet-purple, at 18px. Both accordion types have a 2px velvet-purple outline. Smaller body labels in the dashboard use gray (`--text-muted` / `--text-faint`).
 
----
+------------------------------------------------------------------------
 
 ## C. Analysis sub-section (inside the image-records accordions)
 
 These live in the **Image preview**, **Metadata forensics**, and **C2PA Viewer Results** accordions. Each element now has a dedicated class for easy editing.
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
-|---|---|---|---|---|---|---|
+|----|----|----|----|----|----|----|
 | **"Analysis results" toggle** | `.analysis-summary` | Geist Mono | 10px | 500 | uppercase, `0.1em` | `--text-faint` |
 | **Image-caption prefix** ("Original" / "Input" / …) | `.img-caption` | Geist Mono | 10px | 500 | uppercase, `0.08em` | `--text-faint` |
 | **Image name** (filename) | `.img-name` | Geist Mono | 10px | 400 | none, `word-break: break-all` | `--text-faint` |
@@ -96,7 +109,7 @@ These live in the **Image preview**, **Metadata forensics**, and **C2PA Viewer R
 
 The expandable panels (`.analysis-detail`) keep an inline `display:none` so the JS show/hide toggle in `tracker.js` still works; all other styling is in the CSS classes above.
 
----
+------------------------------------------------------------------------
 
 ## Palette contrast
 
