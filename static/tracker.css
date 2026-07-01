@@ -125,9 +125,17 @@
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     width: 100%; margin: 0; padding: 0.9rem 1.5rem; border-bottom: none;
     cursor: pointer; user-select: none; transition: color 0.15s;
+    /* Round the header's corners to sit inside the card's rounded border
+       (inner radius = card radius minus the 2px border) so its background
+       doesn't poke past the corners. When open, the bottom corners go square
+       to stay flush with the content below. */
+    border-radius: calc(var(--radius-lg) - 2px);
   }
   .accordion-item > .accordion-trigger:hover { opacity: 0.7; }
-  .accordion-item.open > .accordion-trigger { border-bottom: 1px solid var(--border); }
+  .accordion-item.open > .accordion-trigger {
+    border-bottom: 1px solid var(--border);
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
   /* Complete accordions get a lime-cream strip behind the title (its border is
      also lime-cream, so the header + border blend cleanly at the corners). */
   .accordion-item:not(.acc-incomplete) > .accordion-trigger { background: var(--lime-cream); }
@@ -306,9 +314,15 @@
     font-family: var(--mono); font-size: var(--text-lg); font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.04em; color: var(--velvet-purple);
     background: var(--lime-cream); transition: color 0.15s;
+    /* Round the summary corners inside the card's rounded border (see the form
+       trigger above); bottom corners go square when open. */
+    border-radius: calc(var(--radius-lg) - 2px);
   }
   .dash-group > summary:hover { opacity: 0.7; }
-  .dash-group[open] > summary { border-bottom: 1px solid var(--border); }
+  .dash-group[open] > summary {
+    border-bottom: 1px solid var(--border);
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
   .dash-group > summary::after {
     content: ''; width: 16px; height: 16px; flex-shrink: 0;
     background-color: var(--text-faint);
