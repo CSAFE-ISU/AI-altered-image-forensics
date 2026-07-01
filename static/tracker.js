@@ -1648,7 +1648,7 @@
       const group = document.createElement('div');
       group.className = 'dash-indicator-group';
       const lbl = document.createElement('div');
-      lbl.className = 'dash-indicator-label';
+      lbl.className = 'dash-indicator-label ui-label';
       lbl.textContent = label;
       group.appendChild(lbl);
       const chart = document.createElement('div');
@@ -1669,7 +1669,7 @@
           });
         }
         const labelEl = document.createElement('span');
-        labelEl.className = 'dash-bar-label';
+        labelEl.className = 'dash-bar-label ui-label';
         labelEl.textContent = name;
         labelEl.style.width = '220px';
         const track = document.createElement('div');
@@ -1679,7 +1679,7 @@
         fill.style.width = pct + '%';
         track.appendChild(fill);
         const cEl = document.createElement('span');
-        cEl.className = 'dash-bar-count-wide';
+        cEl.className = 'dash-bar-count-wide ui-label';
         cEl.textContent = `${pct}%`;
         row.append(labelEl, track, cEl);
         chart.appendChild(row);
@@ -1723,11 +1723,11 @@
 
     const thead = table.createTHead();
     const hrow = thead.insertRow();
-    const modelTh = document.createElement('th');
+    const modelTh = document.createElement('th'); modelTh.className = 'ui-label';
     modelTh.textContent = 'Group';
     hrow.appendChild(modelTh);
     INDICATORS.forEach(([label]) => {
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = label;
       th.style.textAlign = 'center';
       hrow.appendChild(th);
@@ -1788,7 +1788,7 @@
       });
     }
     const labelEl = document.createElement('span');
-    labelEl.className = 'dash-bar-label';
+    labelEl.className = 'dash-bar-label ui-label';
     labelEl.textContent = label;
     labelEl.style.width = '220px';
     const track = document.createElement('div');
@@ -1798,7 +1798,7 @@
     fill.style.width = pct + '%';
     track.appendChild(fill);
     const cEl = document.createElement('span');
-    cEl.className = 'dash-bar-count-wide';
+    cEl.className = 'dash-bar-count-wide ui-label';
     if (countWidth) cEl.style.width = countWidth;
     cEl.textContent = `${pct}% (${matching.length}/${total})`;
     row.append(labelEl, track, cEl);
@@ -1870,7 +1870,7 @@
     const cmHead = cmTable.createTHead();
     const cmHRow = cmHead.insertRow();
     ['', 'Predicted: AI', 'Predicted: Real'].forEach(h => {
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = h;
       th.style.textAlign = 'center';
       cmHRow.appendChild(th);
@@ -1878,7 +1878,7 @@
     const cmBody = cmTable.createTBody();
     const cmRow = (label, cells) => {
       const tr = cmBody.insertRow();
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = label;
       tr.appendChild(th);
       cells.forEach(c => tr.appendChild(c));
@@ -2651,7 +2651,7 @@
         const thead = table.createTHead();
         const hrow = thead.insertRow();
         ['Model', 'Watermark description'].forEach(h => {
-          const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
+          const th = document.createElement('th'); th.className = 'ui-label'; th.textContent = h; hrow.appendChild(th);
         });
         const tbody = table.createTBody();
         const seen = new Set();
@@ -2727,7 +2727,7 @@
         });
       }
       const lEl = document.createElement('span');
-      lEl.className = 'dash-bar-label';
+      lEl.className = 'dash-bar-label ui-label';
       lEl.textContent = label;
       const track = document.createElement('div');
       track.className = 'dash-bar-track';
@@ -2736,7 +2736,7 @@
       fill.style.width = Math.round(count / maxVal_ * 100) + '%';
       track.appendChild(fill);
       const cEl = document.createElement('span');
-      cEl.className = 'dash-bar-count';
+      cEl.className = 'dash-bar-count ui-label';
       cEl.textContent = formatValue ? formatValue(count) : count;
       row.appendChild(lEl);
       row.appendChild(track);
@@ -2918,7 +2918,7 @@
     const row = document.createElement('div');
     row.className = 'gallery-row';
     const lbl = document.createElement('div');
-    lbl.className = 'gallery-row-label';
+    lbl.className = 'gallery-row-label ui-label';
     lbl.textContent = label;
     row.appendChild(lbl);
     const grid = document.createElement('div');
@@ -2992,7 +2992,7 @@
     panel.className = 'gallery-actions-panel';
 
     const title = document.createElement('div');
-    title.className = 'gallery-actions-title';
+    title.className = 'gallery-actions-title ui-label';
     title.textContent = getRecordName(rec);
     panel.appendChild(title);
 

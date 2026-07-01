@@ -13,7 +13,7 @@
 <header>
   <h1>AI Image Alteration Tracker — CSAFE</h1>
   <div class="header-actions">
-    <span id="record-count" class="record-count"></span>
+    <span id="record-count" class="record-count ui-label"></span>
     <span id="header-status" class="status-msg"></span>
     <button class="header-btn" onclick="openDashboard()">Dashboard</button>
     <button class="header-btn" onclick="openGallery()">Gallery</button>
@@ -30,7 +30,7 @@
     </div>
     <div id="sidebar-filters">
       <div class="filter-row">
-        <label class="filter-label">Type</label>
+        <label class="filter-label ui-label">Type</label>
         <select id="filter-type" onchange="setFilter('type', this.value)">
           <option value="">All</option>
           <option value="p0">Original</option>
@@ -39,13 +39,13 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Model</label>
+        <label class="filter-label ui-label">Model</label>
         <select id="filter-model" onchange="setFilter('model', this.value)">
           <option value="">All</option>
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Blank fields</label>
+        <label class="filter-label ui-label">Blank fields</label>
         <select id="filter-blank" onchange="setFilter('blankOnly', this.value)">
           <option value="">All</option>
           <option value="yes">Has blank field(s)</option>
@@ -53,7 +53,7 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Analysis</label>
+        <label class="filter-label ui-label">Analysis</label>
         <select id="filter-analysis" onchange="setFilter('analysis', this.value)">
           <option value="">All</option>
           <option value="yes">Has analysis</option>
@@ -61,7 +61,7 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Search</label>
+        <label class="filter-label ui-label">Search</label>
         <input type="text" id="filter-search" placeholder="filename or study ID…" oninput="setFilter('search', this.value)">
       </div>
     </div>
@@ -78,7 +78,7 @@
     <div id="form-area" style="display:none;">
       <div class="form-header">
         <div class="form-title" id="form-title">New record</div>
-        <div class="form-subtitle" id="form-subtitle"></div>
+        <div class="form-subtitle ui-label" id="form-subtitle"></div>
       </div>
 
       <!-- ══ PHASE 0 ══ -->
@@ -135,14 +135,14 @@
         <div class="section-card img-preview-card" id="prev-p0" style="display:none;">
           <div class="section-label">Image preview</div>
           <div class="img-slot">
-            <div class="img-caption">Original<span id="cap-p0" class="img-name"></span></div>
+            <div class="img-caption ui-label">Original<span id="cap-p0" class="img-name"></span></div>
             <img id="img-p0" class="img-preview" src="" alt="Original image">
             <div class="img-missing" id="miss-p0" style="display:none;">Image not found in images folder.</div>
           </div>
         </div>
 
         <details id="an-p0-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p0" onclick="runAnalysis('p0')">Analyze</button>
             <span class="status-msg" id="status-analyze-p0"></span>
@@ -275,12 +275,12 @@
           <div class="section-label">Image preview</div>
           <div class="img-pair">
             <div class="img-slot">
-              <div class="img-caption">Input<span id="cap-p1-input" class="img-name"></span></div>
+              <div class="img-caption ui-label">Input<span id="cap-p1-input" class="img-name"></span></div>
               <img id="img-p1-input" class="img-preview" src="" alt="Input image">
               <div class="img-missing" id="miss-p1-input" style="display:none;">Image not found.</div>
             </div>
             <div class="img-slot">
-              <div class="img-caption">Modified output<span id="cap-p1-output" class="img-name"></span></div>
+              <div class="img-caption ui-label">Modified output<span id="cap-p1-output" class="img-name"></span></div>
               <img id="img-p1-output" class="img-preview" src="" alt="Modified image">
               <div class="img-missing" id="miss-p1-output" style="display:none;">Image not found.</div>
             </div>
@@ -300,7 +300,7 @@
         </div>
 
         <details id="an-p1-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p1" onclick="runAnalysis('p1')">Analyze</button>
             <span class="status-msg" id="status-analyze-p1"></span>
@@ -447,12 +447,12 @@
             <div class="section-label">Image preview</div>
             <div class="img-pair">
               <div class="img-slot">
-                <div class="img-caption">Input<span id="cap-p2-input" class="img-name"></span></div>
+                <div class="img-caption ui-label">Input<span id="cap-p2-input" class="img-name"></span></div>
                 <img id="img-p2-input" class="img-preview" src="" alt="Input image">
                 <div class="img-missing" id="miss-p2-input" style="display:none;">Image not found.</div>
               </div>
               <div class="img-slot">
-                <div class="img-caption">AI-altered output<span id="cap-p2-output" class="img-name"></span></div>
+                <div class="img-caption ui-label">AI-altered output<span id="cap-p2-output" class="img-name"></span></div>
                 <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
                 <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
               </div>
@@ -561,7 +561,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           </div>
 
         <details id="an-p2-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p2" onclick="runAnalysis('p2')">Analyze</button>
             <span class="status-msg" id="status-analyze-p2"></span>
@@ -647,7 +647,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 <!-- Dashboard overlay -->
 <div id="dashboard-overlay">
   <div class="gallery-bar">
-    <span class="gallery-bar-title">Dashboard</span>
+    <span class="gallery-bar-title ui-label">Dashboard</span>
     <button class="header-btn" onclick="closeDashboard()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
   </div>
   <div id="dashboard-content"></div>
@@ -656,7 +656,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 <!-- Gallery overlay -->
 <div id="gallery-overlay">
   <div class="gallery-bar">
-    <span id="gallery-bar-title" class="gallery-bar-title">Study Gallery</span>
+    <span id="gallery-bar-title" class="gallery-bar-title ui-label">Study Gallery</span>
     <button id="gallery-show-all-btn" class="header-btn" onclick="openGallery()" style="display:none; background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">Show all</button>
     <button class="header-btn" onclick="closeGallery()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
   </div>

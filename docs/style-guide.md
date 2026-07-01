@@ -19,7 +19,7 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 
 Font sizes use a scale defined in `:root`: `--text-xs` 10px, `--text-sm` 11px, `--text-base` 13px, `--text-md` 15px, `--text-lg` 18px, `--text-xl` 22px.
 
-`.ui-label` (Geist Mono, `--text-sm`, weight 500, `0.06em`, uppercase) is a shared utility applied to the uppercase-label classes: `.img-caption`, `.filter-label`, `.gallery-bar-title`, `.dash-indicator-label`, `.gallery-row-label`, `.gallery-actions-title`, `.analysis-summary`, `.dash-bar-label`, `.dash-table th`, `.dash-bar-count`, `.dash-bar-count-wide`, `.record-count`, `.form-subtitle`. Those classes keep only their own color/layout declarations, so any row below listing one of them inherits its font/size/weight/spacing/case from `.ui-label`.
+`.ui-label` (Geist Mono, `--text-sm`, weight 500, `0.06em`, uppercase) is a utility class **added to the label elements in markup** (`tracker.html` and via `className` in `tracker.js`) alongside their own class. The label classes below keep only their own color/layout declarations and get their font/size/weight/spacing/case from `.ui-label`: `.img-caption`, `.filter-label`, `.gallery-bar-title`, `.dash-indicator-label`, `.gallery-row-label`, `.gallery-actions-title`, `.analysis-summary`, `.dash-bar-label`, the dashboard `th` cells, `.dash-bar-count`, `.dash-bar-count-wide`, `.record-count`, `.form-subtitle`.
 
 ------------------------------------------------------------------------
 
