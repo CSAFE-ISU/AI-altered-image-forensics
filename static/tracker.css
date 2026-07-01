@@ -156,7 +156,8 @@
   .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label,
-  .accordion-item.acc-incomplete .auto-tag { color: #fff; }
+  .accordion-item.acc-incomplete .auto-tag,
+  .accordion-item.acc-incomplete .claude-q-text { color: #fff; }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
@@ -482,7 +483,9 @@
   /* Claude prompt + response blocks */
   .claude-q { margin: 0.75rem 0; }
   .claude-q-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem; }
-  .claude-q-text { flex: 1; font-size: var(--text-base); font-weight: 600; color: var(--text); line-height: 1.45; }
+  /* Question prompts use the same format as field labels (mono, 12px, weight
+     500, rose-wine); flex/line-height are kept for the Copy button + wrapping. */
+  .claude-q-text { flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--label-color); line-height: 1.45; }
   .copy-btn { flex-shrink: 0; padding: 3px 10px; font-size: var(--text-xs); }
   .claude-q textarea {
     width: 100%; padding: 7px 10px; font-family: var(--sans); font-size: var(--text-base);
