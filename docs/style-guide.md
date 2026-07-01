@@ -48,13 +48,15 @@ Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hove
 Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-radius: var(--radius)`, Geist (sans) 13px.
 
 | State | Selector | Background | Border | Text / notes |
-|---|---|---|---|---|
-| **Default** | `.field input[type=text]` / `[datetime-local]`, `.field select`, `.field textarea` | `--surface` (white) | 1px `--border` | `--text` (#0d1f2d) |
+|----|----|----|----|----|
+| **Default** | `.field input[type=text]` / `[datetime-local]`, `.field select`, `.field textarea` (also `.claude-q textarea`, `.detector-row input`) | **`--cornsilk`** (#fbf4da) | 1px `--border` | `--text` (#0d1f2d) |
 | **Focus** | `.field input:focus`, `…select:focus`, `…textarea:focus` | `--card` (white) | `--accent-border` (rose-wine tint) + 3px `--ring` focus ring | — |
 | **Auto / read-only** | `.auto-field` | `--surface2` (light gray) | `--border` | `--text-muted`, `cursor: default` |
 | **Required-but-empty** | `.field-blank` | **`--cornsilk`** (#fbf4da) | `--warning` (amber) | rating / region widgets get a 2px `--warning` outline instead |
 | **Optional** | `.field-optional` | — | — | JS status marker only — renders like **Default** |
 | **Required-and-filled** | *(no class)* | — | — | renders like **Default** |
+
+On **focus**, inputs revert to a white (`--card`) background. **Required-but-empty** inputs now share the same cornsilk background as Default — they're distinguished only by the amber `--warning` border. (`type=date` inputs are not covered by the default rule and stay browser-default.)
 
 ------------------------------------------------------------------------
 
