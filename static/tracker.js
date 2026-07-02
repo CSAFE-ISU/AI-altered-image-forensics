@@ -1209,11 +1209,22 @@
   function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
 
   function updateFormTitle() {
-    let title = 'Untitled record';
-    if (state.currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
-    if (state.currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
-    if (state.currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
-    document.getElementById('form-title').textContent = title;
+    // Descriptive prefix (Geist) + the assigned image filename (Geist Mono).
+    const prefixes = { p0: 'Original Image', p1: 'Modified Image', p2: 'AI Altered Image' };
+    const fileFields = { p0: 'p0_study_id', p1: 'p1_mod_filename', p2: 'p2_altered_filename' };
+    const fallbacks = { p0: 'Untitled original', p1: 'Untitled modification', p2: 'Untitled alteration' };
+    const el = document.getElementById('form-title');
+    const type = state.currentType;
+    if (!prefixes[type]) { el.textContent = 'Untitled record'; return; }
+    const fname = document.getElementById(fileFields[type])?.value || fallbacks[type];
+    el.textContent = '';
+    const pre = document.createElement('span');
+    pre.className = 'form-title-prefix';
+    pre.textContent = prefixes[type] + ': ';
+    const file = document.createElement('span');
+    file.className = 'form-title-file';
+    file.textContent = fname;
+    el.append(pre, file);
   }
 
   function autoSave() { persistCurrentRecord(); }

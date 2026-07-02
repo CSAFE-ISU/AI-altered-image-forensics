@@ -29,7 +29,8 @@ The record title and subtitle at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Color |
 |----|----|----|----|----|----|
-| **Title** (record name) | `.form-title` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
+| **Title** — prefix (e.g. "Original Image:") | `.form-title` › `.form-title-prefix` | Geist | 22px | 600 | `--text` (#0d1f2d) |
+| **Title** — filename | `.form-title` › `.form-title-file` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
 | **Subtitle** (record type, e.g. "AI ALTERATION") | `.form-subtitle` (`.ui-label`) | Geist Mono | 11px | 500 | `--text-faint` |
 
 ------------------------------------------------------------------------

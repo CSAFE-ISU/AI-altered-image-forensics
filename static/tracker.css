@@ -113,7 +113,9 @@
 
   main { padding: 2rem 2.5rem; max-width: 860px; }
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-  .form-title { font-family: var(--mono); font-size: var(--text-xl); font-weight: 600; color: var(--text); }
+  /* Title = descriptive prefix in Geist (sans) + the filename in Geist Mono. */
+  .form-title { font-family: var(--sans); font-size: var(--text-xl); font-weight: 600; color: var(--text); }
+  .form-title-file { font-family: var(--mono); }
   .form-subtitle { color: var(--text-faint); margin-top: 4px; }
 
   .section-card { background: var(--surface); border: 2px solid var(--lime-cream); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
