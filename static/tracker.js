@@ -335,8 +335,6 @@
 
   async function showFormFor(type, rec) {
     ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
-    const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration' };
-    document.getElementById('form-subtitle').textContent = labels[type] || '';
     state.loadingRecord = true;
     try {
       if (type === 'p0') await fillP0(rec);

@@ -55,6 +55,7 @@
     --text-md: 15px;
     --text-lg: 18px;
     --text-xl: 22px;
+    --text-2xl: 28px;
     --radius: 0.625rem;
     --radius-lg: 0.875rem;
   }
@@ -114,9 +115,8 @@
   main { padding: 2rem 2.5rem; max-width: 860px; }
   .form-header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
   /* Title = descriptive prefix in Geist (sans) + the filename in Geist Mono. */
-  .form-title { font-family: var(--sans); font-size: var(--text-xl); font-weight: 600; color: var(--text); }
+  .form-title { font-family: var(--sans); font-size: var(--text-2xl); font-weight: 600; color: var(--text); }
   .form-title-file { font-family: var(--mono); }
-  .form-subtitle { color: var(--text-faint); margin-top: 4px; }
 
   .section-card { background: var(--surface); border: 2px solid var(--lime-cream); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
   .section-label { font-family: var(--sans); font-size: var(--text-md); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-black); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }

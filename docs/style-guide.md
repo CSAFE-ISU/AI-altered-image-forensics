@@ -17,21 +17,20 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 
 ### Type scale & the `.ui-label` utility
 
-Font sizes use a scale defined in `:root`: `--text-xs` 10px, `--text-sm` 11px, `--text-base` 13px, `--text-md` 15px, `--text-lg` 18px, `--text-xl` 22px.
+Font sizes use a scale defined in `:root`: `--text-xs` 10px, `--text-sm` 11px, `--text-base` 13px, `--text-md` 15px, `--text-lg` 18px, `--text-xl` 22px, `--text-2xl` 28px.
 
-`.ui-label` (Geist Mono, `--text-sm`, weight 500, `0.06em`, uppercase) is a utility class **added to the label elements in markup** (`tracker.html` and via `className` in `tracker.js`) alongside their own class. The label classes below keep only their own color/layout declarations and get their font/size/weight/spacing/case from `.ui-label`: `.img-caption`, `.filter-label`, `.gallery-bar-title`, `.dash-indicator-label`, `.gallery-row-label`, `.gallery-actions-title`, `.analysis-summary`, `.dash-bar-label`, the dashboard `th` cells, `.dash-bar-count`, `.dash-bar-count-wide`, `.record-count`, `.form-subtitle`.
+`.ui-label` (Geist Mono, `--text-sm`, weight 500, `0.06em`, uppercase) is a utility class **added to the label elements in markup** (`tracker.html` and via `className` in `tracker.js`) alongside their own class. The label classes below keep only their own color/layout declarations and get their font/size/weight/spacing/case from `.ui-label`: `.img-caption`, `.filter-label`, `.gallery-bar-title`, `.dash-indicator-label`, `.gallery-row-label`, `.gallery-actions-title`, `.analysis-summary`, `.dash-bar-label`, the dashboard `th` cells, `.dash-bar-count`, `.dash-bar-count-wide`, `.record-count`.
 
 ------------------------------------------------------------------------
 
 ## Canvas header
 
-The record title and subtitle at the top of the canvas, above the accordions.
+The record title at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Color |
 |----|----|----|----|----|----|
-| **Title** — prefix (e.g. "Original Image:") | `.form-title` › `.form-title-prefix` | Geist | 22px | 600 | `--text` (#0d1f2d) |
-| **Title** — filename | `.form-title` › `.form-title-file` | Geist Mono | 22px | 600 | `--text` (#0d1f2d) |
-| **Subtitle** (record type, e.g. "AI ALTERATION") | `.form-subtitle` (`.ui-label`) | Geist Mono | 11px | 500 | `--text-faint` |
+| **Title** — prefix (e.g. "Original Image:") | `.form-title` › `.form-title-prefix` | Geist | 28px | 600 | `--text` (#0d1f2d) |
+| **Title** — filename | `.form-title` › `.form-title-file` | Geist Mono | 28px | 600 | `--text` (#0d1f2d) |
 
 ------------------------------------------------------------------------
 
