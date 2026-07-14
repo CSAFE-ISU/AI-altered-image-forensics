@@ -11,7 +11,7 @@
 
 
 
-<title>accordion-styles</title>
+<title>style-guide</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -352,11 +352,12 @@ display: none;
 </div>
 
 
-<div id="accordion-text-styles" class="section level1">
-<h1>Accordion text styles</h1>
-<p>A reference of every text element in the two accordion types and the
-styles applied to each, read from <code>static/tracker.css</code> (and
-the inline SVG/JS styles for dashboard plots).</p>
+<div id="style-guide" class="section level1">
+<h1>Style guide</h1>
+<p>A reference of the app’s text styles — the canvas header, the two
+accordion types, and the analysis sub-sections — read from
+<code>static/tracker.css</code> (and the inline SVG/JS styles for
+dashboard plots).</p>
 <div id="token-legend" class="section level2">
 <h2>Token legend</h2>
 <table>
@@ -394,18 +395,81 @@ the inline SVG/JS styles for dashboard plots).</p>
 <td><code>oklch(0.709 0.01 56)</code> — light gray</td>
 </tr>
 <tr class="even">
-<td><code>var(--secondary-accent-strong)</code></td>
-<td><code>oklch(0.52 0.112 35.8)</code> — <strong>dark
-burnt-peach</strong> (terracotta)</td>
-</tr>
-<tr class="odd">
 <td><code>var(--accent)</code> = <code>--rose-wine</code></td>
 <td><strong>#bd4f6c</strong></td>
+</tr>
+<tr class="odd">
+<td><code>var(--label-color)</code> = <code>--rose-wine</code></td>
+<td><strong>#bd4f6c</strong> — field labels &amp; “(auto)” tags</td>
 </tr>
 <tr class="even">
 <td><code>var(--velvet-purple)</code></td>
 <td><strong>#5F3370</strong> — deep velvet purple (section
 headings)</td>
+</tr>
+</tbody>
+</table>
+<div id="type-scale-the-.ui-label-utility" class="section level3">
+<h3>Type scale &amp; the <code>.ui-label</code> utility</h3>
+<p>Font sizes use a scale defined in <code>:root</code>:
+<code>--text-xs</code> 10px, <code>--text-sm</code> 11px,
+<code>--text-base</code> 13px, <code>--text-md</code> 15px,
+<code>--text-lg</code> 18px, <code>--text-xl</code> 22px.</p>
+<p><code>.ui-label</code> (Geist Mono, <code>--text-sm</code>, weight
+500, <code>0.06em</code>, uppercase) is a utility class <strong>added to
+the label elements in markup</strong> (<code>tracker.html</code> and via
+<code>className</code> in <code>tracker.js</code>) alongside their own
+class. The label classes below keep only their own color/layout
+declarations and get their font/size/weight/spacing/case from
+<code>.ui-label</code>: <code>.img-caption</code>,
+<code>.filter-label</code>, <code>.gallery-bar-title</code>,
+<code>.dash-indicator-label</code>, <code>.gallery-row-label</code>,
+<code>.gallery-actions-title</code>, <code>.analysis-summary</code>,
+<code>.dash-bar-label</code>, the dashboard <code>th</code> cells,
+<code>.dash-bar-count</code>, <code>.dash-bar-count-wide</code>,
+<code>.record-count</code>, <code>.form-subtitle</code>.</p>
+<hr />
+</div>
+</div>
+<div id="canvas-header" class="section level2">
+<h2>Canvas header</h2>
+<p>The record title and subtitle at the top of the canvas, above the
+accordions.</p>
+<table style="width:100%;">
+<colgroup>
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Text element</th>
+<th>Selector</th>
+<th>Font</th>
+<th>Size</th>
+<th>Weight</th>
+<th>Color</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Title</strong> (record name)</td>
+<td><code>.form-title</code></td>
+<td>Geist Mono</td>
+<td>22px</td>
+<td>600</td>
+<td><code>--text</code> (#0d1f2d)</td>
+</tr>
+<tr class="even">
+<td><strong>Subtitle</strong> (record type, e.g. “AI ALTERATION”)</td>
+<td><code>.form-subtitle</code> (<code>.ui-label</code>)</td>
+<td>Geist Mono</td>
+<td>11px</td>
+<td>500</td>
+<td><code>--text-faint</code></td>
 </tr>
 </tbody>
 </table>
@@ -444,7 +508,7 @@ headings)</td>
 <td>600</td>
 <td>uppercase, <code>0.04em</code></td>
 <td><strong>velvet-purple</strong> (<code>--velvet-purple</code>
-#5F3370)</td>
+#5F3370) — <strong>white</strong> when incomplete</td>
 </tr>
 <tr class="even">
 <td><strong>External link in heading</strong> (e.g. aiornot.com)</td>
@@ -471,8 +535,8 @@ headings)</td>
 <td>12px</td>
 <td>500</td>
 <td>none</td>
-<td><strong>rose-wine</strong> (<code>--rose-wine</code>) —
-<code>--ink-black</code> when incomplete</td>
+<td><strong>rose-wine</strong> (<code>--label-color</code>) —
+<strong>white</strong> when incomplete</td>
 </tr>
 <tr class="odd">
 <td><strong>“(auto)” tags</strong></td>
@@ -481,26 +545,7 @@ headings)</td>
 <td>11px</td>
 <td>400</td>
 <td>none</td>
-<td><strong>rose-wine</strong> (<code>--rose-wine</code>)</td>
-</tr>
-<tr class="even">
-<td><strong>Hint text</strong></td>
-<td><code>.hint-box</code></td>
-<td>Geist (sans)</td>
-<td>12px</td>
-<td>normal</td>
-<td><code>line-height 1.6</code></td>
-<td><code>--text-faint</code></td>
-</tr>
-<tr class="odd">
-<td><strong>Instruction box</strong></td>
-<td><code>.instruction-box</code></td>
-<td>Geist (sans)</td>
-<td>12px</td>
-<td>normal</td>
-<td>—</td>
-<td><code>--text-muted</code> (<code>&lt;strong&gt;</code> →
-<code>--accent</code>)</td>
+<td><strong>rose-wine</strong> (<code>--label-color</code>)</td>
 </tr>
 <tr class="even">
 <td><strong>Field values</strong> (inputs)</td>
@@ -516,7 +561,85 @@ headings)</td>
 <p>Trigger layout (not text): <code>padding 0.9rem 1.5rem</code>, flex
 <code>space-between</code>, <code>:hover { opacity 0.7 }</code>, bottom
 border when open.</p>
+<p>Incomplete (“to-do”) accordions (<code>.acc-incomplete</code>) are
+solid <strong>rose-wine</strong> (background + border) with
+<strong>white</strong> title and field labels. Complete accordions have
+a <strong>lime-cream</strong> border with a lime-cream strip behind the
+title, over white content.</p>
+<div id="input-field-states" class="section level3">
+<h3>Input field states</h3>
+<p>Base input geometry (all states): <code>width: 100%</code>,
+<code>padding: 7px 10px</code>,
+<code>border-radius: var(--radius)</code>, Geist (sans) 13px.</p>
+<table>
+<colgroup>
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+<col width="20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>State</th>
+<th>Selector</th>
+<th>Background</th>
+<th>Border</th>
+<th>Text / notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Default</strong></td>
+<td><code>.field input[type=text]</code> /
+<code>[datetime-local]</code>, <code>.field select</code>,
+<code>.field textarea</code></td>
+<td><code>--surface</code> (white)</td>
+<td>1px <code>--border</code></td>
+<td><code>--text</code> (#0d1f2d)</td>
+</tr>
+<tr class="even">
+<td><strong>Focus</strong></td>
+<td><code>.field input:focus</code>, <code>…select:focus</code>,
+<code>…textarea:focus</code></td>
+<td><code>--card</code> (white)</td>
+<td><code>--accent-border</code> (rose-wine tint) + 3px
+<code>--ring</code> focus ring</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td><strong>Auto / read-only</strong></td>
+<td><code>.auto-field</code></td>
+<td><code>--surface2</code> (light gray)</td>
+<td><code>--border</code></td>
+<td><code>--text-muted</code>, <code>cursor: default</code></td>
+</tr>
+<tr class="even">
+<td><strong>Required-but-empty</strong></td>
+<td><code>.field-blank</code></td>
+<td><code>--surface</code> (white)</td>
+<td><strong>2px</strong> <code>--burnt-peach</code> (#d7816a)</td>
+<td>rating / region widgets get a 2px <code>--burnt-peach</code> outline
+instead</td>
+</tr>
+<tr class="odd">
+<td><strong>Optional</strong></td>
+<td><code>.field-optional</code></td>
+<td>—</td>
+<td>—</td>
+<td>JS status marker only — renders like <strong>Default</strong></td>
+</tr>
+<tr class="even">
+<td><strong>Required-and-filled</strong></td>
+<td><em>(no class)</em></td>
+<td>—</td>
+<td>—</td>
+<td>renders like <strong>Default</strong></td>
+</tr>
+</tbody>
+</table>
 <hr />
+</div>
 </div>
 <div id="b.-dashboard-accordion-.dash-group" class="section level2">
 <h2>B. Dashboard accordion (<code>.dash-group</code>)</h2>
@@ -552,23 +675,22 @@ border when open.</p>
 <td><strong>velvet-purple</strong> (<code>--velvet-purple</code>)</td>
 </tr>
 <tr class="even">
-<td>↳ toggle marker ▸/▾</td>
-<td><code>summary::before</code></td>
+<td>↳ chevron (right, rotates)</td>
+<td><code>summary::after</code> (CSS mask)</td>
+<td>16×16</td>
 <td>—</td>
-<td>9px</td>
 <td>—</td>
-<td>—</td>
+<td>rotates 180° when open</td>
 <td><code>--text-faint</code></td>
 </tr>
 <tr class="odd">
 <td><strong>Section title</strong></td>
-<td><code>.dash-section-title</code></td>
+<td><code>.section-label</code> (shared with the form)</td>
 <td>Geist</td>
 <td>15px</td>
 <td>600</td>
 <td>uppercase, <code>0.04em</code></td>
-<td><strong>velvet-purple</strong> (<code>--velvet-purple</code>) —
-identical to <code>.section-label</code></td>
+<td><strong>velvet-purple</strong> (<code>--velvet-purple</code>)</td>
 </tr>
 <tr class="even">
 <td><strong>Section subtitle</strong></td>
@@ -599,36 +721,36 @@ identical to <code>.section-label</code></td>
 </tr>
 <tr class="odd">
 <td><strong>Bar label</strong></td>
-<td><code>.dash-bar-label</code></td>
+<td><code>.dash-bar-label</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
 <td>11px</td>
-<td>normal</td>
-<td>right-aligned</td>
+<td>500</td>
+<td>uppercase, right-aligned</td>
 <td><code>--text</code> (#0d1f2d)</td>
 </tr>
 <tr class="even">
 <td><strong>Bar count</strong></td>
-<td><code>.dash-bar-count</code></td>
+<td><code>.dash-bar-count</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
 <td>11px</td>
-<td>normal</td>
-<td>right-aligned</td>
+<td>500</td>
+<td>uppercase, right-aligned</td>
 <td><code>--text-muted</code></td>
 </tr>
 <tr class="odd">
 <td><strong>Bar count (wide)</strong></td>
-<td><code>.dash-bar-count-wide</code></td>
+<td><code>.dash-bar-count-wide</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
 <td>11px</td>
-<td>normal</td>
-<td>right-aligned</td>
+<td>500</td>
+<td>uppercase, right-aligned</td>
 <td><code>--text-muted</code></td>
 </tr>
 <tr class="even">
 <td><strong>Indicator label</strong></td>
-<td><code>.dash-indicator-label</code></td>
+<td><code>.dash-indicator-label</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
-<td>10px</td>
+<td>11px</td>
 <td>500</td>
 <td>uppercase, <code>0.06em</code></td>
 <td><code>--text-muted</code></td>
@@ -666,9 +788,9 @@ identical to <code>.section-label</code></td>
 <h3>Plot text (SVG; styles set inline in <code>tracker.js</code>)</h3>
 <table>
 <colgroup>
-<col width="25%" />
-<col width="25%" />
-<col width="25%" />
+<col width="48%" />
+<col width="15%" />
+<col width="11%" />
 <col width="25%" />
 </colgroup>
 <thead>
@@ -710,9 +832,13 @@ identical to <code>.section-label</code></td>
 <p>Both accordion types share the same section-heading treatment (Geist,
 uppercase, velvet-purple, 15px). Dashboard group titles
 (<code>.dash-group &gt; summary</code>) are Geist Mono, velvet-purple,
-at 18px. Both accordion types have a 2px velvet-purple outline. Smaller
-body labels in the dashboard use gray (<code>--text-muted</code> /
-<code>--text-faint</code>).</p>
+at 18px. <code>.dash-group</code> is styled to visually match the form
+<code>.accordion-item</code>: a 2px lime-cream outline + card radius, a
+lime-cream title strip, <code>0.9rem 1.5rem</code> trigger padding, a
+right-side rotating chevron (same SVG, via a CSS mask), and an open
+border-bottom — while staying a native <code>&lt;details&gt;</code>
+element. Smaller body labels in the dashboard use gray
+(<code>--text-muted</code> / <code>--text-faint</code>).</p>
 <hr />
 </div>
 </div>
@@ -745,21 +871,21 @@ Each element now has a dedicated class for easy editing.</p>
 <tbody>
 <tr class="odd">
 <td><strong>“Analysis results” toggle</strong></td>
-<td><code>.analysis-summary</code></td>
+<td><code>.analysis-summary</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
-<td>10px</td>
+<td>11px</td>
 <td>500</td>
-<td>uppercase, <code>0.1em</code></td>
+<td>uppercase, <code>0.06em</code></td>
 <td><code>--text-faint</code></td>
 </tr>
 <tr class="even">
 <td><strong>Image-caption prefix</strong> (“Original” / “Input” /
 …)</td>
-<td><code>.img-caption</code></td>
+<td><code>.img-caption</code> (<code>.ui-label</code>)</td>
 <td>Geist Mono</td>
-<td>10px</td>
+<td>11px</td>
 <td>500</td>
-<td>uppercase, <code>0.08em</code></td>
+<td>uppercase, <code>0.06em</code></td>
 <td><code>--text-faint</code></td>
 </tr>
 <tr class="odd">
