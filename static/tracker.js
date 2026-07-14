@@ -1604,12 +1604,28 @@
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  function buildDashGroup(title, open = true) {
+  function buildDashGroup(title, open = true, link = null) {
     const details = document.createElement('details');
     details.className = 'dash-group';
     if (open) details.open = true;
     const summary = document.createElement('summary');
-    summary.textContent = title;
+    if (link) {
+      // Keep the title and source link together on the left; the chevron
+      // (summary::after) stays pinned right. Matches the AI or Not heading on
+      // the image records.
+      const titleWrap = document.createElement('span');
+      titleWrap.className = 'dash-group-title';
+      titleWrap.appendChild(document.createTextNode(title + ' - '));
+      const a = document.createElement('a');
+      a.className = 'dash-group-link';
+      a.href = link.href;
+      a.target = '_blank';
+      a.textContent = link.text;
+      titleWrap.appendChild(a);
+      summary.appendChild(titleWrap);
+    } else {
+      summary.textContent = title;
+    }
     details.appendChild(summary);
     const body = document.createElement('div');
     body.className = 'dash-group-body';
@@ -1752,6 +1768,9 @@
         td.style.textAlign = 'center';
         if (records.some(fn)) {
           td.textContent = mark;
+          // Enlarge and embolden the +, −, x markers so they read clearly.
+          td.style.fontSize = '1.35rem';
+          td.style.fontWeight = '700';
           // Green for positive (+) evidence of AI, red for negative (−).
           if (mark === '+') td.style.color = '#4eb84e';
           else if (mark === '−') td.style.color = '#e05c5c';
@@ -2127,12 +2146,18 @@
 
   function buildFeatureDistributionsSection(p0, p2) {
     const RF_FEATURES = [
-      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff' },
-      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff'  },
-      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff'  },
-      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std' },
-      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness'        },
-      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis'        },
+      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff',
+        desc: 'Average per-pixel brightness change after re-saving at JPEG quality 75. Edited or synthesized regions often compress differently than authentic photo content.' },
+      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff',
+        desc: 'Spread of the per-pixel ELA error across the image — higher values mean compression artifacts are distributed unevenly.' },
+      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff',
+        desc: 'Largest single-pixel ELA error. Sharp localized spikes can flag pasted, cloned, or synthesized edges.' },
+      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std',
+        desc: 'Variation in high-frequency noise measured across 64×64 blocks. Authentic sensor noise is fairly uniform; splices and AI content can make it uneven.' },
+      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness',
+        desc: 'Skewness of the per-block noise distribution. Real camera noise is roughly symmetric (≈ 0); AI-generated pixels may skew the distribution.' },
+      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis',
+        desc: 'Excess kurtosis (tailedness) of the per-block noise distribution. Departures from Gaussian noise can indicate synthetic or heavily processed pixels.' },
     ];
     // Brand-aligned categorical palette: rose-wine, burnt-peach, green, steel
     // blue, gold, mauve, teal.
@@ -2191,7 +2216,7 @@
 
     function rebuildPlots() {
       plotsContainer.innerHTML = '';
-      RF_FEATURES.forEach(({ field, label, unit }) => {
+      RF_FEATURES.forEach(({ field, label, unit, desc }) => {
         let datasets;
         if (currentMode === 'combined') {
           const selected = new Set(models.filter(m => checkboxes[m].checked));
@@ -2210,7 +2235,7 @@
             })),
           ];
         }
-        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets));
+        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets, desc));
       });
     }
 
@@ -2595,7 +2620,7 @@
     const cards = document.createElement('div');
     cards.className = 'dash-cards';
     [[p0.length, 'Originals', 'orig'], [p1.length, 'Modifications', 'mod'],
-     [p2.length, 'Alterations', 'alt']].forEach(([num, label, variant]) => {
+     [p2.length, 'AI Alterations', 'alt']].forEach(([num, label, variant]) => {
       const card = document.createElement('div');
       card.className = 'dash-card dash-card--' + variant;
       const n = document.createElement('div'); n.className = 'dash-card-num'; n.textContent = num;
@@ -2611,7 +2636,7 @@
         modelCounts[m] = (modelCounts[m] || 0) + 1;
         (modelIds[m] = modelIds[m] || []).push(r.id);
       });
-      sumBody.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
+      sumBody.appendChild(buildBarChart('AI Alterations by model', modelCounts, false, modelIds));
     }
 
     if (p2.length) {
@@ -2626,10 +2651,14 @@
         if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
       });
       if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
-      sumBody.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
+      // Show each rating as a percentage of all AI-altered images (bar widths
+      // scale to the total, not the largest bucket) rather than a raw count.
+      sumBody.appendChild(buildBarChart(
+        'Subjective quality (AI Alterations)', ordered, true, orderedIds,
+        p2.length, c => Math.round(c / p2.length * 100) + '%'));
     }
 
-    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (AI Alterations) by Model', p2));
 
     // ── AI Indicators group ──
     const { details: aiDetails, body: aiBody } = buildDashGroup('AI Indicators');
@@ -2694,7 +2723,9 @@
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
     // ── AI or Not detector group ──
-    const { details: anDetails, body: anBody } = buildDashGroup('AI or Not Detector');
+    const { details: anDetails, body: anBody } = buildDashGroup(
+      'AI or Not Detector', true,
+      { href: 'https://www.aiornot.com', text: 'aiornot.com' });
     content.appendChild(anDetails);
     anBody.appendChild(buildAiOrNotSection(p0, p1, p2));
 
