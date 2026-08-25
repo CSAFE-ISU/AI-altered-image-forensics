@@ -1,6 +1,5 @@
   :root {
     /* ── Named palette ──────────────────────────────────────────────────── */
-    --rose-wine: #bd4f6c;
     --lime-cream: #d6ea9a;
     --burnt-peach: #d7816a;
     --vanilla-custard: #f6e2a2;
@@ -13,8 +12,10 @@
     --background: #ffffff;
     --foreground: var(--ink-black);
     --card: #ffffff;
-    --primary: var(--rose-wine);
-    --primary-foreground: #ffffff;
+    --primary: var(--burnt-peach);
+    /* Burnt-peach is light, so text on a burnt-peach fill is ink-black
+       (5.79:1) rather than white (2.90:1, below WCAG AA). */
+    --primary-foreground: var(--ink-black);
     --muted: oklch(0.97 0.001 106.424);
     --muted-foreground: oklch(0.553 0.013 58.071);
     --destructive: oklch(0.577 0.245 27.325);
@@ -31,11 +32,10 @@
     --text-muted: var(--muted-foreground);
     --text-faint: var(--ring);
     --accent: var(--primary);
-    /* Rose-wine fill: white text clears WCAG AA (4.67:1). */
-    --accent-strong: var(--rose-wine);
+    --accent-strong: var(--burnt-peach);
     --accent-light: color-mix(in oklch, var(--primary) 12%, var(--background));
     --accent-border: color-mix(in oklch, var(--primary) 40%, var(--border));
-    --label-color: var(--rose-wine);
+    --label-color: var(--burnt-peach);
     /* Secondary palette: deep purple (structure / navigation) and sage
        (positive states / soft surfaces). */
     --secondary-accent: var(--burnt-peach);
@@ -147,23 +147,22 @@
     width: 16px; height: 16px; flex-shrink: 0; color: var(--ink-black);
     transition: transform 0.2s ease;
   }
-  /* White chevron on the rose-wine background of incomplete accordions. */
-  .accordion-item.acc-incomplete > .accordion-trigger .accordion-chevron { color: #fff; }
   .accordion-item.open > .accordion-trigger .accordion-chevron { transform: rotate(180deg); }
   /* Height is animated in JS (set to the content height, then to 0); overflow
      stays visible while open so hover tooltips aren't clipped. */
   .accordion-content { overflow: visible; transition: height 0.2s ease; }
   .accordion-content-inner { padding: 1.1rem 1.5rem 1.25rem; }
   .accordion-title { min-width: 0; }
-  /* Completion status: accordions missing a required field are solid rose-wine
-     (background + border) with white title/labels; complete accordions keep
-     their lime-cream border + title strip. */
-  .accordion-item.acc-incomplete { background: var(--rose-wine); border-color: var(--rose-wine); }
+  /* Completion status: accordions missing a required field are solid burnt-peach
+     (background + border); complete accordions keep their lime-cream border +
+     title strip. Burnt-peach is light, so the title/labels override to ink-black
+     (5.79:1) — the chevron and title are already ink-black by default. */
+  .accordion-item.acc-incomplete { background: var(--burnt-peach); border-color: var(--burnt-peach); }
   .accordion-item.acc-incomplete > .accordion-trigger,
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label,
   .accordion-item.acc-incomplete .auto-tag,
-  .accordion-item.acc-incomplete .claude-q-text { color: #fff; }
+  .accordion-item.acc-incomplete .claude-q-text { color: var(--ink-black); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
@@ -184,6 +183,13 @@
 
   input.field-blank, select.field-blank, textarea.field-blank { border: 2px solid var(--burnt-peach) !important; background: var(--surface) !important; }
   .rating-group.field-blank, #region-picker-wrap.field-blank { outline: 2px solid var(--burnt-peach); border-radius: var(--radius); }
+  /* Incomplete accordions are themselves burnt-peach, so the marker above would
+     vanish into the card. Switch it to ink-black inside them. */
+  .accordion-item.acc-incomplete input.field-blank,
+  .accordion-item.acc-incomplete select.field-blank,
+  .accordion-item.acc-incomplete textarea.field-blank { border-color: var(--ink-black) !important; }
+  .accordion-item.acc-incomplete .rating-group.field-blank,
+  .accordion-item.acc-incomplete #region-picker-wrap.field-blank { outline-color: var(--ink-black); }
 
   .rating-group { display: flex; gap: 6px; }
   .rating-btn { flex: 1; padding: 6px 0; font-family: var(--mono); font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text-muted); cursor: pointer; transition: all 0.12s; text-align: center; }
@@ -488,7 +494,7 @@
     font-size: var(--text-xs); font-family: var(--mono); font-weight: 500;
     cursor: help; flex-shrink: 0; line-height: 1;
   }
-  .tooltip-icon:hover { background: var(--accent-strong); color: #fff; }
+  .tooltip-icon:hover { background: var(--accent-strong); color: var(--primary-foreground); }
   .tooltip-bubble {
     display: none; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
     background: var(--text); color: var(--background); font-size: var(--text-sm); font-family: var(--sans);
@@ -505,7 +511,7 @@
   .claude-q { margin: 0.75rem 0; }
   .claude-q-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem; }
   /* Question prompts use the same format as field labels (mono, 12px, weight
-     500, rose-wine); flex/line-height are kept for the Copy button + wrapping. */
+     500, burnt-peach); flex/line-height are kept for the Copy button + wrapping. */
   .claude-q-text { flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--label-color); line-height: 1.45; }
   .copy-btn { flex-shrink: 0; padding: 3px 10px; font-size: var(--text-xs); }
   .claude-q textarea {

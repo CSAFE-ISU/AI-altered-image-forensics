@@ -1835,7 +1835,7 @@
 
   function buildAiOrNotSection(p0, p1, p2) {
     const ORIG_COLOR = '#6f9d54'; // lime-green — "real" series
-    const ALT_COLOR  = '#bd4f6c'; // rose-wine — "altered" series
+    const ALT_COLOR  = '#d7816a'; // burnt-peach — "altered" series
 
     const wrapper = document.createElement('div');
     // Match the 2rem gap that .dash-group-body puts between sibling sections, so
@@ -2159,11 +2159,11 @@
       { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis',
         desc: 'Excess kurtosis (tailedness) of the per-block noise distribution. Departures from Gaussian noise can indicate synthetic or heavily processed pixels.' },
     ];
-    // Brand-aligned categorical palette: rose-wine, burnt-peach, green, steel
-    // blue, gold, mauve, teal.
-    const MODEL_COLORS = ['#bd4f6c','#d7816a','#6f9d54','#3e6b87','#d4a13c','#8a6fa3','#4c9182'];
+    // Brand-aligned categorical palette: burnt-peach, green, steel blue, gold,
+    // mauve, teal. (Rose-wine was dropped when it merged into burnt-peach.)
+    const MODEL_COLORS = ['#d7816a','#6f9d54','#3e6b87','#d4a13c','#8a6fa3','#4c9182'];
     const ORIG_COLOR   = '#6f9d54'; // lime-green — "real" series
-    const ALT_COLOR    = '#bd4f6c'; // rose-wine — "altered" series
+    const ALT_COLOR    = '#d7816a'; // burnt-peach — "altered" series
 
     const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
     const modelCounts = {};

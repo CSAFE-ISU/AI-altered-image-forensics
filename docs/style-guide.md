@@ -11,8 +11,8 @@ A reference of the app's text styles — the canvas header, the two accordion ty
 | `var(--text)` = `--ink-black` | **#0d1f2d** (ink-black) |
 | `var(--text-muted)` | `oklch(0.553 0.013 58)` — medium warm gray |
 | `var(--text-faint)` | `oklch(0.709 0.01 56)` — light gray |
-| `var(--accent)` = `--rose-wine` | **#bd4f6c** |
-| `var(--label-color)` = `--rose-wine` | **#bd4f6c** — field labels & "(auto)" tags |
+| `var(--accent)` = `--burnt-peach` | **#d7816a** |
+| `var(--label-color)` = `--burnt-peach` | **#d7816a** — field labels & "(auto)" tags |
 | `var(--velvet-purple)` | **#5F3370** — deep velvet purple (the "Modifications" dashboard counter box) |
 
 ### Type scale & the `.ui-label` utility
@@ -38,16 +38,16 @@ The record title at the top of the canvas, above the accordions.
 
 | Text element | Selector | Font | Size | Weight | Transform / spacing | Color |
 |----|----|----|----|----|----|----|
-| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **black** (`--ink-black`) when complete — **white** when incomplete |
-| **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | rose-wine (`--accent`) |
-| **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | **black** (`--ink-black`) — **white** when incomplete |
-| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
-| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **rose-wine** (`--label-color`) — **white** when incomplete |
+| **Section heading** (trigger title) | `.section-label` | Geist | 15px | 600 | uppercase, `0.04em` | **black** (`--ink-black`) — complete and incomplete alike |
+| **External link in heading** (e.g. aiornot.com) | inline on `<a>` | inherits Geist Mono | inherits 15px | **400** | inherits uppercase | burnt-peach (`--accent`) |
+| **Chevron** (icon, not text) | `.accordion-chevron` | 16×16 SVG | — | — | rotates 180° when open | **black** (`--ink-black`) — complete and incomplete alike |
+| **Field labels** (content) | `.field label` | Geist Mono | 12px | 500 | none | **burnt-peach** (`--label-color`) — **ink-black** when incomplete |
+| **"(auto)" tags** | `.auto-tag` | inherits Geist Mono | 11px | 400 | none | **burnt-peach** (`--label-color`) — **ink-black** when incomplete |
 | **Field values** (inputs) | inherited | Geist | 13px | normal | — | `--text` (#0d1f2d) |
 
 Trigger layout (not text): `padding 0.9rem 1.5rem`, flex `space-between`, `:hover { opacity 0.7 }`, bottom border when open.
 
-Incomplete ("to-do") accordions (`.acc-incomplete`) are solid **rose-wine** (background + border) with **white** title and field labels. Complete accordions have a **lime-cream** border with a lime-cream strip behind the title, over white content.
+Incomplete ("to-do") accordions (`.acc-incomplete`) are solid **burnt-peach** (background + border) with **ink-black** title and field labels (burnt-peach is light, so white text would fall below WCAG AA at 2.90:1; ink-black clears it at 5.79:1). Complete accordions have a **lime-cream** border with a lime-cream strip behind the title, over white content.
 
 ### Input field states
 
@@ -56,7 +56,7 @@ Base input geometry (all states): `width: 100%`, `padding: 7px 10px`, `border-ra
 | State | Selector | Background | Border | Text / notes |
 |----|----|----|----|----|
 | **Default** | `.field input[type=text]` / `[datetime-local]`, `.field select`, `.field textarea` | `--surface` (white) | 1px `--border` | `--text` (#0d1f2d) |
-| **Focus** | `.field input:focus`, `…select:focus`, `…textarea:focus` | `--card` (white) | `--accent-border` (rose-wine tint) + 3px `--ring` focus ring | — |
+| **Focus** | `.field input:focus`, `…select:focus`, `…textarea:focus` | `--card` (white) | `--accent-border` (burnt-peach tint) + 3px `--ring` focus ring | — |
 | **Auto / read-only** | `.auto-field` | `--surface2` (light gray) | `--border` | `--text-muted`, `cursor: default` |
 | **Required-but-empty** | `.field-blank` | `--surface` (white) | **2px** `--burnt-peach` (#d7816a) | rating / region widgets get a 2px `--burnt-peach` outline instead |
 | **Optional** | `.field-optional` | — | — | JS status marker only — renders like **Default** |
