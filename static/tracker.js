@@ -128,6 +128,15 @@
       const regionWrap = document.getElementById('region-picker-wrap');
       if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
     }
+
+    // Generic required fields (marked with .field-required), e.g. every Claude
+    // answer. Flag any that are empty so their section reads as incomplete.
+    form.querySelectorAll('.field-required').forEach(el => {
+      if (typeof el.value === 'string' && !el.value.trim()) el.classList.add('field-blank');
+    });
+
+    // Recolor the accordions now that blank-required fields are up to date.
+    updateAccordionStatus(type);
   }
 
   function applyFilters(records) {
@@ -326,8 +335,6 @@
 
   async function showFormFor(type, rec) {
     ['p0','p1','p2'].forEach(t => document.getElementById('form-' + t).style.display = t === type ? 'block' : 'none');
-    const labels = { p0: 'Original image', p1: 'Modification', p2: 'AI alteration' };
-    document.getElementById('form-subtitle').textContent = labels[type] || '';
     state.loadingRecord = true;
     try {
       if (type === 'p0') await fillP0(rec);
@@ -680,6 +687,7 @@
 
       const resp = document.createElement('textarea');
       resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.className = 'field-required';
       resp.placeholder = "Claude's response…";
 
       block.append(head, resp);
@@ -1199,11 +1207,22 @@
   function setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
 
   function updateFormTitle() {
-    let title = 'Untitled record';
-    if (state.currentType === 'p0') title = document.getElementById('p0_study_id')?.value || 'Untitled original';
-    if (state.currentType === 'p1') title = document.getElementById('p1_mod_filename')?.value || 'Untitled modification';
-    if (state.currentType === 'p2') title = document.getElementById('p2_altered_filename')?.value || 'Untitled alteration';
-    document.getElementById('form-title').textContent = title;
+    // Descriptive prefix (Geist) + the assigned image filename (Geist Mono).
+    const prefixes = { p0: 'Original Image', p1: 'Modified Image', p2: 'AI Altered Image' };
+    const fileFields = { p0: 'p0_study_id', p1: 'p1_mod_filename', p2: 'p2_altered_filename' };
+    const fallbacks = { p0: 'Untitled original', p1: 'Untitled modification', p2: 'Untitled alteration' };
+    const el = document.getElementById('form-title');
+    const type = state.currentType;
+    if (!prefixes[type]) { el.textContent = 'Untitled record'; return; }
+    const fname = document.getElementById(fileFields[type])?.value || fallbacks[type];
+    el.textContent = '';
+    const pre = document.createElement('span');
+    pre.className = 'form-title-prefix';
+    pre.textContent = prefixes[type] + ': ';
+    const file = document.createElement('span');
+    file.className = 'form-title-file';
+    file.textContent = fname;
+    el.append(pre, file);
   }
 
   function autoSave() { persistCurrentRecord(); }
@@ -1585,12 +1604,28 @@
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
-  function buildDashGroup(title, open = true) {
+  function buildDashGroup(title, open = true, link = null) {
     const details = document.createElement('details');
     details.className = 'dash-group';
     if (open) details.open = true;
     const summary = document.createElement('summary');
-    summary.textContent = title;
+    if (link) {
+      // Keep the title and source link together on the left; the chevron
+      // (summary::after) stays pinned right. Matches the AI or Not heading on
+      // the image records.
+      const titleWrap = document.createElement('span');
+      titleWrap.className = 'dash-group-title';
+      titleWrap.appendChild(document.createTextNode(title + ' - '));
+      const a = document.createElement('a');
+      a.className = 'dash-group-link';
+      a.href = link.href;
+      a.target = '_blank';
+      a.textContent = link.text;
+      titleWrap.appendChild(a);
+      summary.appendChild(titleWrap);
+    } else {
+      summary.textContent = title;
+    }
     details.appendChild(summary);
     const body = document.createElement('div');
     body.className = 'dash-group-body';
@@ -1601,7 +1636,7 @@
   function buildMetadataIndicatorsSection(p0, p1, p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = 'Metadata Tags by Image Type';
     section.appendChild(titleEl);
     const subEl1 = document.createElement('p');
@@ -1638,7 +1673,7 @@
       const group = document.createElement('div');
       group.className = 'dash-indicator-group';
       const lbl = document.createElement('div');
-      lbl.className = 'dash-indicator-label';
+      lbl.className = 'dash-indicator-label ui-label';
       lbl.textContent = label;
       group.appendChild(lbl);
       const chart = document.createElement('div');
@@ -1659,7 +1694,7 @@
           });
         }
         const labelEl = document.createElement('span');
-        labelEl.className = 'dash-bar-label';
+        labelEl.className = 'dash-bar-label ui-label';
         labelEl.textContent = name;
         labelEl.style.width = '220px';
         const track = document.createElement('div');
@@ -1669,7 +1704,7 @@
         fill.style.width = pct + '%';
         track.appendChild(fill);
         const cEl = document.createElement('span');
-        cEl.className = 'dash-bar-count-wide';
+        cEl.className = 'dash-bar-count-wide ui-label';
         cEl.textContent = `${pct}%`;
         row.append(labelEl, track, cEl);
         chart.appendChild(row);
@@ -1684,7 +1719,7 @@
   function buildModelIndicatorTable(p0, p1, p2) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = 'Indicator Presence by Model';
     section.appendChild(titleEl);
     const subEl = document.createElement('p');
@@ -1713,11 +1748,11 @@
 
     const thead = table.createTHead();
     const hrow = thead.insertRow();
-    const modelTh = document.createElement('th');
+    const modelTh = document.createElement('th'); modelTh.className = 'ui-label';
     modelTh.textContent = 'Group';
     hrow.appendChild(modelTh);
     INDICATORS.forEach(([label]) => {
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = label;
       th.style.textAlign = 'center';
       hrow.appendChild(th);
@@ -1733,6 +1768,9 @@
         td.style.textAlign = 'center';
         if (records.some(fn)) {
           td.textContent = mark;
+          // Enlarge and embolden the +, −, x markers so they read clearly.
+          td.style.fontSize = '1.35rem';
+          td.style.fontWeight = '700';
           // Green for positive (+) evidence of AI, red for negative (−).
           if (mark === '+') td.style.color = '#4eb84e';
           else if (mark === '−') td.style.color = '#e05c5c';
@@ -1778,7 +1816,7 @@
       });
     }
     const labelEl = document.createElement('span');
-    labelEl.className = 'dash-bar-label';
+    labelEl.className = 'dash-bar-label ui-label';
     labelEl.textContent = label;
     labelEl.style.width = '220px';
     const track = document.createElement('div');
@@ -1788,7 +1826,7 @@
     fill.style.width = pct + '%';
     track.appendChild(fill);
     const cEl = document.createElement('span');
-    cEl.className = 'dash-bar-count-wide';
+    cEl.className = 'dash-bar-count-wide ui-label';
     if (countWidth) cEl.style.width = countWidth;
     cEl.textContent = `${pct}% (${matching.length}/${total})`;
     row.append(labelEl, track, cEl);
@@ -1796,8 +1834,8 @@
   }
 
   function buildAiOrNotSection(p0, p1, p2) {
-    const ORIG_COLOR = '#4e9af1';
-    const ALT_COLOR  = '#e05c5c';
+    const ORIG_COLOR = '#6f9d54'; // lime-green — "real" series
+    const ALT_COLOR  = '#d7816a'; // burnt-peach — "altered" series
 
     const wrapper = document.createElement('div');
     // Match the 2rem gap that .dash-group-body puts between sibling sections, so
@@ -1823,7 +1861,7 @@
     // positive prediction.
     const cmSection = document.createElement('div');
     const cmTitle = document.createElement('div');
-    cmTitle.className = 'dash-section-title';
+    cmTitle.className = 'section-label';
     cmTitle.textContent = 'AI or Not Confusion Matrix';
     cmSection.appendChild(cmTitle);
     const cmSub = document.createElement('p');
@@ -1844,7 +1882,7 @@
     const cmCell = (records, correct, galleryLabel) => {
       const td = document.createElement('td');
       td.style.cssText = 'text-align:center; font-family:var(--mono); font-size:18px; background:' +
-        (correct ? 'rgba(78,184,78,0.12)' : 'rgba(224,92,92,0.12)') + ';';
+        (correct ? 'rgba(214,234,154,0.55)' : 'rgba(215,129,106,0.4)') + ';';
       td.textContent = records.length;
       if (records.length) {
         td.style.cursor = 'pointer';
@@ -1860,7 +1898,7 @@
     const cmHead = cmTable.createTHead();
     const cmHRow = cmHead.insertRow();
     ['', 'Predicted: AI', 'Predicted: Real'].forEach(h => {
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = h;
       th.style.textAlign = 'center';
       cmHRow.appendChild(th);
@@ -1868,7 +1906,7 @@
     const cmBody = cmTable.createTBody();
     const cmRow = (label, cells) => {
       const tr = cmBody.insertRow();
-      const th = document.createElement('th');
+      const th = document.createElement('th'); th.className = 'ui-label';
       th.textContent = label;
       tr.appendChild(th);
       cells.forEach(c => tr.appendChild(c));
@@ -1898,7 +1936,7 @@
     if (aP2.length) {
       const modelSection = document.createElement('div');
       const modelTitle = document.createElement('div');
-      modelTitle.className = 'dash-section-title';
+      modelTitle.className = 'section-label';
       modelTitle.textContent = 'Detection Rate by Model';
       modelSection.appendChild(modelTitle);
       const modelSub = document.createElement('p');
@@ -1955,7 +1993,7 @@
     // datasets: [{ label, color, values: number[] }, ...]
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
@@ -2016,8 +2054,12 @@
 
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-    svg.setAttribute('width', '100%');
-    svg.style.maxWidth = totalW + 'px';
+    // Intrinsic size + max-width:100%/height:auto so the plot scales responsively
+    // in every browser (Safari/Firefox don't derive height from viewBox alone).
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
     svg.style.display = 'block';
 
     // Grid lines
@@ -2104,16 +2146,24 @@
 
   function buildFeatureDistributionsSection(p0, p2) {
     const RF_FEATURES = [
-      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff' },
-      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff'  },
-      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff'  },
-      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std' },
-      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness'        },
-      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis'        },
+      { field: 'ela_mean_diff',   label: 'ELA Mean Diff',   unit: 'mean pixel diff',
+        desc: 'Average per-pixel brightness change after re-saving at JPEG quality 75. Edited or synthesized regions often compress differently than authentic photo content.' },
+      { field: 'ela_std_diff',    label: 'ELA Std Diff',    unit: 'std pixel diff',
+        desc: 'Spread of the per-pixel ELA error across the image — higher values mean compression artifacts are distributed unevenly.' },
+      { field: 'ela_max_diff',    label: 'ELA Max Diff',    unit: 'max pixel diff',
+        desc: 'Largest single-pixel ELA error. Sharp localized spikes can flag pasted, cloned, or synthesized edges.' },
+      { field: 'block_noise_std', label: 'Block Noise Std', unit: 'block noise std',
+        desc: 'Variation in high-frequency noise measured across 64×64 blocks. Authentic sensor noise is fairly uniform; splices and AI content can make it uneven.' },
+      { field: 'noise_skewness',  label: 'Noise Skewness',  unit: 'skewness',
+        desc: 'Skewness of the per-block noise distribution. Real camera noise is roughly symmetric (≈ 0); AI-generated pixels may skew the distribution.' },
+      { field: 'noise_kurtosis',  label: 'Noise Kurtosis',  unit: 'kurtosis',
+        desc: 'Excess kurtosis (tailedness) of the per-block noise distribution. Departures from Gaussian noise can indicate synthetic or heavily processed pixels.' },
     ];
-    const MODEL_COLORS = ['#e05c5c','#f5a623','#4eb84e','#9b59b6','#1abc9c','#e67e22','#3498db'];
-    const ORIG_COLOR   = '#4e9af1';
-    const ALT_COLOR    = '#e05c5c';
+    // Brand-aligned categorical palette: burnt-peach, green, steel blue, gold,
+    // mauve, teal. (Rose-wine was dropped when it merged into burnt-peach.)
+    const MODEL_COLORS = ['#d7816a','#6f9d54','#3e6b87','#d4a13c','#8a6fa3','#4c9182'];
+    const ORIG_COLOR   = '#6f9d54'; // lime-green — "real" series
+    const ALT_COLOR    = '#d7816a'; // burnt-peach — "altered" series
 
     const models = [...new Set(p2.map(r => (r.model || '').trim()).filter(Boolean))].sort();
     const modelCounts = {};
@@ -2166,7 +2216,7 @@
 
     function rebuildPlots() {
       plotsContainer.innerHTML = '';
-      RF_FEATURES.forEach(({ field, label, unit }) => {
+      RF_FEATURES.forEach(({ field, label, unit, desc }) => {
         let datasets;
         if (currentMode === 'combined') {
           const selected = new Set(models.filter(m => checkboxes[m].checked));
@@ -2185,7 +2235,7 @@
             })),
           ];
         }
-        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets));
+        plotsContainer.appendChild(buildDensityPlot(label, unit, datasets, desc));
       });
     }
 
@@ -2414,7 +2464,7 @@
 
     // ── Confusion matrix ──
     const cmTitle = document.createElement('div');
-    cmTitle.className = 'dash-section-title';
+    cmTitle.className = 'section-label';
     cmTitle.textContent = 'Confusion Matrix';
     wrapper.appendChild(cmTitle);
 
@@ -2477,7 +2527,7 @@
 
     // ── Feature importances ──
     const fiTitle = document.createElement('div');
-    fiTitle.className = 'dash-section-title';
+    fiTitle.className = 'section-label';
     fiTitle.textContent = 'Feature Importances';
     wrapper.appendChild(fiTitle);
 
@@ -2569,9 +2619,10 @@
 
     const cards = document.createElement('div');
     cards.className = 'dash-cards';
-    [[p0.length, 'Originals'], [p1.length, 'Modifications'], [p2.length, 'Alterations']].forEach(([num, label]) => {
+    [[p0.length, 'Originals', 'orig'], [p1.length, 'Modifications', 'mod'],
+     [p2.length, 'AI Alterations', 'alt']].forEach(([num, label, variant]) => {
       const card = document.createElement('div');
-      card.className = 'dash-card';
+      card.className = 'dash-card dash-card--' + variant;
       const n = document.createElement('div'); n.className = 'dash-card-num'; n.textContent = num;
       const l = document.createElement('div'); l.className = 'dash-card-label'; l.textContent = label;
       card.appendChild(n); card.appendChild(l); cards.appendChild(card);
@@ -2585,7 +2636,7 @@
         modelCounts[m] = (modelCounts[m] || 0) + 1;
         (modelIds[m] = modelIds[m] || []).push(r.id);
       });
-      sumBody.appendChild(buildBarChart('Alterations by model', modelCounts, false, modelIds));
+      sumBody.appendChild(buildBarChart('AI Alterations by model', modelCounts, false, modelIds));
     }
 
     if (p2.length) {
@@ -2600,10 +2651,14 @@
         if (qualityCounts[k]) { ordered[k] = qualityCounts[k]; orderedIds[k] = qualityIds[k]; }
       });
       if (qualityCounts['Not rated']) { ordered['Not rated'] = qualityCounts['Not rated']; orderedIds['Not rated'] = qualityIds['Not rated']; }
-      sumBody.appendChild(buildBarChart('Subjective quality (alterations)', ordered, true, orderedIds));
+      // Show each rating as a percentage of all AI-altered images (bar widths
+      // scale to the total, not the largest bucket) rather than a raw count.
+      sumBody.appendChild(buildBarChart(
+        'Subjective quality (AI Alterations)', ordered, true, orderedIds,
+        p2.length, c => Math.round(c / p2.length * 100) + '%'));
     }
 
-    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (Alterations) by Model', p2));
+    if (p2.length) sumBody.appendChild(buildScatterPlot('Subjective quality (AI Alterations) by Model', p2));
 
     // ── AI Indicators group ──
     const { details: aiDetails, body: aiBody } = buildDashGroup('AI Indicators');
@@ -2620,7 +2675,7 @@
 
       const wmSection = document.createElement('div');
       const wmTitle = document.createElement('div');
-      wmTitle.className = 'dash-section-title';
+      wmTitle.className = 'section-label';
       wmTitle.textContent = 'Models with Visible Watermarks';
       wmSection.appendChild(wmTitle);
 
@@ -2635,7 +2690,7 @@
         const thead = table.createTHead();
         const hrow = thead.insertRow();
         ['Model', 'Watermark description'].forEach(h => {
-          const th = document.createElement('th'); th.textContent = h; hrow.appendChild(th);
+          const th = document.createElement('th'); th.className = 'ui-label'; th.textContent = h; hrow.appendChild(th);
         });
         const tbody = table.createTBody();
         const seen = new Set();
@@ -2668,7 +2723,9 @@
     aiBody.appendChild(buildMetadataIndicatorsSection(p0, p1, p2));
 
     // ── AI or Not detector group ──
-    const { details: anDetails, body: anBody } = buildDashGroup('AI or Not Detector');
+    const { details: anDetails, body: anBody } = buildDashGroup(
+      'AI or Not Detector', true,
+      { href: 'https://www.aiornot.com', text: 'aiornot.com' });
     content.appendChild(anDetails);
     anBody.appendChild(buildAiOrNotSection(p0, p1, p2));
 
@@ -2688,7 +2745,7 @@
   function buildBarChart(title, counts, preserveOrder = false, labelToIds = null, maxVal = null, formatValue = null) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
@@ -2711,7 +2768,7 @@
         });
       }
       const lEl = document.createElement('span');
-      lEl.className = 'dash-bar-label';
+      lEl.className = 'dash-bar-label ui-label';
       lEl.textContent = label;
       const track = document.createElement('div');
       track.className = 'dash-bar-track';
@@ -2720,7 +2777,7 @@
       fill.style.width = Math.round(count / maxVal_ * 100) + '%';
       track.appendChild(fill);
       const cEl = document.createElement('span');
-      cEl.className = 'dash-bar-count';
+      cEl.className = 'dash-bar-count ui-label';
       cEl.textContent = formatValue ? formatValue(count) : count;
       row.appendChild(lEl);
       row.appendChild(track);
@@ -2734,7 +2791,7 @@
   function buildScatterPlot(title, records) {
     const section = document.createElement('div');
     const titleEl = document.createElement('div');
-    titleEl.className = 'dash-section-title';
+    titleEl.className = 'section-label';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
@@ -2760,8 +2817,12 @@
 
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${totalW} ${totalH}`);
-    svg.setAttribute('width', '100%');
-    svg.style.maxWidth = totalW + 'px';
+    // Intrinsic size + max-width:100%/height:auto so the plot scales responsively
+    // in every browser (Safari/Firefox don't derive height from viewBox alone).
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    svg.style.maxWidth = '100%';
+    svg.style.height = 'auto';
     svg.style.display = 'block';
 
     // Alternating row backgrounds
@@ -2898,7 +2959,7 @@
     const row = document.createElement('div');
     row.className = 'gallery-row';
     const lbl = document.createElement('div');
-    lbl.className = 'gallery-row-label';
+    lbl.className = 'gallery-row-label ui-label';
     lbl.textContent = label;
     row.appendChild(lbl);
     const grid = document.createElement('div');
@@ -2972,7 +3033,7 @@
     panel.className = 'gallery-actions-panel';
 
     const title = document.createElement('div');
-    title.className = 'gallery-actions-title';
+    title.className = 'gallery-actions-title ui-label';
     title.textContent = getRecordName(rec);
     panel.appendChild(title);
 
@@ -3042,7 +3103,123 @@
 
   window.addEventListener('beforeunload', e => { if (state.dirty) e.preventDefault(); });
 
+  // Color each accordion by completion state so you can see at a glance — even
+  // while collapsed — which sections still need input. Two states:
+  //   acc-incomplete (amber) — a required field is empty, or the section has
+  //                            fields to fill but nothing entered yet
+  //   acc-complete   (gray)  — required fields done (or nothing to fill in)
+  function updateAccordionStatus(type) {
+    const form = document.getElementById('form-' + type);
+    if (!form) return;
+    form.querySelectorAll('.accordion-item').forEach(item => {
+      const fields = [...item.querySelectorAll('input, select, textarea')].filter(
+        el =>
+          !el.disabled &&
+          !el.readOnly &&
+          !el.classList.contains('auto-field') &&
+          !el.classList.contains('field-optional') &&
+          !['hidden', 'file', 'button', 'submit', 'reset'].includes(el.type)
+      );
+      const hasData = fields.some(el =>
+        el.type === 'checkbox' || el.type === 'radio'
+          ? el.checked
+          : el.value.trim() !== ''
+      );
+      const hasBlank = !!item.querySelector('.field-blank');
+      const needsCompletion = hasBlank || (fields.length > 0 && !hasData);
+      item.classList.toggle('acc-incomplete', needsCompletion);
+      item.classList.toggle('acc-complete', !needsCompletion);
+    });
+  }
+
+  // Transform the static .section-card boxes into Shadcn-style accordions:
+  // the section label becomes a clickable trigger (with a rotating chevron)
+  // over animated, collapsible content. Items start open so data entry is
+  // unaffected; nothing in the app depends on the original box markup.
+  function initAccordions() {
+    const NS = 'http://www.w3.org/2000/svg';
+    document.querySelectorAll('.section-card').forEach(card => {
+      if (card.dataset.accordion) return;
+      const trigger = card.querySelector(':scope > .section-label');
+      if (!trigger) return;
+      card.dataset.accordion = '1';
+      card.classList.add('accordion-item');
+
+      // Move everything after the label into an animated content wrapper.
+      const content = document.createElement('div');
+      content.className = 'accordion-content';
+      const inner = document.createElement('div');
+      inner.className = 'accordion-content-inner';
+      while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
+      content.appendChild(inner);
+      card.appendChild(content);
+
+      // Turn the label into the trigger: keep its existing content (text and
+      // any links) grouped in a title span on the left, chevron on the right.
+      trigger.classList.add('accordion-trigger');
+      trigger.setAttribute('role', 'button');
+      trigger.setAttribute('tabindex', '0');
+      trigger.setAttribute('aria-expanded', 'false');
+      const title = document.createElement('span');
+      title.className = 'accordion-title';
+      while (trigger.firstChild) title.appendChild(trigger.firstChild);
+      trigger.appendChild(title);
+      const chev = document.createElementNS(NS, 'svg');
+      chev.setAttribute('class', 'accordion-chevron');
+      chev.setAttribute('viewBox', '0 0 24 24');
+      chev.setAttribute('fill', 'none');
+      chev.setAttribute('stroke', 'currentColor');
+      chev.setAttribute('stroke-width', '2');
+      chev.setAttribute('stroke-linecap', 'round');
+      chev.setAttribute('stroke-linejoin', 'round');
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', 'm6 9 6 6 6-6');
+      chev.appendChild(path);
+      trigger.appendChild(chev);
+
+      // Animate height between 0 and the content's natural height. While
+      // animating, overflow is hidden; when fully open it returns to visible
+      // (height:auto) so hover tooltips inside aren't clipped.
+      const setOpen = open => {
+        card.classList.toggle('open', open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        content.style.overflow = 'hidden';
+        if (open) {
+          content.style.height = content.scrollHeight + 'px';
+          content.addEventListener('transitionend', function te(e) {
+            if (e.propertyName !== 'height') return;
+            content.removeEventListener('transitionend', te);
+            if (card.classList.contains('open')) {
+              content.style.height = 'auto';
+              content.style.overflow = 'visible';
+            }
+          });
+        } else {
+          content.style.height = content.scrollHeight + 'px';
+          void content.offsetHeight;  // force reflow so the next line animates
+          content.style.height = '0px';
+        }
+      };
+
+      // Collapsed by default (no animation on load).
+      content.style.height = '0px';
+      content.style.overflow = 'hidden';
+
+      trigger.addEventListener('click', e => {
+        if (e.target.closest('a')) return;  // let links in the header work
+        setOpen(!card.classList.contains('open'));
+      });
+      trigger.addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
+          e.preventDefault();
+          setOpen(!card.classList.contains('open'));
+        }
+      });
+    });
+  }
+
   // ── Boot ──────────────────────────────────────────────────────────────────
+  initAccordions();
   loadModels();
   loadInputImages();
   loadRecords();

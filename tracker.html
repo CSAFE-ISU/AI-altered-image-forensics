@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Image Alteration Tracker — CSAFE</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/tracker.css">
 </head>
 <body>
@@ -12,7 +13,7 @@
 <header>
   <h1>AI Image Alteration Tracker — CSAFE</h1>
   <div class="header-actions">
-    <span id="record-count" class="record-count"></span>
+    <span id="record-count" class="record-count ui-label"></span>
     <span id="header-status" class="status-msg"></span>
     <button class="header-btn" onclick="openDashboard()">Dashboard</button>
     <button class="header-btn" onclick="openGallery()">Gallery</button>
@@ -29,7 +30,7 @@
     </div>
     <div id="sidebar-filters">
       <div class="filter-row">
-        <label class="filter-label">Type</label>
+        <label class="filter-label ui-label">Type</label>
         <select id="filter-type" onchange="setFilter('type', this.value)">
           <option value="">All</option>
           <option value="p0">Original</option>
@@ -38,13 +39,13 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Model</label>
+        <label class="filter-label ui-label">Model</label>
         <select id="filter-model" onchange="setFilter('model', this.value)">
           <option value="">All</option>
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Blank fields</label>
+        <label class="filter-label ui-label">Blank fields</label>
         <select id="filter-blank" onchange="setFilter('blankOnly', this.value)">
           <option value="">All</option>
           <option value="yes">Has blank field(s)</option>
@@ -52,7 +53,7 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Analysis</label>
+        <label class="filter-label ui-label">Analysis</label>
         <select id="filter-analysis" onchange="setFilter('analysis', this.value)">
           <option value="">All</option>
           <option value="yes">Has analysis</option>
@@ -60,7 +61,7 @@
         </select>
       </div>
       <div class="filter-row">
-        <label class="filter-label">Search</label>
+        <label class="filter-label ui-label">Search</label>
         <input type="text" id="filter-search" placeholder="filename or study ID…" oninput="setFilter('search', this.value)">
       </div>
     </div>
@@ -77,7 +78,6 @@
     <div id="form-area" style="display:none;">
       <div class="form-header">
         <div class="form-title" id="form-title">New record</div>
-        <div class="form-subtitle" id="form-subtitle"></div>
       </div>
 
       <!-- ══ PHASE 0 ══ -->
@@ -126,7 +126,7 @@
           </div>
           <div class="field">
             <label>Notes</label>
-            <textarea id="p0_notes" placeholder="Scene description, lighting conditions, any relevant context..."></textarea>
+            <textarea id="p0_notes" class="field-optional" placeholder="Scene description, lighting conditions, any relevant context..."></textarea>
           </div>
         </div>
 
@@ -134,14 +134,14 @@
         <div class="section-card img-preview-card" id="prev-p0" style="display:none;">
           <div class="section-label">Image preview</div>
           <div class="img-slot">
-            <div class="img-caption">Original<span id="cap-p0"></span></div>
+            <div class="img-caption ui-label">Original<span id="cap-p0" class="img-name"></span></div>
             <img id="img-p0" class="img-preview" src="" alt="Original image">
             <div class="img-missing" id="miss-p0" style="display:none;">Image not found in images folder.</div>
           </div>
         </div>
 
         <details id="an-p0-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p0" onclick="runAnalysis('p0')">Analyze</button>
             <span class="status-msg" id="status-analyze-p0"></span>
@@ -151,17 +151,17 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p0-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p0-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p0-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p0-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p0-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p0-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p0-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p0-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p0-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p0-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p0-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p0-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p0-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p0-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p0-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p0-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p0-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p0-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p0')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p0-viewer-found" id="an-p0-viewer-found-no" value="no" onchange="toggleViewerDetails('p0')"> No</label>
                 </div>
@@ -200,12 +200,12 @@
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p0-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p0-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p0-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p0-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p0-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">
               <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
-              <div class="field"><label>Model / version</label><input type="text" id="an-p0-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p0-claude-model" class="field-required" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
               <div id="an-p0-claude-questions" class="claude-questions"></div>
             </div>
           </div>
@@ -274,12 +274,12 @@
           <div class="section-label">Image preview</div>
           <div class="img-pair">
             <div class="img-slot">
-              <div class="img-caption">Input<span id="cap-p1-input"></span></div>
+              <div class="img-caption ui-label">Input<span id="cap-p1-input" class="img-name"></span></div>
               <img id="img-p1-input" class="img-preview" src="" alt="Input image">
               <div class="img-missing" id="miss-p1-input" style="display:none;">Image not found.</div>
             </div>
             <div class="img-slot">
-              <div class="img-caption">Modified output<span id="cap-p1-output"></span></div>
+              <div class="img-caption ui-label">Modified output<span id="cap-p1-output" class="img-name"></span></div>
               <img id="img-p1-output" class="img-preview" src="" alt="Modified image">
               <div class="img-missing" id="miss-p1-output" style="display:none;">Image not found.</div>
             </div>
@@ -299,7 +299,7 @@
         </div>
 
         <details id="an-p1-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p1" onclick="runAnalysis('p1')">Analyze</button>
             <span class="status-msg" id="status-analyze-p1"></span>
@@ -309,17 +309,17 @@
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p1-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p1-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p1-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p1-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p1-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p1-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p1-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p1-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p1-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p1-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p1-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p1-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p1-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p1-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p1-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p1-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p1-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p1-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p1')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p1-viewer-found" id="an-p1-viewer-found-no" value="no" onchange="toggleViewerDetails('p1')"> No</label>
                 </div>
@@ -358,12 +358,12 @@
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p1-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p1-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p1-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p1-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p1-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">
               <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
-              <div class="field"><label>Model / version</label><input type="text" id="an-p1-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p1-claude-model" class="field-required" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
               <div id="an-p1-claude-questions" class="claude-questions"></div>
             </div>
           </div>
@@ -446,12 +446,12 @@
             <div class="section-label">Image preview</div>
             <div class="img-pair">
               <div class="img-slot">
-                <div class="img-caption">Input<span id="cap-p2-input"></span></div>
+                <div class="img-caption ui-label">Input<span id="cap-p2-input" class="img-name"></span></div>
                 <img id="img-p2-input" class="img-preview" src="" alt="Input image">
                 <div class="img-missing" id="miss-p2-input" style="display:none;">Image not found.</div>
               </div>
               <div class="img-slot">
-                <div class="img-caption">AI-altered output<span id="cap-p2-output"></span></div>
+                <div class="img-caption ui-label">AI-altered output<span id="cap-p2-output" class="img-name"></span></div>
                 <img id="img-p2-output" class="img-preview" src="" alt="Altered image">
                 <div class="img-missing" id="miss-p2-output" style="display:none;">Image not found.</div>
               </div>
@@ -560,7 +560,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
           </div>
 
         <details id="an-p2-section" class="analysis-section">
-          <summary class="analysis-summary">Analysis results</summary>
+          <summary class="analysis-summary ui-label">Analysis results</summary>
           <div style="margin:0.5rem 0;">
             <button class="btn" id="btn-analyze-p2" onclick="runAnalysis('p2')">Analyze</button>
             <span class="status-msg" id="status-analyze-p2"></span>
@@ -570,17 +570,17 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
             <div class="section-card">
               <div class="section-label">Metadata forensics</div>
               <div class="field"><label>Indicators detected <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-indicators-summary" readonly class="auto-field" style="width:100%"></div>
-              <details id="an-p2-camera-exif-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Camera EXIF fields</summary><table id="an-p2-camera-exif-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-photoshop-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Photoshop / Adobe markers</summary><table id="an-p2-photoshop-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-icc-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">ICC measurement / viewing conditions</summary><table id="an-p2-icc-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-grok-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Grok signatures</summary><table id="an-p2-grok-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
-              <details id="an-p2-c2pa-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">C2PA Results - Auto-detected</summary><table id="an-p2-c2pa-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+              <details id="an-p2-camera-exif-details" class="analysis-detail" style="display:none"><summary>Camera EXIF fields</summary><table id="an-p2-camera-exif-table" class="c2pa-table"></table></details>
+              <details id="an-p2-photoshop-details" class="analysis-detail" style="display:none"><summary>Photoshop / Adobe markers</summary><table id="an-p2-photoshop-table" class="c2pa-table"></table></details>
+              <details id="an-p2-icc-details" class="analysis-detail" style="display:none"><summary>ICC measurement / viewing conditions</summary><table id="an-p2-icc-table" class="c2pa-table"></table></details>
+              <details id="an-p2-grok-details" class="analysis-detail" style="display:none"><summary>Grok signatures</summary><table id="an-p2-grok-table" class="c2pa-table"></table></details>
+              <details id="an-p2-c2pa-details" class="analysis-detail" style="display:none"><summary>C2PA Results - Auto-detected</summary><table id="an-p2-c2pa-table" class="c2pa-table"></table></details>
             </div>
             <div class="section-card">
               <div class="section-label">C2PA Viewer Results - <a href="https://c2paviewer.com" target="_blank" style="color:var(--accent); font-weight:400;">c2paviewer.com</a></div>
               <div class="field" id="an-p2-viewer-found-field">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-                  <span style="font-size:0.9rem; white-space:nowrap;">C2PA data found</span>
+                  <span class="viewer-found-label">C2PA data found</span>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-yes" value="yes" onchange="toggleViewerDetails('p2')"> Yes</label>
                   <label style="display:flex; align-items:center; gap:0.4rem;"><input type="radio" name="an-p2-viewer-found" id="an-p2-viewer-found-no" value="no" onchange="toggleViewerDetails('p2')"> No</label>
                 </div>
@@ -619,12 +619,12 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
                   <div class="field"><label>Probability Human <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-human" readonly class="auto-field" style="width:100%"></div>
                   <div class="field"><label>Probability AI <span class="auto-tag">(auto)</span></label><input type="text" id="an-p2-aiornot-ai" readonly class="auto-field" style="width:100%"></div>
                 </div>
-                <details id="an-p2-aiornot-breakdown-details" style="display:none; margin:0.25rem 0 0.5rem"><summary style="cursor:pointer; font-size:0.82rem; color:var(--text-muted)">Class breakdown</summary><table id="an-p2-aiornot-breakdown-table" class="c2pa-table" style="margin-top:0.5rem"></table></details>
+                <details id="an-p2-aiornot-breakdown-details" class="analysis-detail" style="display:none"><summary>Class breakdown</summary><table id="an-p2-aiornot-breakdown-table" class="c2pa-table"></table></details>
               </div>
             </div>
             <div class="section-card">
               <div class="section-label">Claude Results - <a href="https://claude.ai" target="_blank" style="color:var(--accent); font-weight:400;">claude.ai</a></div>
-              <div class="field"><label>Model / version</label><input type="text" id="an-p2-claude-model" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
+              <div class="field"><label>Model / version</label><input type="text" id="an-p2-claude-model" class="field-required" style="width:100%;" placeholder="e.g. Claude Opus 4.8"></div>
               <div id="an-p2-claude-questions" class="claude-questions"></div>
             </div>
           </div>
@@ -646,7 +646,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 <!-- Dashboard overlay -->
 <div id="dashboard-overlay">
   <div class="gallery-bar">
-    <span class="gallery-bar-title">Dashboard</span>
+    <span class="gallery-bar-title ui-label">Dashboard</span>
     <button class="header-btn" onclick="closeDashboard()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
   </div>
   <div id="dashboard-content"></div>
@@ -655,7 +655,7 @@ Adversarial — prompt designed to test or bypass safety filters.</span>
 <!-- Gallery overlay -->
 <div id="gallery-overlay">
   <div class="gallery-bar">
-    <span id="gallery-bar-title" class="gallery-bar-title">Study Gallery</span>
+    <span id="gallery-bar-title" class="gallery-bar-title ui-label">Study Gallery</span>
     <button id="gallery-show-all-btn" class="header-btn" onclick="openGallery()" style="display:none; background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">Show all</button>
     <button class="header-btn" onclick="closeGallery()" style="background:rgba(0,0,0,0.15); border-color:var(--border-strong); color:var(--text);">&#x2715; Close</button>
   </div>
