@@ -1,11 +1,8 @@
 # CSAFE AI Altered Image Forensics
 
-A dataset and tracking tool for studying how AI image-editing models alter photographs, and how those alterations can be detected. Developed in support of research at the [Center for Statistics and Applications in Forensic Evidence (CSAFE)](https://forensicstats.org/).
+A dataset and tracking tool for studying how AI image-editing models alter photographs, and how those alterations can be detected. Developed by the [Center for Statistics and Applications in Forensic Evidence (CSAFE)](https://forensicstats.org/).
 
-The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records information about AI-altered images and runs automated forensic analysis on them. Records are stored in a shared Supabase database and auto-saved on every save action. Supabase is hosted on AWS and accessible from anywhere with an internet connection.
-
-The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined as named CSS variables in `static/tracker.css`: burnt-peach `#D7816A` (primary actions, field labels, sidebar group labels, the border of empty required fields, the "Originals" dashboard counter, and incomplete "to-do" accordions — background + border), velvet-purple `#5F3370` (the "Modifications" dashboard counter), lime-cream `#D6EA9A` (positive states such as the "Saved" message, plus complete-accordion borders and the lime-cream strip behind their titles), stormy-teal `#25747E` (the "Alterations" dashboard counter), and ink-black `#0D1F2D` (text, accordion and dashboard titles and chevrons, and the sidebar). (vanilla-custard `#F6E2A2` and cornsilk `#FBF4DA` are defined but currently unused.) The canvas and cards are white. Where light or heading text sits on a strong color, a darker shade of that color is used so the text stays legible. The theme is implemented as plain CSS custom properties in `static/tracker.css` — the app stays vanilla JS/CSS with no build step. Each form section is a collapsible Shadcn-style accordion: `initAccordions()` in `static/tracker.js` turns the `.section-card` boxes into clickable, collapsible panels at load (collapsed by default). Completion status is shown by the accordion background, updated live by `updateAccordionStatus()`: a section missing a required field (or with fields to fill but nothing entered yet) has a burnt-peach background (border + fill) with ink-black title and labels; complete sections have a lime-cream border and title strip.
-
+The tracking tool is a Flask web app (`app.py` + `tracker.html`) that records allows users to record information about AI-altered images and runs automated forensic analysis on them. The ditial images and app code are stored in a [GitHub repository](https://github.com/CSAFE-ISU/AI-altered-image-forensics). Image metadata records are stored in a shared Supabase database.
 
 ## Setup
 
@@ -18,7 +15,7 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
    Go to [supabase.com](https://supabase.com) and create a free account. Ask a team member to add you to the **AI-altered Images** project under **Project Settings → Team**. 
 
 
-3. **Install Python dependencies**
+3. **Install Python Dependencies**
 
    Open a terminal and change directories to the AI-altered-image-forensics folder.
 
@@ -33,14 +30,14 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
    source .venv/bin/activate
    pip3 install -r requirements.txt
    ```
-
+  > NOTE: Depending on how python is installed on your computer, you might need to call `python` instead of `python3` to launch the app. You also might need to call `pip` instead of `pip3`.
    > NOTE: On Windows, activate the virtual environment with `.venv\Scripts\activate` instead.
 
 4. **(Optional) Install ExifTool**
 
    If you want to use the metadata and EXIF features in the tracker app, you will need to install [`exiftool`](https://exiftool.org/). If you don't want to install this app, the tracker app should still work but will not populate the metadata and EXIF fields.
    
-5. **Configure Supabase credentials in Python**
+5. **Configure Supabase Credentials in Python**
 
    Copy `.env.example` to `.env`:
 
@@ -57,6 +54,8 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
    SUPABASE_KEY=your-publishable-key
    ```
 
+6. **(Optional) Configure AI or Not API Credentials in Python**
+
    To use the **AI or Not** detector (see "Run AI or Not" below), also add an
    `AIORNOT_API_KEY`. Sign up at [aiornot.com](https://www.aiornot.com), open the
    dashboard, and create an API key under the API / Developer section (API access
@@ -69,7 +68,7 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
    This key is optional — the rest of the app works without it, but the **Run AI
    or Not** button will report that the key is not set.
 
-6. **Start the app**
+7. **Start the app**
 
    If your terminal is already in the CSAFE-AI-altered-image-forensics folder, activate the virtual environment and launch the app:
 
@@ -79,7 +78,6 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
    ```
 
    You need to activate the virtual environment each time you open a new terminal. On Windows, use `.venv\Scripts\activate` instead.
-
 
    Open [http://localhost:5001](http://localhost:5001) in a browser.
 
@@ -94,7 +92,7 @@ The interface uses a palette on a [Shadcn](https://ui.shadcn.com) base, defined 
 
 Every new original image is assigned a unique *study ID* with the format `csafe_<###>`. The study ID connects modified and altered images to the original image. Records appear in the left sidebar, grouped by the study IDs*.
 
-> **Unsaved changes:** If you switch to a different record, create a new record, or close/refresh the tab while a form has unsaved changes, the app will warn you before proceeding.
+> **Unsaved changes:** If you switch to a different record, create a new record, or close/refresh the tab while a form has unsaved changes, the app should warn you before proceeding.
 
 There are three image types:
 
@@ -104,17 +102,17 @@ There are three image types:
 
 ### Upload an original image
 
-Rename the original image with a unique study ID and record details about the image:
+The app renames the original image with a unique study ID. Then the user records details about the image:
 
 1. Click **+ New original** in the sidebar.
 2. Click **Browse…** next to the **Original filename** field and select the image from anywhere on your computer.
    - The app saves a copy of the image in `real images/01-original/` and automatically assigns a unique study ID (`csafe-001`, `csafe-002`, …).
    - A renamed copy is created immediately in `real images/02-original-renamed/` (e.g. `csafe-001.jpg`).
    - If an original image with the same filename already exists in the database, a warning is shown with the matching study ID instead.
-3. Optionally, fill in the **Notes** field with a scene description, lighting conditions, and any other relevant context.
-4. Click **Save record**.
-
-To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+3. Optionally, enter comments in **Notes**.
+4. Click **Save record**. The image should now be listed in the sidebar.
+5. Click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+6. (Optional) complete the manual sections of the **Analysis results**.
 
 ### (Optional) Upload a modified image
 
@@ -128,12 +126,12 @@ If a modified version (cropping, resizing, recompression, etc.) of the original 
 6. Describe the transformation in **Modification details** (e.g. `exported in Preview at 80% JPEG quality`).
 7. Optionally, add additional context in **Notes**.
 8. Click **Save record**.
-
-To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+9. Click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+10. (Optional) complete the manual sections of the **Analysis results**.
 
 ### Upload an AI altered image
 
-Record details about an AI altered image:
+Upload and record details about an AI-altered image:
 
 1. Generate an altered image using an AI tool or software such as Photoshop. Download or save the image somewhere on your computer with the filename suggested by the AI model or software.
 1. Click **+ New alteration** in the sidebar.
@@ -152,8 +150,7 @@ Record details about an AI altered image:
 13. Rate the realism of the alteration in **Subjective quality** (1 = poor blend, 5 = convincing).
 14. Record any observations about the result or the reason for your subjective quality rating in **Notes**.
 14. Click **Save record**.
-
-To run forensic analysis on this image, click the **Analyze** button in the **Analysis results** section at the bottom of the record.
+15. Click the **Analyze** button in the **Analysis results** section at the bottom of the record.
 
 ### Browse the gallery
 
@@ -240,7 +237,7 @@ organized into collapsible groups:
 The `b` suffix stands for "bogus" (i.e. altered). The tracker auto-suggests the next sequential number when you create a new alteration record.
 
 
-## Adding a new model
+## Adding a new AI model
 
 The model dropdown in the alteration form is populated automatically from the subdirectories of `altered images/`. To add a new model:
 
@@ -293,7 +290,7 @@ few precautions keep the shared credentials and external connections safe.
   ```bash
   chmod 600 .env
   ```
-  If a key is ever exposed, rotate it (Supabase: **Project Settings → API
+  If a key is ever exposed, create an new one (Supabase: **Project Settings → API
   Keys**; AI or Not: regenerate in your account dashboard).
 - **Run locally only.** Start the app on the default `localhost` binding and do
   not expose the port to a network or bind to `0.0.0.0`. The app has no
