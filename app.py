@@ -713,6 +713,8 @@ def random_forest_analysis():
             "grouped_models": grouped_models,
             "fold_accuracies": [round(a, 4) for a in fold_accs],
             "mean_accuracy": round(float(np.mean(fold_accs)), 4),
+            # Population std (numpy default, ddof=0); we may switch to the
+            # sample std (ddof=1) in the future.
             "std_accuracy": round(float(np.std(fold_accs)), 4),
             "confusion_matrix": cm,
             "feature_importances": importances,
