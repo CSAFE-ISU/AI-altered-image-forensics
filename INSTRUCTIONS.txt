@@ -1,12 +1,24 @@
 APP INSTRUCTIONS:
 go into C:\Users\bagle\Documents\AI-altered-image-forensics
-turn on virtual environment: cd .venv\scripts activate
+turn on virtual environment: cd .venv\scripts 
+			     activate
 run: python3 app.py
 
 get images from: https://data.csafe.iastate.edu/Multi-Camid/#
 
 TO END:
+* in new terminal *
+git checkout newbranch
 git status
 git add .
 git commit -m "message"
-git push
+git push --set-upstream origin newbranch
+
+* now go to GitHub and merge the branches *
+* make sure to delete local newbranch *
+
+git checkout main
+git pull
+git branch -d newbranch 
+
+
