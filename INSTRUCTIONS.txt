@@ -1,5 +1,5 @@
 APP INSTRUCTIONS:
-go into C:\Users\bagle\Documents\AI-altered-image-forensics
+go into C:\...\Documents\AI-altered-image-forensics
 turn on virtual environment: cd .venv\scripts 
 			     activate
 run: python3 app.py
@@ -14,8 +14,8 @@ git add .
 git commit -m "message"
 git push --set-upstream origin newbranch
 
-* now go to GitHub and merge the branches *
-* make sure to delete local newbranch *
+* now go to GitHub and merge the branches using pull requests *
+* make sure to delete newbranch on GitHub *
 
 git checkout main
 git pull
