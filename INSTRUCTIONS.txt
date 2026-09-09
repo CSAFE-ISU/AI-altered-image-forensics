@@ -22,3 +22,8 @@ git pull
 git branch -d newbranch 
 
 
+
+
+
+
+		
