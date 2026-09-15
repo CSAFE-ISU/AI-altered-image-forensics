@@ -191,13 +191,24 @@ detectors:
   AI / deepfake, and a per-generator class breakdown (e.g. Flux, GPT-4o, Stable
   Diffusion — which varies per image) are filled in automatically and saved with
   the record.
-- **Claude** — paste results from [Claude](https://claude.ai) manually. Record
-  the model / version, then work through the fixed list of three standard prompts
-  ("Has this image been altered with AI?", "Is this image authentic?", and
-  "Identify any specific regions or objects in this image that appear manipulated
-  or AI-generated."). Each prompt has a **Copy** button for pasting into Claude and
-  a box for Claude's response. Each image stores a separate response per prompt, so
-  you can fill in answers one at a time.
+- **LLM detectors** — paste results from four chat LLMs manually, each in its own
+  collapsible card, listed alphabetically: [ChatGPT](https://chatgpt.com/),
+  [Claude](https://claude.ai), [Gemini](https://gemini.google.com/app) and
+  [Grok](https://grok.com/). For each one, record the model / version, then work
+  through the same fixed list of three
+  standard prompts ("Has this image been altered with AI?", "Is this image
+  authentic?", and "Identify any specific regions or objects in this image that
+  appear manipulated or AI-generated."). Every prompt has a **Copy** button for
+  pasting into the chat and a box for the response. Each image stores a separate
+  response per prompt per LLM, so you can fill in answers one at a time, and the
+  four detectors are independent — filling in Gemini never affects Claude. Every
+  field is required: a record counts as having blank fields, and its card reads as
+  incomplete, until all four LLMs have a model / version and all three answers.
+
+  The prompts and the list of LLMs are defined by `LLM_QUESTIONS` and
+  `LLM_PROVIDERS` at the top of the Claude/LLM section in `static/tracker.js`;
+  adding a provider there adds its card to all three phases. Responses are stored
+  as `<provider>_responses` keyed by prompt id, alongside `<provider>_model`.
 
 ### Dashboard
 

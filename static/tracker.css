@@ -162,7 +162,11 @@
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label,
   .accordion-item.acc-incomplete .auto-tag,
-  .accordion-item.acc-incomplete .claude-q-text { color: var(--ink-black); }
+  /* Site links sit in the trigger; on the burnt-peach incomplete background
+     the accent colour matches the fill exactly, so they need the dark ink too
+     (underline keeps them reading as links). */
+  .accordion-item.acc-incomplete .accordion-title a,
+  .accordion-item.acc-incomplete .llm-q-text { color: var(--ink-black); }
 
   .field { margin-bottom: 1rem; }
   .field:last-child { margin-bottom: 0; }
@@ -507,17 +511,19 @@
   }
   .tooltip-wrap:hover .tooltip-bubble { display: block; }
 
-  /* Claude prompt + response blocks */
-  .claude-q { margin: 0.75rem 0; }
-  .claude-q-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem; }
+  /* LLM prompt + response blocks */
+  .llm-q { margin: 0.75rem 0; }
+  .llm-q-head { display: flex; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.3rem; }
   /* Question prompts use the same format as field labels (mono, 12px, weight
      500, burnt-peach); flex/line-height are kept for the Copy button + wrapping. */
-  .claude-q-text { flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--label-color); line-height: 1.45; }
+  .llm-q-text { flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--label-color); line-height: 1.45; }
   .copy-btn { flex-shrink: 0; padding: 3px 10px; font-size: var(--text-xs); }
-  .claude-q textarea {
+  /* Link to the LLM's chat site, sitting in the card heading. */
+  .llm-sections .section-label a { color: var(--accent); font-weight: 400; }
+  .llm-q textarea {
     width: 100%; padding: 7px 10px; font-family: var(--sans); font-size: var(--text-base);
     color: var(--text); background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); outline: none; transition: border-color 0.15s;
     resize: vertical; min-height: 64px; line-height: 1.5;
   }
-  .claude-q textarea:focus { border-color: var(--accent-border); background: var(--card); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
+  .llm-q textarea:focus { border-color: var(--accent-border); background: var(--card); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent); }
