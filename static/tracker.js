@@ -613,18 +613,13 @@
 
   // The fixed set of prompts shown in the Claude section. IDs are stable:
   // responses are stored keyed by id, so question wording can be tweaked later
-  // without orphaning saved answers.
+  // without orphaning saved answers. The gap at q3 is deliberate — the retired
+  // prompts kept their ids so answers already stored under them are never
+  // re-attached to a different question.
   const CLAUDE_QUESTIONS = [
-    { id: 'q1',  text: 'Has this image been altered with AI?' },
-    { id: 'q2',  text: 'Is this image authentic?' },
-    { id: 'q3',  text: 'Was this image generated entirely by AI, or is it a real photograph that was edited?' },
-    { id: 'q4',  text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
-    { id: 'q5',  text: 'What visual artifacts or inconsistencies suggest this image is AI-generated or edited?' },
-    { id: 'q6',  text: 'If AI was involved, which tool or model most likely created or edited this image?' },
-    { id: 'q7',  text: 'On a scale of 0–100%, how confident are you that this image is AI-generated, and why?' },
-    { id: 'q8',  text: 'Are there signs that objects or people were added, removed, or swapped in this image?' },
-    { id: 'q9',  text: 'Do the lighting, shadows, reflections, and perspective appear physically consistent?' },
-    { id: 'q10', text: 'Does this image show signs of conventional digital editing such as cloning, splicing, or retouching?' },
+    { id: 'q1', text: 'Has this image been altered with AI?' },
+    { id: 'q2', text: 'Is this image authentic?' },
+    { id: 'q4', text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
   ];
 
   const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));
@@ -704,12 +699,17 @@
     });
   }
 
-  function getClaudeFields(prefix) {
+  function getClaudeFields(prefix, rec) {
+    // Start from what is already stored so answers to retired prompts — ones no
+    // longer in CLAUDE_QUESTIONS, and so with no textarea on screen — survive a
+    // save instead of being dropped.
+    const responses = Object.assign({}, (rec && rec.claude_responses) || {});
     // Keep only non-empty answers, storing the question text alongside each.
-    const responses = {};
+    // Clearing a visible textarea still removes that answer.
     CLAUDE_QUESTIONS.forEach(q => {
       const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
       if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
+      else delete responses[q.id];
     });
     return {
       claude_model: getVal('an-' + prefix + '-claude-model'),
@@ -1020,7 +1020,7 @@
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
         ...getViewerFields('p0'),
-        ...getClaudeFields('p0')
+        ...getClaudeFields('p0', rec)
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -1037,7 +1037,7 @@
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
         ...getViewerFields('p1'),
-        ...getClaudeFields('p1')
+        ...getClaudeFields('p1', rec)
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -1064,7 +1064,7 @@
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
         ...getViewerFields('p2'),
-        ...getClaudeFields('p2')
+        ...getClaudeFields('p2', rec)
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
