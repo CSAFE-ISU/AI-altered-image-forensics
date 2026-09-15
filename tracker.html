@@ -53,6 +53,12 @@
         </select>
       </div>
       <div class="filter-row">
+        <label class="filter-label ui-label">Blank field</label>
+        <select id="filter-blank-field" onchange="setFilter('blankField', this.value)">
+          <option value="">Any</option>
+        </select>
+      </div>
+      <div class="filter-row">
         <label class="filter-label ui-label">Analysis</label>
         <select id="filter-analysis" onchange="setFilter('analysis', this.value)">
           <option value="">All</option>
