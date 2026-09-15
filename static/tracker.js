@@ -699,12 +699,17 @@
     });
   }
 
-  function getClaudeFields(prefix) {
+  function getClaudeFields(prefix, rec) {
+    // Start from what is already stored so answers to retired prompts — ones no
+    // longer in CLAUDE_QUESTIONS, and so with no textarea on screen — survive a
+    // save instead of being dropped.
+    const responses = Object.assign({}, (rec && rec.claude_responses) || {});
     // Keep only non-empty answers, storing the question text alongside each.
-    const responses = {};
+    // Clearing a visible textarea still removes that answer.
     CLAUDE_QUESTIONS.forEach(q => {
       const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
       if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
+      else delete responses[q.id];
     });
     return {
       claude_model: getVal('an-' + prefix + '-claude-model'),
@@ -1015,7 +1020,7 @@
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
         ...getViewerFields('p0'),
-        ...getClaudeFields('p0')
+        ...getClaudeFields('p0', rec)
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -1032,7 +1037,7 @@
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
         ...getViewerFields('p1'),
-        ...getClaudeFields('p1')
+        ...getClaudeFields('p1', rec)
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -1059,7 +1064,7 @@
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
         ...getViewerFields('p2'),
-        ...getClaudeFields('p2')
+        ...getClaudeFields('p2', rec)
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
