@@ -162,6 +162,10 @@
   .accordion-item.acc-incomplete .accordion-content-inner,
   .accordion-item.acc-incomplete .field label,
   .accordion-item.acc-incomplete .auto-tag,
+  /* Site links sit in the trigger; on the burnt-peach incomplete background
+     the accent colour matches the fill exactly, so they need the dark ink too
+     (underline keeps them reading as links). */
+  .accordion-item.acc-incomplete .accordion-title a,
   .accordion-item.acc-incomplete .llm-q-text { color: var(--ink-black); }
 
   .field { margin-bottom: 1rem; }

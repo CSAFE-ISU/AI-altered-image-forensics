@@ -88,10 +88,20 @@
     renderSidebar();
   }
 
+  // Every LLM needs its model / version filled in plus an answer to each
+  // prompt; any gap counts as a blank field on the record.
+  function _llmFieldsBlank(r) {
+    return LLM_PROVIDERS.some(p => {
+      if (!(r[_llmModelField(p.key)] || '').trim()) return true;
+      const stored = r[_llmRespField(p.key)] || {};
+      return LLM_QUESTIONS.some(q => !_llmRespText(stored[q.id]).trim());
+    });
+  }
+
   function hasBlankFields(r) {
-    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null;
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null;
-    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null;
+    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
+    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
+    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
     return false;
   }
 
@@ -626,11 +636,12 @@
   // `key` drives both the element ids and the stored field names
   // (`<key>_model` / `<key>_responses`), so it must stay stable — 'claude'
   // matches the fields written before the other three were added.
+  // Listed alphabetically by label, which is the order the cards appear in.
   const LLM_PROVIDERS = [
-    { key: 'claude',  label: 'Claude',  site: 'claude.ai',        url: 'https://claude.ai',           modelHint: 'e.g. Claude Opus 4.8' },
-    { key: 'gemini',  label: 'Gemini',  site: 'gemini.google.com', url: 'https://gemini.google.com/app', modelHint: 'e.g. Gemini 3 Pro' },
-    { key: 'grok',    label: 'Grok',    site: 'grok.com',          url: 'https://grok.com/',            modelHint: 'e.g. Grok 4' },
-    { key: 'chatgpt', label: 'ChatGPT', site: 'chatgpt.com',       url: 'https://chatgpt.com/',         modelHint: 'e.g. GPT-5.2' },
+    { key: 'chatgpt', label: 'ChatGPT', site: 'chatgpt.com',        url: 'https://chatgpt.com/',          modelHint: 'e.g. GPT-5.2' },
+    { key: 'claude',  label: 'Claude',  site: 'claude.ai',          url: 'https://claude.ai',             modelHint: 'e.g. Claude Opus 4.8' },
+    { key: 'gemini',  label: 'Gemini',  site: 'gemini.google.com',  url: 'https://gemini.google.com/app', modelHint: 'e.g. Gemini 3 Pro' },
+    { key: 'grok',    label: 'Grok',    site: 'grok.com',           url: 'https://grok.com/',             modelHint: 'e.g. Grok 4' },
   ];
 
   const _llmQuestionText = Object.fromEntries(LLM_QUESTIONS.map(q => [q.id, q.text]));
@@ -731,6 +742,8 @@
       card.appendChild(block);
     });
 
+    // Match the other section boxes: collapsible, with a chevron trigger.
+    _makeAccordion(card);
     return card;
   }
 
@@ -3190,90 +3203,93 @@
     });
   }
 
-  // Transform the static .section-card boxes into Shadcn-style accordions:
-  // the section label becomes a clickable trigger (with a rotating chevron)
-  // over animated, collapsible content. Items start open so data entry is
-  // unaffected; nothing in the app depends on the original box markup.
-  function initAccordions() {
+  // Turn one .section-card into a Shadcn-style accordion: the section label
+  // becomes a clickable trigger (with a rotating chevron) over animated,
+  // collapsible content. Items start collapsed.
+  function _makeAccordion(card) {
     const NS = 'http://www.w3.org/2000/svg';
-    document.querySelectorAll('.section-card').forEach(card => {
-      if (card.dataset.accordion) return;
-      const trigger = card.querySelector(':scope > .section-label');
-      if (!trigger) return;
-      card.dataset.accordion = '1';
-      card.classList.add('accordion-item');
+    if (card.dataset.accordion) return;
+    const trigger = card.querySelector(':scope > .section-label');
+    if (!trigger) return;
+    card.dataset.accordion = '1';
+    card.classList.add('accordion-item');
 
-      // Move everything after the label into an animated content wrapper.
-      const content = document.createElement('div');
-      content.className = 'accordion-content';
-      const inner = document.createElement('div');
-      inner.className = 'accordion-content-inner';
-      while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
-      content.appendChild(inner);
-      card.appendChild(content);
+    // Move everything after the label into an animated content wrapper.
+    const content = document.createElement('div');
+    content.className = 'accordion-content';
+    const inner = document.createElement('div');
+    inner.className = 'accordion-content-inner';
+    while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
+    content.appendChild(inner);
+    card.appendChild(content);
 
-      // Turn the label into the trigger: keep its existing content (text and
-      // any links) grouped in a title span on the left, chevron on the right.
-      trigger.classList.add('accordion-trigger');
-      trigger.setAttribute('role', 'button');
-      trigger.setAttribute('tabindex', '0');
-      trigger.setAttribute('aria-expanded', 'false');
-      const title = document.createElement('span');
-      title.className = 'accordion-title';
-      while (trigger.firstChild) title.appendChild(trigger.firstChild);
-      trigger.appendChild(title);
-      const chev = document.createElementNS(NS, 'svg');
-      chev.setAttribute('class', 'accordion-chevron');
-      chev.setAttribute('viewBox', '0 0 24 24');
-      chev.setAttribute('fill', 'none');
-      chev.setAttribute('stroke', 'currentColor');
-      chev.setAttribute('stroke-width', '2');
-      chev.setAttribute('stroke-linecap', 'round');
-      chev.setAttribute('stroke-linejoin', 'round');
-      const path = document.createElementNS(NS, 'path');
-      path.setAttribute('d', 'm6 9 6 6 6-6');
-      chev.appendChild(path);
-      trigger.appendChild(chev);
+    // Turn the label into the trigger: keep its existing content (text and
+    // any links) grouped in a title span on the left, chevron on the right.
+    trigger.classList.add('accordion-trigger');
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', '0');
+    trigger.setAttribute('aria-expanded', 'false');
+    const title = document.createElement('span');
+    title.className = 'accordion-title';
+    while (trigger.firstChild) title.appendChild(trigger.firstChild);
+    trigger.appendChild(title);
+    const chev = document.createElementNS(NS, 'svg');
+    chev.setAttribute('class', 'accordion-chevron');
+    chev.setAttribute('viewBox', '0 0 24 24');
+    chev.setAttribute('fill', 'none');
+    chev.setAttribute('stroke', 'currentColor');
+    chev.setAttribute('stroke-width', '2');
+    chev.setAttribute('stroke-linecap', 'round');
+    chev.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'm6 9 6 6 6-6');
+    chev.appendChild(path);
+    trigger.appendChild(chev);
 
-      // Animate height between 0 and the content's natural height. While
-      // animating, overflow is hidden; when fully open it returns to visible
-      // (height:auto) so hover tooltips inside aren't clipped.
-      const setOpen = open => {
-        card.classList.toggle('open', open);
-        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        content.style.overflow = 'hidden';
-        if (open) {
-          content.style.height = content.scrollHeight + 'px';
-          content.addEventListener('transitionend', function te(e) {
-            if (e.propertyName !== 'height') return;
-            content.removeEventListener('transitionend', te);
-            if (card.classList.contains('open')) {
-              content.style.height = 'auto';
-              content.style.overflow = 'visible';
-            }
-          });
-        } else {
-          content.style.height = content.scrollHeight + 'px';
-          void content.offsetHeight;  // force reflow so the next line animates
-          content.style.height = '0px';
-        }
-      };
-
-      // Collapsed by default (no animation on load).
-      content.style.height = '0px';
+    // Animate height between 0 and the content's natural height. While
+    // animating, overflow is hidden; when fully open it returns to visible
+    // (height:auto) so hover tooltips inside aren't clipped.
+    const setOpen = open => {
+      card.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       content.style.overflow = 'hidden';
+      if (open) {
+        content.style.height = content.scrollHeight + 'px';
+        content.addEventListener('transitionend', function te(e) {
+          if (e.propertyName !== 'height') return;
+          content.removeEventListener('transitionend', te);
+          if (card.classList.contains('open')) {
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+          }
+        });
+      } else {
+        content.style.height = content.scrollHeight + 'px';
+        void content.offsetHeight;  // force reflow so the next line animates
+        content.style.height = '0px';
+      }
+    };
 
-      trigger.addEventListener('click', e => {
-        if (e.target.closest('a')) return;  // let links in the header work
-        setOpen(!card.classList.contains('open'));
-      });
-      trigger.addEventListener('keydown', e => {
-        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
-          e.preventDefault();
-          setOpen(!card.classList.contains('open'));
-        }
-      });
+    // Collapsed by default (no animation on load).
+    content.style.height = '0px';
+    content.style.overflow = 'hidden';
+
+    trigger.addEventListener('click', e => {
+      if (e.target.closest('a')) return;  // let links in the header work
+      setOpen(!card.classList.contains('open'));
     });
+    trigger.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
+        e.preventDefault();
+        setOpen(!card.classList.contains('open'));
+      }
+    });
+  }
+
+  // Convert every section box present at boot. Cards built later — the LLM
+  // provider cards — are converted by _buildLlmCard as they are created.
+  function initAccordions() {
+    document.querySelectorAll('.section-card').forEach(_makeAccordion);
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────────
