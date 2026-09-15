@@ -613,18 +613,13 @@
 
   // The fixed set of prompts shown in the Claude section. IDs are stable:
   // responses are stored keyed by id, so question wording can be tweaked later
-  // without orphaning saved answers.
+  // without orphaning saved answers. The gap at q3 is deliberate — the retired
+  // prompts kept their ids so answers already stored under them are never
+  // re-attached to a different question.
   const CLAUDE_QUESTIONS = [
-    { id: 'q1',  text: 'Has this image been altered with AI?' },
-    { id: 'q2',  text: 'Is this image authentic?' },
-    { id: 'q3',  text: 'Was this image generated entirely by AI, or is it a real photograph that was edited?' },
-    { id: 'q4',  text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
-    { id: 'q5',  text: 'What visual artifacts or inconsistencies suggest this image is AI-generated or edited?' },
-    { id: 'q6',  text: 'If AI was involved, which tool or model most likely created or edited this image?' },
-    { id: 'q7',  text: 'On a scale of 0–100%, how confident are you that this image is AI-generated, and why?' },
-    { id: 'q8',  text: 'Are there signs that objects or people were added, removed, or swapped in this image?' },
-    { id: 'q9',  text: 'Do the lighting, shadows, reflections, and perspective appear physically consistent?' },
-    { id: 'q10', text: 'Does this image show signs of conventional digital editing such as cloning, splicing, or retouching?' },
+    { id: 'q1', text: 'Has this image been altered with AI?' },
+    { id: 'q2', text: 'Is this image authentic?' },
+    { id: 'q4', text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
   ];
 
   const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));

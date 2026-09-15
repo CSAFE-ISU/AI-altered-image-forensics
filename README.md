@@ -192,10 +192,12 @@ detectors:
   Diffusion — which varies per image) are filled in automatically and saved with
   the record.
 - **Claude** — paste results from [Claude](https://claude.ai) manually. Record
-  the model / version, then pick a question from the **Prompt** dropdown (a fixed
-  list of 10 standard questions, e.g. "Has this image been altered with AI?") and
-  paste Claude's response. Each image stores a separate response per question, so
-  you can switch questions in the dropdown and fill in answers one at a time.
+  the model / version, then work through the fixed list of three standard prompts
+  ("Has this image been altered with AI?", "Is this image authentic?", and
+  "Identify any specific regions or objects in this image that appear manipulated
+  or AI-generated."). Each prompt has a **Copy** button for pasting into Claude and
+  a box for Claude's response. Each image stores a separate response per prompt, so
+  you can fill in answers one at a time.
 
 ### Dashboard
 
