@@ -129,7 +129,7 @@
       if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
     }
 
-    // Generic required fields (marked with .field-required), e.g. every Claude
+    // Generic required fields (marked with .field-required), e.g. every LLM
     // answer. Flag any that are empty so their section reads as incomplete.
     form.querySelectorAll('.field-required').forEach(el => {
       if (typeof el.value === 'string' && !el.value.trim()) el.classList.add('field-blank');
@@ -609,24 +609,42 @@
     }
   }
 
-  // ── Claude (manual entry) ─────────────────────────────────────────────────
+  // ── LLM detectors (manual entry) ──────────────────────────────────────────
 
-  // The fixed set of prompts shown in the Claude section. IDs are stable:
-  // responses are stored keyed by id, so question wording can be tweaked later
-  // without orphaning saved answers. The gap at q3 is deliberate — the retired
-  // prompts kept their ids so answers already stored under them are never
-  // re-attached to a different question.
-  const CLAUDE_QUESTIONS = [
+  // The fixed set of prompts put to every LLM. IDs are stable: responses are
+  // stored keyed by id, so question wording can be tweaked later without
+  // orphaning saved answers. The gap at q3 is deliberate — the retired prompts
+  // kept their ids so answers already stored under them are never re-attached
+  // to a different question.
+  const LLM_QUESTIONS = [
     { id: 'q1', text: 'Has this image been altered with AI?' },
     { id: 'q2', text: 'Is this image authentic?' },
     { id: 'q4', text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
   ];
 
-  const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));
+  // The LLMs whose answers we record, each rendered as its own section card.
+  // `key` drives both the element ids and the stored field names
+  // (`<key>_model` / `<key>_responses`), so it must stay stable — 'claude'
+  // matches the fields written before the other three were added.
+  const LLM_PROVIDERS = [
+    { key: 'claude',  label: 'Claude',  site: 'claude.ai',        url: 'https://claude.ai',           modelHint: 'e.g. Claude Opus 4.8' },
+    { key: 'gemini',  label: 'Gemini',  site: 'gemini.google.com', url: 'https://gemini.google.com/app', modelHint: 'e.g. Gemini 3 Pro' },
+    { key: 'grok',    label: 'Grok',    site: 'grok.com',          url: 'https://grok.com/',            modelHint: 'e.g. Grok 4' },
+    { key: 'chatgpt', label: 'ChatGPT', site: 'chatgpt.com',       url: 'https://chatgpt.com/',         modelHint: 'e.g. GPT-5.2' },
+  ];
+
+  const _llmQuestionText = Object.fromEntries(LLM_QUESTIONS.map(q => [q.id, q.text]));
+
+  // Field names and element ids are derived from the provider key so the four
+  // sections stay in lockstep.
+  const _llmModelField = key => key + '_model';
+  const _llmRespField  = key => key + '_responses';
+  const _llmModelId    = (prefix, key) => 'an-' + prefix + '-' + key + '-model';
+  const _llmRespId     = (prefix, key, qid) => 'an-' + prefix + '-' + key + '-resp-' + qid;
 
   // Pull the response text out of a stored entry, tolerating either the
   // {question, response} object form or a bare string.
-  function _claudeRespText(entry) {
+  function _llmRespText(entry) {
     if (!entry) return '';
     return typeof entry === 'string' ? entry : (entry.response || '');
   }
@@ -659,19 +677,43 @@
     done();
   }
 
-  // Build the list of prompt + response blocks for a phase (once). Each prompt
-  // is shown as a heading with a Copy button, and a response textarea below it.
-  function _buildClaudeQuestions(prefix) {
-    const container = document.getElementById('an-' + prefix + '-claude-questions');
-    if (!container || container.childElementCount) return;
-    CLAUDE_QUESTIONS.forEach(q => {
+  // Build one provider's card: a labelled heading linking to the LLM, a
+  // Model / version input, then a prompt + response block per question. Each
+  // prompt gets a Copy button so it can be pasted straight into the chat.
+  function _buildLlmCard(prefix, provider) {
+    const card = document.createElement('div');
+    card.className = 'section-card';
+
+    const heading = document.createElement('div');
+    heading.className = 'section-label';
+    heading.textContent = provider.label + ' Results - ';
+    const link = document.createElement('a');
+    link.href = provider.url;
+    link.target = '_blank';
+    link.textContent = provider.site;
+    heading.appendChild(link);
+
+    const modelField = document.createElement('div');
+    modelField.className = 'field';
+    const modelLabel = document.createElement('label');
+    modelLabel.textContent = 'Model / version';
+    const modelInput = document.createElement('input');
+    modelInput.type = 'text';
+    modelInput.id = _llmModelId(prefix, provider.key);
+    modelInput.className = 'field-required';
+    modelInput.placeholder = provider.modelHint;
+    modelField.append(modelLabel, modelInput);
+
+    card.append(heading, modelField);
+
+    LLM_QUESTIONS.forEach(q => {
       const block = document.createElement('div');
-      block.className = 'claude-q';
+      block.className = 'llm-q';
 
       const head = document.createElement('div');
-      head.className = 'claude-q-head';
+      head.className = 'llm-q-head';
       const label = document.createElement('span');
-      label.className = 'claude-q-text';
+      label.className = 'llm-q-text';
       label.textContent = q.text;
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
@@ -681,40 +723,53 @@
       head.append(label, copyBtn);
 
       const resp = document.createElement('textarea');
-      resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.id = _llmRespId(prefix, provider.key, q.id);
       resp.className = 'field-required';
-      resp.placeholder = "Claude's response…";
+      resp.placeholder = provider.label + "'s response…";
 
       block.append(head, resp);
-      container.appendChild(block);
+      card.appendChild(block);
+    });
+
+    return card;
+  }
+
+  // Build every provider card for a phase (once).
+  function _buildLlmSections(prefix) {
+    const container = document.getElementById('an-' + prefix + '-llm-sections');
+    if (!container || container.childElementCount) return;
+    LLM_PROVIDERS.forEach(p => container.appendChild(_buildLlmCard(prefix, p)));
+  }
+
+  function fillLlmSections(prefix, rec) {
+    _buildLlmSections(prefix);
+    LLM_PROVIDERS.forEach(p => {
+      setVal(_llmModelId(prefix, p.key), rec[_llmModelField(p.key)] || '');
+      const stored = rec[_llmRespField(p.key)] || {};
+      LLM_QUESTIONS.forEach(q => {
+        setVal(_llmRespId(prefix, p.key, q.id), _llmRespText(stored[q.id]));
+      });
     });
   }
 
-  function fillClaudeSection(prefix, rec) {
-    _buildClaudeQuestions(prefix);
-    setVal('an-' + prefix + '-claude-model', rec.claude_model || '');
-    const stored = rec.claude_responses || {};
-    CLAUDE_QUESTIONS.forEach(q => {
-      setVal('an-' + prefix + '-claude-resp-' + q.id, _claudeRespText(stored[q.id]));
+  function getLlmFields(prefix, rec) {
+    const fields = {};
+    LLM_PROVIDERS.forEach(p => {
+      // Start from what is already stored so answers to retired prompts — ones
+      // no longer in LLM_QUESTIONS, and so with no textarea on screen — survive
+      // a save instead of being dropped.
+      const responses = Object.assign({}, (rec && rec[_llmRespField(p.key)]) || {});
+      // Keep only non-empty answers, storing the question text alongside each.
+      // Clearing a visible textarea still removes that answer.
+      LLM_QUESTIONS.forEach(q => {
+        const text = getVal(_llmRespId(prefix, p.key, q.id));
+        if (text) responses[q.id] = { question: _llmQuestionText[q.id], response: text };
+        else delete responses[q.id];
+      });
+      fields[_llmModelField(p.key)] = getVal(_llmModelId(prefix, p.key));
+      fields[_llmRespField(p.key)] = responses;
     });
-  }
-
-  function getClaudeFields(prefix, rec) {
-    // Start from what is already stored so answers to retired prompts — ones no
-    // longer in CLAUDE_QUESTIONS, and so with no textarea on screen — survive a
-    // save instead of being dropped.
-    const responses = Object.assign({}, (rec && rec.claude_responses) || {});
-    // Keep only non-empty answers, storing the question text alongside each.
-    // Clearing a visible textarea still removes that answer.
-    CLAUDE_QUESTIONS.forEach(q => {
-      const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
-      if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
-      else delete responses[q.id];
-    });
-    return {
-      claude_model: getVal('an-' + prefix + '-claude-model'),
-      claude_responses: responses,
-    };
+    return fields;
   }
 
   function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
@@ -861,8 +916,11 @@
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
     const hasAiOrNotData = !!rec.aiornot_decision || !!rec.aiornot_verdict || (rec.aiornot_generators && rec.aiornot_generators.length);
-    const hasClaudeData = !!rec.claude_model || (rec.claude_responses && Object.keys(rec.claude_responses).length);
-    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasClaudeData;
+    const hasLlmData = LLM_PROVIDERS.some(p => {
+      const resp = rec[_llmRespField(p.key)];
+      return !!rec[_llmModelField(p.key)] || (resp && Object.keys(resp).length);
+    });
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasLlmData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -876,7 +934,7 @@
       _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
       fillAiOrNotSection(prefix, rec);
-      fillClaudeSection(prefix, rec);
+      fillLlmSections(prefix, rec);
       return;
     }
     if (empty) empty.style.display = 'none';
@@ -901,7 +959,7 @@
 
     fillViewerSection(prefix, rec);
     fillAiOrNotSection(prefix, rec);
-    fillClaudeSection(prefix, rec);
+    fillLlmSections(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
@@ -1020,7 +1078,7 @@
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
         ...getViewerFields('p0'),
-        ...getClaudeFields('p0', rec)
+        ...getLlmFields('p0', rec)
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -1037,7 +1095,7 @@
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
         ...getViewerFields('p1'),
-        ...getClaudeFields('p1', rec)
+        ...getLlmFields('p1', rec)
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -1064,7 +1122,7 @@
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
         ...getViewerFields('p2'),
-        ...getClaudeFields('p2', rec)
+        ...getLlmFields('p2', rec)
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
