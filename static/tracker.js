@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '', search: '' },
+    filters:           { type: '', model: '', blankOnly: '', blankField: '', analysis: '', search: '' },
     dirty:             false,
     loadingRecord:     false,
   };
@@ -88,21 +88,14 @@
     renderSidebar();
   }
 
-  // Every LLM needs its model / version filled in plus an answer to each
-  // prompt; any gap counts as a blank field on the record.
-  function _llmFieldsBlank(r) {
-    return LLM_PROVIDERS.some(p => {
-      if (!(r[_llmModelField(p.key)] || '').trim()) return true;
-      const stored = r[_llmRespField(p.key)] || {};
-      return LLM_QUESTIONS.some(q => !_llmRespText(stored[q.id]).trim());
-    });
+  // A record has blank fields when any field required for its type is empty.
+  // The field table itself is REQUIRED_FIELDS, declared with the LLM section.
+  function hasBlankFields(r) {
+    return _requiredFieldsFor(r.type).some(f => f.blank(r));
   }
 
-  function hasBlankFields(r) {
-    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
-    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null || _llmFieldsBlank(r);
-    return false;
+  function _requiredFieldsFor(type) {
+    return REQUIRED_FIELDS.filter(f => f.types.includes(type));
   }
 
   function highlightBlankFields(type) {
@@ -150,12 +143,16 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis, search } = state.filters;
+    const { type, model, blankOnly, blankField, analysis, search } = state.filters;
+    const wanted = blankField && REQUIRED_FIELDS.find(f => f.value === blankField);
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
       if (blankOnly === 'yes' && !hasBlankFields(r)) return false;
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
+      // Records of a type that has no such field are never a match, so
+      // filtering on an alteration-only field doesn't list every original.
+      if (wanted && (!wanted.types.includes(r.type) || !wanted.blank(r))) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
       if (search) {
@@ -652,6 +649,57 @@
   const _llmRespField  = key => key + '_responses';
   const _llmModelId    = (prefix, key) => 'an-' + prefix + '-' + key + '-model';
   const _llmRespId     = (prefix, key, qid) => 'an-' + prefix + '-' + key + '-resp-' + qid;
+
+  // ── Required fields ───────────────────────────────────────────────────────
+
+  // Every field that must be filled in for a record to count as complete, in
+  // form order. `types` lists the record types that actually have the field,
+  // so filtering on e.g. Prompt never turns up originals, and `blank` reports
+  // whether it is empty. hasBlankFields and the Blank field filter both read
+  // this list, so the two cannot drift apart.
+  //
+  // Declared here, below LLM_PROVIDERS, because the per-provider entries are
+  // appended from it.
+  const ALL_TYPES = ['p0', 'p1', 'p2'];
+
+  const REQUIRED_FIELDS = [
+    { value: 'original_filename',  group: 'Original',     label: 'Original filename',            types: ['p0'],       blank: r => !r.original_filename },
+    { value: 'input_image',        group: 'Input',        label: 'Input image',                  types: ['p1', 'p2'], blank: r => !r.input_image },
+    { value: 'mod_type',           group: 'Modification', label: 'Modification type',            types: ['p1'],       blank: r => !r.mod_type },
+    { value: 'mod_details',        group: 'Modification', label: 'Modification details',         types: ['p1'],       blank: r => !r.mod_details },
+    { value: 'mod_filename',       group: 'Modification', label: 'Modified filename',            types: ['p1'],       blank: r => !r.mod_filename },
+    { value: 'model',              group: 'Alteration',   label: 'Model',                        types: ['p2'],       blank: r => !r.model },
+    { value: 'ai_assigned_filename', group: 'Alteration', label: 'Filename assigned by AI model', types: ['p2'],      blank: r => !r.ai_assigned_filename },
+    { value: 'prompt',             group: 'Alteration',   label: 'Prompt text',                  types: ['p2'],       blank: r => !r.prompt },
+    { value: 'object',             group: 'Alteration',   label: 'Object added',                 types: ['p2'],       blank: r => !r.object },
+    { value: 'subjective_quality', group: 'Alteration',   label: 'Subjective quality',           types: ['p2'],       blank: r => !r.subjective_quality },
+    { value: 'region_altered',     group: 'Alteration',   label: 'Region altered',               types: ['p2'],       blank: r => !r.region_altered },
+    { value: 'mask_used',          group: 'Alteration',   label: 'Mask / selection used',        types: ['p2'],       blank: r => !r.mask_used },
+    // The C2PA radios are unanswered until one is picked, so null means blank.
+    { value: 'c2pa_viewer_found',  group: 'Analysis',     label: 'C2PA data found',              types: ALL_TYPES,    blank: r => r.c2pa_viewer_found == null },
+  ];
+
+  // One group per LLM: its model / version plus an entry per prompt.
+  LLM_PROVIDERS.forEach(p => {
+    REQUIRED_FIELDS.push({
+      value: p.key + '_model',
+      group: p.label,
+      label: 'Model / version',
+      qualify: true,
+      types: ALL_TYPES,
+      blank: r => !(r[_llmModelField(p.key)] || '').trim(),
+    });
+    LLM_QUESTIONS.forEach(q => {
+      REQUIRED_FIELDS.push({
+        value: p.key + '_' + q.id,
+        group: p.label,
+        label: q.text,
+        qualify: true,
+        types: ALL_TYPES,
+        blank: r => !_llmRespText((r[_llmRespField(p.key)] || {})[q.id]).trim(),
+      });
+    });
+  });
 
   // Pull the response text out of a stored entry, tolerating either the
   // {question, response} object form or a bare string.
@@ -3286,6 +3334,32 @@
     });
   }
 
+  // Fill the Blank field dropdown from REQUIRED_FIELDS, one optgroup per
+  // section so the LLM entries stay distinguishable (each has a
+  // "Model / version" of its own).
+  function initBlankFieldFilter() {
+    const sel = document.getElementById('filter-blank-field');
+    if (!sel) return;
+    let group = null;
+    REQUIRED_FIELDS.forEach(f => {
+      if (!group || group.label !== f.group) {
+        group = document.createElement('optgroup');
+        group.label = f.group;
+        sel.appendChild(group);
+      }
+      const opt = document.createElement('option');
+      opt.value = f.value;
+      // A closed <select> shows only the option, not its group, so entries that
+      // repeat across the LLMs name their provider. Prompt labels are full
+      // sentences, so trim them to fit the sidebar and keep the full text as a
+      // tooltip.
+      const full = f.qualify ? f.group + ' — ' + f.label : f.label;
+      opt.textContent = full.length > 44 ? full.slice(0, 43).trimEnd() + '…' : full;
+      opt.title = full;
+      group.appendChild(opt);
+    });
+  }
+
   // Convert every section box present at boot. Cards built later — the LLM
   // provider cards — are converted by _buildLlmCard as they are created.
   function initAccordions() {
@@ -3294,6 +3368,7 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   initAccordions();
+  initBlankFieldFilter();
   loadModels();
   loadInputImages();
   loadRecords();

@@ -100,6 +100,23 @@ There are three image types:
 2. **Modified** — a copy of an original (or another modification) that has been cropped, rotated, recompressed, or otherwise transformed; scene content is unchanged, except where cropping removes part of the frame
 3. **Altered** — an original or modified image whose scene content has been changed, either by an AI model or manually in software such as Photoshop
 
+### Filtering the sidebar
+
+The filters above the record list narrow which records are shown, and the header
+reports how many matched (e.g. "148 of 164 records"):
+
+- **Type** — originals, modifications or alterations.
+- **Model** — the AI model used, for alterations.
+- **Blank fields** — records that have at least one required field empty, or none.
+- **Blank field** — records missing one *specific* required field, e.g. pick
+  "Claude — Model / version" to find every record where Claude's model hasn't been
+  recorded yet. Fields are grouped by the section they belong to, and the four LLM
+  detectors name their provider because each one has the same set of fields. A
+  field only applies to the record types that have it, so filtering on an
+  alteration-only field such as **Prompt text** never lists originals.
+- **Analysis** — records that have been analyzed, or not.
+- **Search** — matches filename or study ID.
+
 ### Upload an original image
 
 The app renames the original image with a unique study ID. Then the user records details about the image:
