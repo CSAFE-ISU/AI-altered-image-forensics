@@ -8,7 +8,7 @@
     p0CopyPerformed:   false,
     p1RenamePerformed: false,
     expandedStudies:   new Set(),
-    filters:           { type: '', model: '', blankOnly: '', analysis: '', search: '' },
+    filters:           { type: '', model: '', blankOnly: '', blankField: '', analysis: '', search: '' },
     dirty:             false,
     loadingRecord:     false,
   };
@@ -88,11 +88,14 @@
     renderSidebar();
   }
 
+  // A record has blank fields when any field required for its type is empty.
+  // The field table itself is REQUIRED_FIELDS, declared with the LLM section.
   function hasBlankFields(r) {
-    if (r.type === 'p0') return !r.original_filename || r.c2pa_viewer_found == null;
-    if (r.type === 'p1') return !r.input_image || !r.mod_type || !r.mod_details || !r.mod_filename || r.c2pa_viewer_found == null;
-    if (r.type === 'p2') return !r.input_image || !r.model || !r.ai_assigned_filename || !r.prompt || !r.object || !r.subjective_quality || !r.region_altered || !r.mask_used || r.c2pa_viewer_found == null;
-    return false;
+    return _requiredFieldsFor(r.type).some(f => f.blank(r));
+  }
+
+  function _requiredFieldsFor(type) {
+    return REQUIRED_FIELDS.filter(f => f.types.includes(type));
   }
 
   function highlightBlankFields(type) {
@@ -129,7 +132,7 @@
       if (regionWrap) regionWrap.classList.toggle('field-blank', !document.getElementById('p2_region').value);
     }
 
-    // Generic required fields (marked with .field-required), e.g. every Claude
+    // Generic required fields (marked with .field-required), e.g. every LLM
     // answer. Flag any that are empty so their section reads as incomplete.
     form.querySelectorAll('.field-required').forEach(el => {
       if (typeof el.value === 'string' && !el.value.trim()) el.classList.add('field-blank');
@@ -140,12 +143,16 @@
   }
 
   function applyFilters(records) {
-    const { type, model, blankOnly, analysis, search } = state.filters;
+    const { type, model, blankOnly, blankField, analysis, search } = state.filters;
+    const wanted = blankField && REQUIRED_FIELDS.find(f => f.value === blankField);
     return records.filter(r => {
       if (type && r.type !== type) return false;
       if (model && (r.type !== 'p2' || (r.model || '').trim() !== model)) return false;
       if (blankOnly === 'yes' && !hasBlankFields(r)) return false;
       if (blankOnly === 'no'  &&  hasBlankFields(r)) return false;
+      // Records of a type that has no such field are never a match, so
+      // filtering on an alteration-only field doesn't list every original.
+      if (wanted && (!wanted.types.includes(r.type) || !wanted.blank(r))) return false;
       if (analysis === 'yes' && r.exif_anomalies === undefined) return false;
       if (analysis === 'no'  && r.exif_anomalies !== undefined) return false;
       if (search) {
@@ -609,29 +616,94 @@
     }
   }
 
-  // ── Claude (manual entry) ─────────────────────────────────────────────────
+  // ── LLM detectors (manual entry) ──────────────────────────────────────────
 
-  // The fixed set of prompts shown in the Claude section. IDs are stable:
-  // responses are stored keyed by id, so question wording can be tweaked later
-  // without orphaning saved answers.
-  const CLAUDE_QUESTIONS = [
-    { id: 'q1',  text: 'Has this image been altered with AI?' },
-    { id: 'q2',  text: 'Is this image authentic?' },
-    { id: 'q3',  text: 'Was this image generated entirely by AI, or is it a real photograph that was edited?' },
-    { id: 'q4',  text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
-    { id: 'q5',  text: 'What visual artifacts or inconsistencies suggest this image is AI-generated or edited?' },
-    { id: 'q6',  text: 'If AI was involved, which tool or model most likely created or edited this image?' },
-    { id: 'q7',  text: 'On a scale of 0–100%, how confident are you that this image is AI-generated, and why?' },
-    { id: 'q8',  text: 'Are there signs that objects or people were added, removed, or swapped in this image?' },
-    { id: 'q9',  text: 'Do the lighting, shadows, reflections, and perspective appear physically consistent?' },
-    { id: 'q10', text: 'Does this image show signs of conventional digital editing such as cloning, splicing, or retouching?' },
+  // The fixed set of prompts put to every LLM. IDs are stable: responses are
+  // stored keyed by id, so question wording can be tweaked later without
+  // orphaning saved answers. The gap at q3 is deliberate — the retired prompts
+  // kept their ids so answers already stored under them are never re-attached
+  // to a different question.
+  const LLM_QUESTIONS = [
+    { id: 'q1', text: 'Has this image been altered with AI?' },
+    { id: 'q2', text: 'Is this image authentic?' },
+    { id: 'q4', text: 'Identify any specific regions or objects in this image that appear manipulated or AI-generated.' },
   ];
 
-  const _claudeQuestionText = Object.fromEntries(CLAUDE_QUESTIONS.map(q => [q.id, q.text]));
+  // The LLMs whose answers we record, each rendered as its own section card.
+  // `key` drives both the element ids and the stored field names
+  // (`<key>_model` / `<key>_responses`), so it must stay stable — 'claude'
+  // matches the fields written before the other three were added.
+  // Listed alphabetically by label, which is the order the cards appear in.
+  const LLM_PROVIDERS = [
+    { key: 'chatgpt', label: 'ChatGPT', site: 'chatgpt.com',        url: 'https://chatgpt.com/',          modelHint: 'e.g. GPT-5.2' },
+    { key: 'claude',  label: 'Claude',  site: 'claude.ai',          url: 'https://claude.ai',             modelHint: 'e.g. Claude Opus 4.8' },
+    { key: 'gemini',  label: 'Gemini',  site: 'gemini.google.com',  url: 'https://gemini.google.com/app', modelHint: 'e.g. Gemini 3 Pro' },
+    { key: 'grok',    label: 'Grok',    site: 'grok.com',           url: 'https://grok.com/',             modelHint: 'e.g. Grok 4' },
+  ];
+
+  const _llmQuestionText = Object.fromEntries(LLM_QUESTIONS.map(q => [q.id, q.text]));
+
+  // Field names and element ids are derived from the provider key so the four
+  // sections stay in lockstep.
+  const _llmModelField = key => key + '_model';
+  const _llmRespField  = key => key + '_responses';
+  const _llmModelId    = (prefix, key) => 'an-' + prefix + '-' + key + '-model';
+  const _llmRespId     = (prefix, key, qid) => 'an-' + prefix + '-' + key + '-resp-' + qid;
+
+  // ── Required fields ───────────────────────────────────────────────────────
+
+  // Every field that must be filled in for a record to count as complete, in
+  // form order. `types` lists the record types that actually have the field,
+  // so filtering on e.g. Prompt never turns up originals, and `blank` reports
+  // whether it is empty. hasBlankFields and the Blank field filter both read
+  // this list, so the two cannot drift apart.
+  //
+  // Declared here, below LLM_PROVIDERS, because the per-provider entries are
+  // appended from it.
+  const ALL_TYPES = ['p0', 'p1', 'p2'];
+
+  const REQUIRED_FIELDS = [
+    { value: 'original_filename',  group: 'Original',     label: 'Original filename',            types: ['p0'],       blank: r => !r.original_filename },
+    { value: 'input_image',        group: 'Input',        label: 'Input image',                  types: ['p1', 'p2'], blank: r => !r.input_image },
+    { value: 'mod_type',           group: 'Modification', label: 'Modification type',            types: ['p1'],       blank: r => !r.mod_type },
+    { value: 'mod_details',        group: 'Modification', label: 'Modification details',         types: ['p1'],       blank: r => !r.mod_details },
+    { value: 'mod_filename',       group: 'Modification', label: 'Modified filename',            types: ['p1'],       blank: r => !r.mod_filename },
+    { value: 'model',              group: 'Alteration',   label: 'Model',                        types: ['p2'],       blank: r => !r.model },
+    { value: 'ai_assigned_filename', group: 'Alteration', label: 'Filename assigned by AI model', types: ['p2'],      blank: r => !r.ai_assigned_filename },
+    { value: 'prompt',             group: 'Alteration',   label: 'Prompt text',                  types: ['p2'],       blank: r => !r.prompt },
+    { value: 'object',             group: 'Alteration',   label: 'Object added',                 types: ['p2'],       blank: r => !r.object },
+    { value: 'subjective_quality', group: 'Alteration',   label: 'Subjective quality',           types: ['p2'],       blank: r => !r.subjective_quality },
+    { value: 'region_altered',     group: 'Alteration',   label: 'Region altered',               types: ['p2'],       blank: r => !r.region_altered },
+    { value: 'mask_used',          group: 'Alteration',   label: 'Mask / selection used',        types: ['p2'],       blank: r => !r.mask_used },
+    // The C2PA radios are unanswered until one is picked, so null means blank.
+    { value: 'c2pa_viewer_found',  group: 'Analysis',     label: 'C2PA data found',              types: ALL_TYPES,    blank: r => r.c2pa_viewer_found == null },
+  ];
+
+  // One group per LLM: its model / version plus an entry per prompt.
+  LLM_PROVIDERS.forEach(p => {
+    REQUIRED_FIELDS.push({
+      value: p.key + '_model',
+      group: p.label,
+      label: 'Model / version',
+      qualify: true,
+      types: ALL_TYPES,
+      blank: r => !(r[_llmModelField(p.key)] || '').trim(),
+    });
+    LLM_QUESTIONS.forEach(q => {
+      REQUIRED_FIELDS.push({
+        value: p.key + '_' + q.id,
+        group: p.label,
+        label: q.text,
+        qualify: true,
+        types: ALL_TYPES,
+        blank: r => !_llmRespText((r[_llmRespField(p.key)] || {})[q.id]).trim(),
+      });
+    });
+  });
 
   // Pull the response text out of a stored entry, tolerating either the
   // {question, response} object form or a bare string.
-  function _claudeRespText(entry) {
+  function _llmRespText(entry) {
     if (!entry) return '';
     return typeof entry === 'string' ? entry : (entry.response || '');
   }
@@ -664,19 +736,43 @@
     done();
   }
 
-  // Build the list of prompt + response blocks for a phase (once). Each prompt
-  // is shown as a heading with a Copy button, and a response textarea below it.
-  function _buildClaudeQuestions(prefix) {
-    const container = document.getElementById('an-' + prefix + '-claude-questions');
-    if (!container || container.childElementCount) return;
-    CLAUDE_QUESTIONS.forEach(q => {
+  // Build one provider's card: a labelled heading linking to the LLM, a
+  // Model / version input, then a prompt + response block per question. Each
+  // prompt gets a Copy button so it can be pasted straight into the chat.
+  function _buildLlmCard(prefix, provider) {
+    const card = document.createElement('div');
+    card.className = 'section-card';
+
+    const heading = document.createElement('div');
+    heading.className = 'section-label';
+    heading.textContent = provider.label + ' Results - ';
+    const link = document.createElement('a');
+    link.href = provider.url;
+    link.target = '_blank';
+    link.textContent = provider.site;
+    heading.appendChild(link);
+
+    const modelField = document.createElement('div');
+    modelField.className = 'field';
+    const modelLabel = document.createElement('label');
+    modelLabel.textContent = 'Model / version';
+    const modelInput = document.createElement('input');
+    modelInput.type = 'text';
+    modelInput.id = _llmModelId(prefix, provider.key);
+    modelInput.className = 'field-required';
+    modelInput.placeholder = provider.modelHint;
+    modelField.append(modelLabel, modelInput);
+
+    card.append(heading, modelField);
+
+    LLM_QUESTIONS.forEach(q => {
       const block = document.createElement('div');
-      block.className = 'claude-q';
+      block.className = 'llm-q';
 
       const head = document.createElement('div');
-      head.className = 'claude-q-head';
+      head.className = 'llm-q-head';
       const label = document.createElement('span');
-      label.className = 'claude-q-text';
+      label.className = 'llm-q-text';
       label.textContent = q.text;
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
@@ -686,35 +782,55 @@
       head.append(label, copyBtn);
 
       const resp = document.createElement('textarea');
-      resp.id = 'an-' + prefix + '-claude-resp-' + q.id;
+      resp.id = _llmRespId(prefix, provider.key, q.id);
       resp.className = 'field-required';
-      resp.placeholder = "Claude's response…";
+      resp.placeholder = provider.label + "'s response…";
 
       block.append(head, resp);
-      container.appendChild(block);
+      card.appendChild(block);
+    });
+
+    // Match the other section boxes: collapsible, with a chevron trigger.
+    _makeAccordion(card);
+    return card;
+  }
+
+  // Build every provider card for a phase (once).
+  function _buildLlmSections(prefix) {
+    const container = document.getElementById('an-' + prefix + '-llm-sections');
+    if (!container || container.childElementCount) return;
+    LLM_PROVIDERS.forEach(p => container.appendChild(_buildLlmCard(prefix, p)));
+  }
+
+  function fillLlmSections(prefix, rec) {
+    _buildLlmSections(prefix);
+    LLM_PROVIDERS.forEach(p => {
+      setVal(_llmModelId(prefix, p.key), rec[_llmModelField(p.key)] || '');
+      const stored = rec[_llmRespField(p.key)] || {};
+      LLM_QUESTIONS.forEach(q => {
+        setVal(_llmRespId(prefix, p.key, q.id), _llmRespText(stored[q.id]));
+      });
     });
   }
 
-  function fillClaudeSection(prefix, rec) {
-    _buildClaudeQuestions(prefix);
-    setVal('an-' + prefix + '-claude-model', rec.claude_model || '');
-    const stored = rec.claude_responses || {};
-    CLAUDE_QUESTIONS.forEach(q => {
-      setVal('an-' + prefix + '-claude-resp-' + q.id, _claudeRespText(stored[q.id]));
+  function getLlmFields(prefix, rec) {
+    const fields = {};
+    LLM_PROVIDERS.forEach(p => {
+      // Start from what is already stored so answers to retired prompts — ones
+      // no longer in LLM_QUESTIONS, and so with no textarea on screen — survive
+      // a save instead of being dropped.
+      const responses = Object.assign({}, (rec && rec[_llmRespField(p.key)]) || {});
+      // Keep only non-empty answers, storing the question text alongside each.
+      // Clearing a visible textarea still removes that answer.
+      LLM_QUESTIONS.forEach(q => {
+        const text = getVal(_llmRespId(prefix, p.key, q.id));
+        if (text) responses[q.id] = { question: _llmQuestionText[q.id], response: text };
+        else delete responses[q.id];
+      });
+      fields[_llmModelField(p.key)] = getVal(_llmModelId(prefix, p.key));
+      fields[_llmRespField(p.key)] = responses;
     });
-  }
-
-  function getClaudeFields(prefix) {
-    // Keep only non-empty answers, storing the question text alongside each.
-    const responses = {};
-    CLAUDE_QUESTIONS.forEach(q => {
-      const text = getVal('an-' + prefix + '-claude-resp-' + q.id);
-      if (text) responses[q.id] = { question: _claudeQuestionText[q.id], response: text };
-    });
-    return {
-      claude_model: getVal('an-' + prefix + '-claude-model'),
-      claude_responses: responses,
-    };
+    return fields;
   }
 
   function _buildC2paTable(tableEl, detailsEl, c2paDetails) {
@@ -861,8 +977,11 @@
   function fillAnalysisSection(prefix, rec) {
     const hasViewerData = rec.c2pa_viewer_found !== null && rec.c2pa_viewer_found !== undefined || !!rec.c2pa_viewer_notes;
     const hasAiOrNotData = !!rec.aiornot_decision || !!rec.aiornot_verdict || (rec.aiornot_generators && rec.aiornot_generators.length);
-    const hasClaudeData = !!rec.claude_model || (rec.claude_responses && Object.keys(rec.claude_responses).length);
-    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasClaudeData;
+    const hasLlmData = LLM_PROVIDERS.some(p => {
+      const resp = rec[_llmRespField(p.key)];
+      return !!rec[_llmModelField(p.key)] || (resp && Object.keys(resp).length);
+    });
+    const hasData = rec.indicators || rec.exif_anomalies || rec.c2pa_status || (rec.artifacts && rec.artifacts.length) || rec.artifact_notes || hasViewerData || hasAiOrNotData || hasLlmData;
     const section  = document.getElementById('an-' + prefix + '-section');
     const empty    = document.getElementById('an-' + prefix + '-empty');
     const results  = document.getElementById('an-' + prefix + '-results');
@@ -876,7 +995,7 @@
       _fillIndicatorsSection(prefix, rec);
       fillViewerSection(prefix, rec);
       fillAiOrNotSection(prefix, rec);
-      fillClaudeSection(prefix, rec);
+      fillLlmSections(prefix, rec);
       return;
     }
     if (empty) empty.style.display = 'none';
@@ -901,7 +1020,7 @@
 
     fillViewerSection(prefix, rec);
     fillAiOrNotSection(prefix, rec);
-    fillClaudeSection(prefix, rec);
+    fillLlmSections(prefix, rec);
     _renderElaPreview('an-' + prefix + '-ela-preview', 'an-' + prefix + '-ela-img', rec.ela_image_b64);
   }
 
@@ -1020,7 +1139,7 @@
         dims: getVal('p0_dims'),
         notes: getVal('p0_notes'),
         ...getViewerFields('p0'),
-        ...getClaudeFields('p0')
+        ...getLlmFields('p0', rec)
       });
       showStatus('status-p0', 'Saved', 'success');
     }
@@ -1037,7 +1156,7 @@
         mod_filename: getVal('p1_mod_filename'),
         notes: getVal('p1_notes'),
         ...getViewerFields('p1'),
-        ...getClaudeFields('p1')
+        ...getLlmFields('p1', rec)
       });
       showStatus('status-p1', 'Saved', 'success');
     }
@@ -1064,7 +1183,7 @@
         watermark_description: getVal('p2_watermark_desc'),
         notes: getVal('p2_notes'),
         ...getViewerFields('p2'),
-        ...getClaudeFields('p2')
+        ...getLlmFields('p2', rec)
       });
       showStatus('status-p2a', 'Saved', 'success');
     }
@@ -3132,94 +3251,124 @@
     });
   }
 
-  // Transform the static .section-card boxes into Shadcn-style accordions:
-  // the section label becomes a clickable trigger (with a rotating chevron)
-  // over animated, collapsible content. Items start open so data entry is
-  // unaffected; nothing in the app depends on the original box markup.
-  function initAccordions() {
+  // Turn one .section-card into a Shadcn-style accordion: the section label
+  // becomes a clickable trigger (with a rotating chevron) over animated,
+  // collapsible content. Items start collapsed.
+  function _makeAccordion(card) {
     const NS = 'http://www.w3.org/2000/svg';
-    document.querySelectorAll('.section-card').forEach(card => {
-      if (card.dataset.accordion) return;
-      const trigger = card.querySelector(':scope > .section-label');
-      if (!trigger) return;
-      card.dataset.accordion = '1';
-      card.classList.add('accordion-item');
+    if (card.dataset.accordion) return;
+    const trigger = card.querySelector(':scope > .section-label');
+    if (!trigger) return;
+    card.dataset.accordion = '1';
+    card.classList.add('accordion-item');
 
-      // Move everything after the label into an animated content wrapper.
-      const content = document.createElement('div');
-      content.className = 'accordion-content';
-      const inner = document.createElement('div');
-      inner.className = 'accordion-content-inner';
-      while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
-      content.appendChild(inner);
-      card.appendChild(content);
+    // Move everything after the label into an animated content wrapper.
+    const content = document.createElement('div');
+    content.className = 'accordion-content';
+    const inner = document.createElement('div');
+    inner.className = 'accordion-content-inner';
+    while (trigger.nextSibling) inner.appendChild(trigger.nextSibling);
+    content.appendChild(inner);
+    card.appendChild(content);
 
-      // Turn the label into the trigger: keep its existing content (text and
-      // any links) grouped in a title span on the left, chevron on the right.
-      trigger.classList.add('accordion-trigger');
-      trigger.setAttribute('role', 'button');
-      trigger.setAttribute('tabindex', '0');
-      trigger.setAttribute('aria-expanded', 'false');
-      const title = document.createElement('span');
-      title.className = 'accordion-title';
-      while (trigger.firstChild) title.appendChild(trigger.firstChild);
-      trigger.appendChild(title);
-      const chev = document.createElementNS(NS, 'svg');
-      chev.setAttribute('class', 'accordion-chevron');
-      chev.setAttribute('viewBox', '0 0 24 24');
-      chev.setAttribute('fill', 'none');
-      chev.setAttribute('stroke', 'currentColor');
-      chev.setAttribute('stroke-width', '2');
-      chev.setAttribute('stroke-linecap', 'round');
-      chev.setAttribute('stroke-linejoin', 'round');
-      const path = document.createElementNS(NS, 'path');
-      path.setAttribute('d', 'm6 9 6 6 6-6');
-      chev.appendChild(path);
-      trigger.appendChild(chev);
+    // Turn the label into the trigger: keep its existing content (text and
+    // any links) grouped in a title span on the left, chevron on the right.
+    trigger.classList.add('accordion-trigger');
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', '0');
+    trigger.setAttribute('aria-expanded', 'false');
+    const title = document.createElement('span');
+    title.className = 'accordion-title';
+    while (trigger.firstChild) title.appendChild(trigger.firstChild);
+    trigger.appendChild(title);
+    const chev = document.createElementNS(NS, 'svg');
+    chev.setAttribute('class', 'accordion-chevron');
+    chev.setAttribute('viewBox', '0 0 24 24');
+    chev.setAttribute('fill', 'none');
+    chev.setAttribute('stroke', 'currentColor');
+    chev.setAttribute('stroke-width', '2');
+    chev.setAttribute('stroke-linecap', 'round');
+    chev.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', 'm6 9 6 6 6-6');
+    chev.appendChild(path);
+    trigger.appendChild(chev);
 
-      // Animate height between 0 and the content's natural height. While
-      // animating, overflow is hidden; when fully open it returns to visible
-      // (height:auto) so hover tooltips inside aren't clipped.
-      const setOpen = open => {
-        card.classList.toggle('open', open);
-        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
-        content.style.overflow = 'hidden';
-        if (open) {
-          content.style.height = content.scrollHeight + 'px';
-          content.addEventListener('transitionend', function te(e) {
-            if (e.propertyName !== 'height') return;
-            content.removeEventListener('transitionend', te);
-            if (card.classList.contains('open')) {
-              content.style.height = 'auto';
-              content.style.overflow = 'visible';
-            }
-          });
-        } else {
-          content.style.height = content.scrollHeight + 'px';
-          void content.offsetHeight;  // force reflow so the next line animates
-          content.style.height = '0px';
-        }
-      };
-
-      // Collapsed by default (no animation on load).
-      content.style.height = '0px';
+    // Animate height between 0 and the content's natural height. While
+    // animating, overflow is hidden; when fully open it returns to visible
+    // (height:auto) so hover tooltips inside aren't clipped.
+    const setOpen = open => {
+      card.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
       content.style.overflow = 'hidden';
+      if (open) {
+        content.style.height = content.scrollHeight + 'px';
+        content.addEventListener('transitionend', function te(e) {
+          if (e.propertyName !== 'height') return;
+          content.removeEventListener('transitionend', te);
+          if (card.classList.contains('open')) {
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+          }
+        });
+      } else {
+        content.style.height = content.scrollHeight + 'px';
+        void content.offsetHeight;  // force reflow so the next line animates
+        content.style.height = '0px';
+      }
+    };
 
-      trigger.addEventListener('click', e => {
-        if (e.target.closest('a')) return;  // let links in the header work
-        setOpen(!card.classList.contains('open'));
-      });
-      trigger.addEventListener('keydown', e => {
-        if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
-          e.preventDefault();
-          setOpen(!card.classList.contains('open'));
-        }
-      });
+    // Collapsed by default (no animation on load).
+    content.style.height = '0px';
+    content.style.overflow = 'hidden';
+
+    trigger.addEventListener('click', e => {
+      if (e.target.closest('a')) return;  // let links in the header work
+      setOpen(!card.classList.contains('open'));
     });
+    trigger.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) {
+        e.preventDefault();
+        setOpen(!card.classList.contains('open'));
+      }
+    });
+  }
+
+  // Fill the Blank field dropdown from REQUIRED_FIELDS, one optgroup per
+  // section so the LLM entries stay distinguishable (each has a
+  // "Model / version" of its own).
+  function initBlankFieldFilter() {
+    const sel = document.getElementById('filter-blank-field');
+    if (!sel) return;
+    let group = null;
+    REQUIRED_FIELDS.forEach(f => {
+      if (!group || group.label !== f.group) {
+        group = document.createElement('optgroup');
+        group.label = f.group;
+        sel.appendChild(group);
+      }
+      const opt = document.createElement('option');
+      opt.value = f.value;
+      // A closed <select> shows only the option, not its group, so entries that
+      // repeat across the LLMs name their provider. Prompt labels are full
+      // sentences, so trim them to fit the sidebar and keep the full text as a
+      // tooltip.
+      const full = f.qualify ? f.group + ' — ' + f.label : f.label;
+      opt.textContent = full.length > 44 ? full.slice(0, 43).trimEnd() + '…' : full;
+      opt.title = full;
+      group.appendChild(opt);
+    });
+  }
+
+  // Convert every section box present at boot. Cards built later — the LLM
+  // provider cards — are converted by _buildLlmCard as they are created.
+  function initAccordions() {
+    document.querySelectorAll('.section-card').forEach(_makeAccordion);
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   initAccordions();
+  initBlankFieldFilter();
   loadModels();
   loadInputImages();
   loadRecords();
