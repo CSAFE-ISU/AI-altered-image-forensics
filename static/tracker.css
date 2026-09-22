@@ -350,7 +350,7 @@
      keep it lowercase and stormy-teal coloured like the AI or Not record link. */
   .dash-group-link {
     text-transform: none; letter-spacing: normal;
-    color: #25747e; font-weight: 400;
+    color: var(--stormy-teal); font-weight: 400;
   }
   .dash-group[open] > summary {
     border-bottom: 1px solid var(--border);
