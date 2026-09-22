@@ -1,0 +1,85 @@
+{
+  "SourceFile": "C:/Users/bagle/Documents/AI-altered-image-forensics/altered images/gemini/renamed/csafe-042-b003.jpg",
+  "ExifTool:ExifToolVersion": 13.59,
+  "System:FileName": "csafe-042-b003.jpg",
+  "System:Directory": "C:/Users/bagle/Documents/AI-altered-image-forensics/altered images/gemini/renamed",
+  "System:FileSize": "764 kB",
+  "System:FileModifyDate": "2026:09:11 16:54:54-05:00",
+  "System:FileAccessDate": "2026:09:15 15:19:23-05:00",
+  "System:FileCreateDate": "2026:09:11 16:35:05-05:00",
+  "System:FilePermissions": "-rw-rw-rw-",
+  "File:FileType": "JPEG",
+  "File:FileTypeExtension": "jpg",
+  "File:MIMEType": "image/jpeg",
+  "File:ImageWidth": 896,
+  "File:ImageHeight": 1195,
+  "File:EncodingProcess": "Baseline DCT, Huffman coding",
+  "File:BitsPerSample": 8,
+  "File:ColorComponents": 3,
+  "File:YCbCrSubSampling": "YCbCr4:2:0 (2 2)",
+  "JFIF:JFIFVersion": 1.01,
+  "JFIF:ResolutionUnit": "None",
+  "JFIF:XResolution": 1,
+  "JFIF:YResolution": 1,
+  "JUMBF:JUMDType": "(c2pa)-0011-0010-800000aa00389b71",
+  "JUMBF:JUMDLabel": "c2pa",
+  "CBOR:Item0": "(Binary data 1578 bytes, use -b option to extract)",
+  "CBOR:Item1SigTst2TstTokensVal": "(Binary data 2012 bytes, use -b option to extract)",
+  "CBOR:Item1RValsOcspVals": [
+    "(Binary data 1012 bytes, use -b option to extract)",
+    "(Binary data 0 bytes, use -b option to extract)"
+  ],
+  "CBOR:Item1Pad": "(Binary data 72 bytes, use -b option to extract)",
+  "CBOR:Item1Pad2": "(Binary data 1 bytes, use -b option to extract)",
+  "CBOR:Item2": "null",
+  "CBOR:Item3": "(Binary data 64 bytes, use -b option to extract)",
+  "CBOR:InstanceID": "df8ea7b8-5ae9-470f-04b3-441399a80b4d",
+  "CBOR:Claim_Generator_InfoName": "Google C2PA Core Generator Library",
+  "CBOR:Claim_Generator_InfoVersion": "977245686:977245686",
+  "CBOR:Created_AssertionsUrl": [
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3__1",
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3__2",
+    "self#jumbf=c2pa.assertions/c2pa.actions.v2",
+    "self#jumbf=c2pa.assertions/c2pa.hash.data"
+  ],
+  "CBOR:Created_AssertionsHash": [
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)"
+  ],
+  "CBOR:Signature": "self#jumbf=c2pa.signature",
+  "CBOR:Alg": "sha256",
+  "CBOR:ExclusionsStart": 20,
+  "CBOR:ExclusionsLength": 6954,
+  "CBOR:Hash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:Pad": "(Binary data 14 bytes, use -b option to extract)",
+  "CBOR:ActionsAction": [
+    "c2pa.created",
+    "c2pa.edited"
+  ],
+  "CBOR:ActionsDescription": [
+    "Created by Google Generative AI.",
+    "Applied imperceptible SynthID watermark."
+  ],
+  "CBOR:ActionsDigitalSourceType": [
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+  ],
+  "CBOR:ActionsParametersIngredientsUrl": [
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3__1",
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3__2"
+  ],
+  "CBOR:ActionsParametersIngredientsHash": [
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)"
+  ],
+  "CBOR:Relationship": "inputTo",
+  "CBOR:Description": "Input ingredient 2",
+  "Composite:ImageSize": "896x1195",
+  "Composite:Megapixels": 1.1
+}

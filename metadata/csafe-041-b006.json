@@ -1,0 +1,76 @@
+{
+  "SourceFile": "C:/Users/bagle/Documents/AI-altered-image-forensics/altered images/photoshop/renamed/csafe-041-b006.png",
+  "ExifTool:ExifToolVersion": 13.59,
+  "System:FileName": "csafe-041-b006.png",
+  "System:Directory": "C:/Users/bagle/Documents/AI-altered-image-forensics/altered images/photoshop/renamed",
+  "System:FileSize": "1705 kB",
+  "System:FileModifyDate": "2026:09:11 16:54:54-05:00",
+  "System:FileAccessDate": "2026:09:15 15:28:48-05:00",
+  "System:FileCreateDate": "2026:09:11 16:27:08-05:00",
+  "System:FilePermissions": "-rw-rw-rw-",
+  "File:FileType": "PNG",
+  "File:FileTypeExtension": "png",
+  "File:MIMEType": "image/png",
+  "PNG:ImageWidth": 1024,
+  "PNG:ImageHeight": 1024,
+  "PNG:BitDepth": 8,
+  "PNG:ColorType": "RGB",
+  "PNG:Compression": "Deflate/Inflate",
+  "PNG:Filter": "Adaptive",
+  "PNG:Interlace": "Noninterlaced",
+  "IPTC:Credit": "Made with Google AI",
+  "Photoshop:IPTCDigest": "c8b38965b44537a918a7e75998c8e3f6",
+  "XMP-x:XMPToolkit": "Adobe XMP Core 7.0-c000",
+  "XMP-iptcExt:DigitalSourceFileType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+  "XMP-iptcExt:DigitalSourceType": "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+  "XMP-photoshop:Credit": "Made with Google AI",
+  "JUMBF:JUMDType": "(c2pa)-0011-0010-800000aa00389b71",
+  "JUMBF:JUMDLabel": "c2pa",
+  "CBOR:Item0": "(Binary data 1577 bytes, use -b option to extract)",
+  "CBOR:Item1Pad": "(Binary data 1659 bytes, use -b option to extract)",
+  "CBOR:Item1Pad2": "(Binary data 6 bytes, use -b option to extract)",
+  "CBOR:Item1RValsOcspVals": [
+    "(Binary data 1010 bytes, use -b option to extract)",
+    "null"
+  ],
+  "CBOR:Item1SigTst2TstTokensVal": "(Binary data 2013 bytes, use -b option to extract)",
+  "CBOR:Item2": "null",
+  "CBOR:Item3": "(Binary data 64 bytes, use -b option to extract)",
+  "CBOR:InstanceID": "66c48ac1-ef05-e649-3535-4013a1ffb9c2",
+  "CBOR:Claim_Generator_InfoName": "Google C2PA Core Generator Library",
+  "CBOR:Claim_Generator_InfoVersion": "974154588:977359787",
+  "CBOR:Created_AssertionsUrl": [
+    "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+    "self#jumbf=c2pa.assertions/c2pa.actions.v2",
+    "self#jumbf=c2pa.assertions/c2pa.hash.data"
+  ],
+  "CBOR:Created_AssertionsHash": [
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)",
+    "(Binary data 32 bytes, use -b option to extract)"
+  ],
+  "CBOR:Signature": "self#jumbf=c2pa.signature",
+  "CBOR:Alg": "sha256",
+  "CBOR:ExclusionsStart": 954,
+  "CBOR:ExclusionsLength": 7937,
+  "CBOR:Hash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:Pad": "(Binary data 12 bytes, use -b option to extract)",
+  "CBOR:ActionsAction": [
+    "c2pa.created",
+    "c2pa.edited"
+  ],
+  "CBOR:ActionsDescription": [
+    "Created by Google Generative AI.",
+    "Applied imperceptible SynthID watermark."
+  ],
+  "CBOR:ActionsDigitalSourceType": [
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
+    "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia"
+  ],
+  "CBOR:ActionsParametersIngredientsUrl": "self#jumbf=c2pa.assertions/c2pa.ingredient.v3",
+  "CBOR:ActionsParametersIngredientsHash": "(Binary data 32 bytes, use -b option to extract)",
+  "CBOR:Relationship": "inputTo",
+  "CBOR:Description": "Input ingredient 0",
+  "Composite:ImageSize": "1024x1024",
+  "Composite:Megapixels": 1.0
+}
