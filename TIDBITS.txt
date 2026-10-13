@@ -1,0 +1,24 @@
+AI Altered Image: csafe-001-recomp-b007.jpg
+Claude: Revised statement from "AI" to "Not AI" after second question asked. 
+
+Original Image: csafe-002
+Gemini: Called real image fake due to unintelligible text (erased whiteboard)
+
+AI Altered Image: csafe-002-003.png
+ChatGPT: Produced 3 pictures of real(?) blood splatters for comparison while answering the 'Identify any specific regions [...]' (saved into outputfromllms folder)
+Grok: Thought for 5 minutes while answering "[...] altered with AI?" and linked to this article (https://iowastatedaily.com/5045/news/martin-hall-racist-drawing-has-anything-changed/) as a source for some reason
+
+AI Altered Image: csafe-002-b004.jpg
+For all of these responses, I uploaded the actual image from my computer, rather than copy and paste from the app.
+Grok: Figured out the image came from the GitHub repo, and linked me back to it. Only Grok was able to do this. 
+
+AI Altered Image: csafe-003-b004.png
+Gemini: Responded '5' to the first question "Has this image been altered with AI?". Look at outputfromllms.
+Not too relevant to the project, just thought it was funny.
+
+AI Altered Image: csafe-007-b001.jpg
+Gemini: Accidentally closed Gemini between first question "Has this image been altered with AI?" and second question "Without use of the tool [...]". Gemini responded "Under no circumstances can I make a statement about whether an image has been altered or generated with AI without using the verification tool." 
+	This happened again for another image, but I reasked the question and it answered. Odd.
+
+
+
